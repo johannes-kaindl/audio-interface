@@ -190,8 +190,14 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     this.refresh();
   }
 
+  /** Gemessen (Obsidian 1.13.7, 2026-08-15): beim Öffnen des Tabs ruft der Host weder `display()`
+   *  noch `getSettingDefinitions()`, sondern rendert die beim `addSettingTab` gecachten
+   *  `settingItems` — und ruft vorher `hide()`. Bedingte Zeilen (Engine-Zeile, Export-Felder)
+   *  wären sonst so alt wie der Plugin-Start; deshalb stößt `hide()` einen Refresh an, der die
+   *  Zustände frisch liest und `update()` ruft. Beim Schließen läuft er ebenfalls — harmlos. */
   hide(): void {
     this.cleanupPrevious();
     this.cleanupPrevious = () => {};
+    this.refresh();
   }
 }

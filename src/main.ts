@@ -66,7 +66,9 @@ export default class AudioInterfacePlugin extends Plugin {
     this.registerCommands();
     this.addRibbonIcon("audio-lines", t("cmd.speakNote"), () => void this.speakActive("note"));
     void this.system.waitForVoices();
-    void this.refreshReadiness();
+    // Der native Settings-Renderer (≥1.13) cacht die Definitionen beim addSettingTab — sobald die
+    // Bereitschaft bekannt ist, einmal nachziehen.
+    void this.refreshReadiness().then(() => this.settingTab.refresh());
   }
 
   onunload(): void {

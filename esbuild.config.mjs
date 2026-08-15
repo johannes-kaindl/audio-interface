@@ -27,6 +27,10 @@ const worker = await esbuild.context({
   // ephone hat einen Node-Zweig (createRequire) — im Worker nie erreicht, aber der Bundler muss den
   // Import auflösen können; node:* bleibt extern.
   external: ["node:*"],
+  // Gemessen (Obsidian 1.13.7 / Electron 39): auch ein Web Worker im Renderer hat ein `process`-Objekt
+  // (nodeIntegrationInWorker). ephone prueft `globalThis.process?.versions?.node` und haelt sich dann
+  // fuer Node → `import("node:module")` scheitert. Zur Build-Zeit wegdefinieren; der Worker ist Browser.
+  define: { "globalThis.process": "undefined" },
   // ephone exportiert nur ".", die Lang-Packs liegen aber als Dateien im Paket — Alias statt Subpath.
   alias: { "ephone/lang/gmw.js": "./node_modules/ephone/lang/gmw.js" },
   outfile: "dist-assets/piper-worker.js",
