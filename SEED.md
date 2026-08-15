@@ -1,5 +1,13 @@
 # SEED — audio-interface (Obsidian-Plugin für Sprachein- und -ausgabe)
 
+> **Stand überholt (2026-08-15, gleiche Tag-Session):** Die offene Frage unten ist entschieden und
+> Release 1 gebaut — verbindlich sind jetzt `docs/superpowers/specs/2026-08-15-audio-interface-release-1-design.md`
+> (Entscheidungen § 0), `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md` (Messwerte) und
+> `AGENTS.md`. Zwei Korrekturen an den Belegen unten: (1) WASM im Renderer kostet **nicht** die
+> Note — `local-voiceover` verliert Passed über Lizenz/`getSettingDefinitions`, nicht über WASM;
+> inline gebündelt kostet erst `main.js > 5 MB`. (2) Die Submit-Doku verbietet **keine weiteren
+> Release-Assets**; der Installer holt nur die drei Dateien. Der Text bleibt als Herkunft stehen.
+
 **Stand 2026-08-15.** Erarbeitet in einer Brainstorming-Session im Repo
 `../../audio-ui` (Code-Workspace) (Python/MLX-Kern). Dieses Dokument ist der Übergabepunkt:
 Es hält fest, was **belegt** ist, was **entschieden** ist und was **offen** bleibt — damit
