@@ -1,0 +1,57 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MarkdownView, TFile, WorkspaceLeaf } from "obsidian";
+import { makeFakeApp } from "../vendor/kit/obsidian-mock";
+import AudioInterfacePlugin from "../../src/main";
+
+// Renderer-Globals, die main.ts beim Laden anfasst — minimal gestubbt.
+const fakeSynth = { getVoices: () => [{ voiceURI: "de1", name: "Anna", lang: "de-DE", localService: true }], speak: vi.fn(), cancel: vi.fn(), pause: vi.fn(), resume: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() };
+beforeEach(() => {
+  (globalThis as unknown as { window: unknown }).window = { speechSynthesis: fakeSynth, setTimeout, clearTimeout };
+  (globalThis as unknown as { activeWindow: unknown }).activeWindow = { fetch: vi.fn() };
+  (globalThis as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = class { text: string; constructor(t: string) { this.text = t; } };
+  (globalThis as unknown as { caches: unknown }).caches = { open: async () => ({ match: async () => undefined, put: async () => {}, delete: async () => true }) };
+});
+
+async function load(data: unknown = null) {
+  const app = makeFakeApp();
+  app.loadLocalStorage = () => null;
+  const plugin = new AudioInterfacePlugin(app, { id: "audio-interface", name: "Audio Interface", version: "0.1.0" } as never);
+  await plugin.saveData(data);
+  await plugin.onload();
+  await new Promise((r) => setTimeout(r, 0));
+  return { app, plugin };
+}
+const cmd = (plugin: AudioInterfacePlugin, id: string) => (plugin as unknown as { commands: { id: string; checkCallback?: (c: boolean) => boolean; callback?: () => void }[] }).commands.find((c) => c.id === id)!;
+
+describe("AudioInterfacePlugin", () => {
+  it("registriert sechs Kommandos und einen Settings-Tab", async () => {
+    const { plugin } = await load();
+    const ids = (plugin as unknown as { commands: { id: string }[] }).commands.map((c) => c.id).sort();
+    expect(ids).toEqual(["export-note-wav", "export-selection-wav", "speak-note", "speak-selection", "speak-stop", "speak-toggle-pause"]);
+    expect((plugin as unknown as { settingTabs: unknown[] }).settingTabs.length).toBe(1);
+  });
+  it("Export-Kommandos sind ohne bereite Engine ausgeblendet", async () => {
+    const { plugin, app } = await load({ exportEnabled: false });
+    const view = new MarkdownView(new WorkspaceLeaf()); (view as unknown as { file: TFile }).file = new TFile();
+    app.workspace.getActiveViewOfType.mockReturnValue(view);
+    expect(cmd(plugin, "export-note-wav").checkCallback!(true)).toBe(false);
+  });
+  it("Export-Kommandos erscheinen mit Opt-in + bereiter Engine und Markdown-View", async () => {
+    const { plugin, app } = await load({ exportEnabled: true });
+    (plugin as unknown as { readiness: string }).readiness = "ready";
+    expect(cmd(plugin, "export-note-wav").checkCallback!(true)).toBe(false); // keine View
+    const view = new MarkdownView(new WorkspaceLeaf()); (view as unknown as { file: TFile }).file = new TFile();
+    app.workspace.getActiveViewOfType.mockReturnValue(view);
+    expect(cmd(plugin, "export-note-wav").checkCallback!(true)).toBe(true);
+  });
+  it("Settings werden normalisiert geladen", async () => {
+    const { plugin } = await load({ speakRate: 7, exportProfile: "mp3" });
+    expect(plugin.settings.speakRate).toBe(2); expect(plugin.settings.exportProfile).toBe("phone-8k");
+  });
+  it("onunload stoppt und gibt die Engine frei", async () => {
+    const { plugin } = await load();
+    const dispose = vi.spyOn(plugin.piper, "dispose"); const stop = vi.spyOn(plugin.speaker, "stop");
+    plugin.onunload();
+    expect(dispose).toHaveBeenCalled(); expect(stop).toHaveBeenCalled();
+  });
+});

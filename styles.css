@@ -1,0 +1,15 @@
+/* audio-interface — nur Theme-Variablen (UI-STANDARD). */
+.audio-interface-status.is-hidden {
+  display: none;
+}
+.audio-interface-status {
+  cursor: pointer;
+}
+.audio-interface-engine-state {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-right: var(--size-4-2);
+}
+.audio-interface-engine-state.mod-warning {
+  color: var(--text-warning);
+}
