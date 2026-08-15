@@ -15,7 +15,7 @@ interface WorkerScope {
   close(): void;
   onmessage: ((e: MessageEvent<WorkerRequest>) => void) | null;
 }
-const scope = globalThis as unknown as WorkerScope;
+const scope = self as unknown as WorkerScope;
 
 const post = (m: WorkerResponse, transfer: Transferable[] = []): void => scope.postMessage(m, transfer);
 
