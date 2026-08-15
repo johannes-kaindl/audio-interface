@@ -11,7 +11,7 @@ describe("engine-manifest", () => {
     expect(totalBytes(piper)).toBeGreaterThan(70_000_000);
     for (const a of piper.assets) {
       expect(a.bytes).toBeGreaterThan(0);
-      expect(a.sha256 === "" || /^[0-9a-f]{64}$/.test(a.sha256)).toBe(true);
+      expect(a.sha256).toMatch(/^[0-9a-f]{64}$/);
     }
   });
   it("assetUrl hängt Version und Dateiname an, ohne doppelte Slashes", () => {
