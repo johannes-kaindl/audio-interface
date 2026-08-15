@@ -63,7 +63,7 @@ export function splitSentences(paragraph: string): string[] {
   const trimmed = paragraph.trim();
   if (!trimmed) return [];
   const pieces = trimmed
-    .split(/(?<=[.!?…])\s+(?=[A-ZÄÖÜ0-9„"'“(\[])/u)
+    .split(/(?<=[.!?…])\s+(?=[A-ZÄÖÜ0-9„"'“([])/u)
     .map((p) => p.trim())
     .filter(Boolean);
   const out: string[] = [];
