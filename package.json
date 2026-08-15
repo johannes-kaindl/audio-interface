@@ -1,0 +1,40 @@
+{
+  "name": "audio-interface",
+  "version": "0.1.0",
+  "description": "Read notes aloud with system voices and export them as WAV with a local, downloadable German voice. No cloud, no account.",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs --production",
+    "assets": "node scripts/build-assets.mjs",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json --noEmit",
+    "test": "node scripts/check-no-abs-paths.mjs && node scripts/check-no-nul-bytes.mjs && vitest run --passWithNoTests",
+    "lint": "node scripts/check-no-inline-disables.mjs && eslint src --max-warnings 0",
+    "check:pure": "node scripts/check-pure.mjs",
+    "check:bundle": "node esbuild.config.mjs --production && node scripts/check-bundle.mjs",
+    "gate": "npm run lint && npm run typecheck && npm run typecheck:test && npm run typecheck:scripts && npm test && npm run check:pure && npm run check:bundle",
+    "deploy": "npm run build && cp main.js manifest.json styles.css \"${OBSIDIAN_PLUGIN_DIR:?set OBSIDIAN_PLUGIN_DIR}\"/",
+    "smoke:gui": "esbuild scripts/gui-smoke.ts --bundle --platform=node --format=esm --outfile=.gui-smoke.mjs --log-level=warning && node .gui-smoke.mjs",
+    "release": "test -f ../tools/release/release.mjs || { echo \"FEHLER: ../tools/release/ fehlt. Dieses Repo muss im Dach-Verzeichnis obsidian-plugins/ neben tools/ liegen — das Release-Tooling liegt dort zentral, nicht im Plugin. Ein Clone ohne Dach ist nicht release-faehig.\" >&2; exit 1; }; node ../tools/release/release.mjs",
+    "version-bump": "test -f ../tools/release/version-bump.mjs || { echo \"FEHLER: ../tools/release/ fehlt.\" >&2; exit 1; }; node ../tools/release/version-bump.mjs",
+    "preflight": "test -f ../tools/release/preflight.mjs || { echo \"FEHLER: ../tools/release/ fehlt.\" >&2; exit 1; }; node ../tools/release/preflight.mjs"
+  },
+  "keywords": ["obsidian", "obsidian-plugin", "tts", "text-to-speech", "read-aloud", "wav", "piper", "local-first"],
+  "author": "Johannes Kaindl",
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "@types/node": "^20",
+    "esbuild": "^0.23",
+    "eslint": "^9",
+    "eslint-plugin-obsidianmd": "^0.4.1",
+    "obsidian": "latest",
+    "typescript": "^5.5",
+    "typescript-eslint": "^8",
+    "vitest": "^2",
+    "onnxruntime-web": "1.27.0",
+    "ephone": "1.0.2",
+    "ws": "^8"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "audio-interface",
+  "name": "Audio Interface",
+  "version": "0.1.0",
+  "minAppVersion": "1.8.7",
+  "description": "Read notes aloud with system voices and export them as WAV with a local, downloadable German voice. No cloud, no account.",
+  "author": "Johannes Kaindl",
+  "authorUrl": "https://github.com/johannes-kaindl",
+  "fundingUrl": "",
+  "isDesktopOnly": true
+}

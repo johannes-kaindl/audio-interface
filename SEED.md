@@ -1,7 +1,7 @@
 # SEED — audio-interface (Obsidian-Plugin für Sprachein- und -ausgabe)
 
 **Stand 2026-08-15.** Erarbeitet in einer Brainstorming-Session im Repo
-`/Users/Shared/code/audio-ui` (Python/MLX-Kern). Dieses Dokument ist der Übergabepunkt:
+`../../audio-ui` (Code-Workspace) (Python/MLX-Kern). Dieses Dokument ist der Übergabepunkt:
 Es hält fest, was **belegt** ist, was **entschieden** ist und was **offen** bleibt — damit
 die nächste Session nicht neu recherchiert, sondern weiterentscheidet.
 
@@ -17,8 +17,8 @@ existiert bereits lokal und ist vermessen:
 
 | Ort | Was dort liegt |
 |---|---|
-| `/Users/Shared/code/audio-ui` | STT-Kern: `capture` · `endpointing` · `stt`. Parakeet TDT 0.6b v3, deutschfähig, WER 3,8 %, RTF 0,02. Endpointing mit `silero-vad`, 800 ms Nachlaufstille, Segment 0,61 s nach Sprechende. |
-| `/Users/Shared/40_Tools/TTS` | TTS-Labor: Qwen3-TTS auf Apple Silicon. `voicelab/` mit Stimmen-Registry, Personas, Voice Cloning, Markdown-Aufbereitung, PCM-Export. |
+| `../../audio-ui` (Code-Workspace) | STT-Kern: `capture` · `endpointing` · `stt`. Parakeet TDT 0.6b v3, deutschfähig, WER 3,8 %, RTF 0,02. Endpointing mit `silero-vad`, 800 ms Nachlaufstille, Segment 0,61 s nach Sprechende. |
+| `$SHARED/40_Tools/TTS` | TTS-Labor: Qwen3-TTS auf Apple Silicon. `voicelab/` mit Stimmen-Registry, Personas, Voice Cloning, Markdown-Aufbereitung, PCM-Export. |
 
 **Der konkrete erste Anlass** ist kein Chatbot, sondern ein Alltagsfall: Telefon-Mailbox-Ansagen
 als Text schreiben, vertonen und als 8-kHz-WAV fürs 3CX-System exportieren. Die Notiz dazu:
@@ -185,7 +185,7 @@ Drei Auflösungen stehen zur Wahl, entschieden ist keine:
 | Ort | Rolle |
 |---|---|
 | `../../audio-ui` | Python/MLX-Kern, Messwerte, `AGENTS.md` mit allen STT-Zahlen |
-| `/Users/Shared/40_Tools/TTS` | `voicelab/` — Stimmen, Personas, Cloning, PCM-Export |
+| `$SHARED/40_Tools/TTS` | `voicelab/` — Stimmen, Personas, Cloning, PCM-Export |
 | `../koda-agent` | späterer Konsument der Duplex-Schleife |
 | Cockpit `audio-ui` | `obsidian://open?vault=10_Pallas&file=25_Coding%2Faudio-ui%2Faudio-ui` |
 | TaskNote | `25_Coding/audio-ui/_Tasks/Sprachgrenze — Daemon oder native TypeScript-Implementierung.md` |
