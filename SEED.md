@@ -5,8 +5,8 @@
 Es hält fest, was **belegt** ist, was **entschieden** ist und was **offen** bleibt — damit
 die nächste Session nicht neu recherchiert, sondern weiterentscheidet.
 
-Kein Code, kein `git init`, keine Struktur außer diesem Dokument und `tools/scorecard.py`.
-Der Zuschnitt des Repos ist selbst noch offen (siehe § Die offene Frage).
+Kein Code, keine Struktur außer diesem Dokument und `tools/scorecard.py`. Das Repo ist initialisiert,
+aber ohne Remote — der Zuschnitt ist selbst noch offen (siehe § Die offene Frage).
 
 ---
 
