@@ -41,7 +41,7 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
-  const merged = mergeSettings(DEFAULT_SETTINGS, raw) as Record<string, unknown>;
+  const merged = mergeSettings(DEFAULT_SETTINGS, raw) as unknown as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   // Typ je Feld gegen den Default prüfen — ein Feld mit fremdem Typ fällt auf den Default zurück.
   for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {

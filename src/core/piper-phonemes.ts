@@ -42,11 +42,11 @@ export function parsePiperConfig(json: unknown): PiperConfig {
   if (!isRecord(audio) || typeof audio.sample_rate !== "number") throw new Error("piper config: audio.sample_rate missing");
   if (!isRecord(espeak) || typeof espeak.voice !== "string") throw new Error("piper config: espeak.voice missing");
   if (!isRecord(inference)) throw new Error("piper config: inference missing");
-  const num = (k: string, def: number): number => (typeof inference[k] === "number" ? (inference[k] as number) : def);
+  const num = (k: string, def: number): number => (typeof inference[k] === "number" ? (inference[k]) : def);
   if (!isRecord(map)) throw new Error("piper config: phoneme_id_map missing");
   const idMap: Record<string, number[]> = {};
   for (const [k, v] of Object.entries(map)) {
-    if (Array.isArray(v) && v.every((x) => typeof x === "number")) idMap[k] = v as number[];
+    if (Array.isArray(v) && v.every((x) => typeof x === "number")) idMap[k] = v;
   }
   return {
     audio: { sample_rate: audio.sample_rate },
