@@ -4,9 +4,9 @@ import type { EngineDescriptor } from "../../src/core/engine-manifest";
 import { AssetStore, type CacheLike, type StoreDeps } from "../../src/obsidian/asset-store";
 
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
-const bytes = (n: number, seed = 1) => Uint8Array.from({ length: n }, (_, i) => (i * seed + 7) % 251);
+const bytes = (n: number, seed = 1): Uint8Array<ArrayBuffer> => { const u = new Uint8Array(new ArrayBuffer(n)); for (let i = 0; i < n; i++) u[i] = (i * seed + 7) % 251; return u; };
 
-function makeEngine(files: Record<string, Uint8Array>): EngineDescriptor {
+function makeEngine(files: Record<string, Uint8Array<ArrayBuffer>>): EngineDescriptor {
   return {
     id: "e", kind: "loadable", label: "E", lang: "de", sampleRate: 22050, licenseSummary: "",
     assets: [
@@ -18,17 +18,17 @@ function makeEngine(files: Record<string, Uint8Array>): EngineDescriptor {
   };
 }
 
-function memCache(): CacheLike & { store: Map<string, Uint8Array> } {
-  const store = new Map<string, Uint8Array>();
+function memCache(): CacheLike & { store: Map<string, Uint8Array<ArrayBuffer>> } {
+  const store = new Map<string, Uint8Array<ArrayBuffer>>();
   return {
     store,
-    async match(url) { const b = store.get(url); return b ? new Response(new Blob([b])) : undefined; },
-    async put(url, res) { store.set(url, new Uint8Array(await res.arrayBuffer())); },
+    async match(url) { const b = store.get(url); return b ? new Response(b) : undefined; },
+    async put(url, res) { store.set(url, new Uint8Array(await res.arrayBuffer()) as Uint8Array<ArrayBuffer>); },
     async delete(url) { return store.delete(url); },
   };
 }
 
-function streamOf(data: Uint8Array, chunk = 7, opts: { signal?: AbortSignal; stopAfter?: number } = {}): ReadableStream<Uint8Array> {
+function streamOf(data: Uint8Array<ArrayBuffer>, chunk = 7, opts: { signal?: AbortSignal; stopAfter?: number } = {}): ReadableStream<Uint8Array> {
   let pos = 0;
   return new ReadableStream({
     pull(controller) {
@@ -41,7 +41,7 @@ function streamOf(data: Uint8Array, chunk = 7, opts: { signal?: AbortSignal; sto
   });
 }
 
-function makeDeps(files: Record<string, Uint8Array>, cache: CacheLike, opts: { fail?: string; short?: string; abortAt?: { name: string; ctrl: AbortController; afterBytes: number } } = {}): StoreDeps {
+function makeDeps(files: Record<string, Uint8Array<ArrayBuffer>>, cache: CacheLike, opts: { fail?: string; short?: string; abortAt?: { name: string; ctrl: AbortController; afterBytes: number } } = {}): StoreDeps {
   return {
     openCache: async () => cache,
     fetchFn: async (url, init) => {
@@ -52,7 +52,7 @@ function makeDeps(files: Record<string, Uint8Array>, cache: CacheLike, opts: { f
       if (opts.abortAt?.name === name) {
         const { ctrl, afterBytes } = opts.abortAt;
         let sent = 0;
-        const s = new ReadableStream<Uint8Array>({ pull(c) { if (sent >= afterBytes) { ctrl.abort(); } if (sent >= data.length) { c.close(); return; } c.enqueue(data.subarray(sent, sent + 5)); sent += 5; } });
+        const s = new ReadableStream<Uint8Array<ArrayBuffer>>({ pull(c) { if (sent >= afterBytes) { ctrl.abort(); } if (sent >= data.length) { c.close(); return; } c.enqueue(data.subarray(sent, sent + 5)); sent += 5; } });
         return new Response(s, { headers: { "content-length": String(data.length) } });
       }
       return new Response(streamOf(data, 7, { signal: init?.signal }), { headers: { "content-length": String(data.length) } });
