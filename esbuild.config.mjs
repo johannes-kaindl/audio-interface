@@ -23,6 +23,12 @@ const worker = await esbuild.context({
   ...common,
   entryPoints: ["src/worker/piper-worker.ts"],
   format: "esm",
+  platform: "browser",
+  // ephone hat einen Node-Zweig (createRequire) — im Worker nie erreicht, aber der Bundler muss den
+  // Import auflösen können; node:* bleibt extern.
+  external: ["node:*"],
+  // ephone exportiert nur ".", die Lang-Packs liegen aber als Dateien im Paket — Alias statt Subpath.
+  alias: { "ephone/lang/gmw.js": "./node_modules/ephone/lang/gmw.js" },
   outfile: "dist-assets/piper-worker.js",
 });
 
