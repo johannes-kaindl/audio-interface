@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Liest die Obsidian-Community-Scorecard eines Plugins aus der gerenderten Seite."""
+
+# Kanonische Fassung: ~/.claude/skills/obsidian-store-recherche/scripts/scorecard.py
+# (Skill `obsidian-store-recherche`, angelegt 2026-08-15). Diese Kopie liegt hier, damit das
+# Repo ohne den Skill auskommt — Aenderungen gehoeren zuerst in den Skill.
 import re, sys, json, urllib.request
 
 STUFEN = ("pass", "info", "low", "medium", "high", "critical")

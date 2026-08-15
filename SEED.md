@@ -45,7 +45,8 @@ Aus `obsidianmd/obsidian-developer-docs`, Wortlaut:
 ### 2. Es gibt öffentliche Scorecards — und eine Rangfolge
 
 Jede Plugin-Seite auf `community.obsidian.md/plugins/<id>` trägt zwei Noten (**Health**,
-**Review**) samt Volltext aller Befunde. `tools/scorecard.py` liest sie aus:
+**Review**) samt Volltext aller Befunde. `tools/scorecard.py` liest sie aus (kanonisch im Skill `obsidian-store-recherche`, diese Kopie
+ist die Vendoring-Fassung des Repos):
 
 ```bash
 python3 tools/scorecard.py vault-retrieval note-reader-cosyvoice
