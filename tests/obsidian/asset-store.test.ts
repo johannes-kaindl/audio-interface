@@ -22,7 +22,7 @@ function memCache(): CacheLike & { store: Map<string, Uint8Array> } {
   const store = new Map<string, Uint8Array>();
   return {
     store,
-    async match(url) { const b = store.get(url); return b ? new Response(b) : undefined; },
+    async match(url) { const b = store.get(url); return b ? new Response(new Blob([b])) : undefined; },
     async put(url, res) { store.set(url, new Uint8Array(await res.arrayBuffer())); },
     async delete(url) { return store.delete(url); },
   };
