@@ -1,0 +1,62 @@
+name: Release assets
+
+# Lädt die Engine-Assets (Piper-Worker, ORT-WASM, Stimme, Config) an dasselbe GitHub-Release, das
+# `release.yml` angelegt hat. Eigener Workflow, damit `release.yml` byte-identisch zur zentralen
+# Vorlage bleibt (tools/template_drift_check.py). Baut die Assets in CI neu und verlangt, dass die
+# dabei entstehenden Prüfsummen exakt denen im committeten Manifest entsprechen — sonst würde main.js
+# die hochgeladenen Dateien zur Laufzeit ablehnen (SHA-256-Prüfung vor dem Instanziieren).
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag whose release gets the assets (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  assets:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.inputs.tag || github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build assets (worker bundle, ORT wasm, voice)
+        run: npm run assets
+
+      - name: Verify checksums match the committed manifest
+        # Die Manifest-Datei wird von `npm run assets` neu geschrieben. Weicht sie vom Commit ab,
+        # passen die CI-Assets nicht zu dem main.js, das das Release trägt → abbrechen.
+        run: git diff --exit-code -- src/core/engine-manifest.generated.ts
+
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist-assets/*
+
+      - name: Upload assets to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          gh release upload "$tag" dist-assets/* --clobber
