@@ -32,9 +32,11 @@ function makeHost(over: Partial<SettingsHost> & { status?: AssetStatus; readines
   };
   return { host, calls };
 }
-const makeTab = (host: SettingsHost) => new AudioInterfaceSettingTab(new App() as never, new Plugin() as never, host);
+const makeTab = (host: SettingsHost) => new AudioInterfaceSettingTab(new App() as never, new (Plugin as unknown as new () => never)(), host);
 const flat = (tab: AudioInterfaceSettingTab) => tab.getSettingDefinitions().flatMap((g) => ("items" in g ? g.items ?? [] : [g])) as { name?: string; control?: { key: string; options?: Record<string, string> }; render?: unknown }[];
-const rowsIn = (tab: AudioInterfaceSettingTab) => tab.containerEl.children.filter((c: { className: string }) => c.className.includes("setting-item")).length;
+const el = (tab: AudioInterfaceSettingTab) => tab.containerEl as unknown as FakeEl;
+type FakeEl = { children: FakeEl[]; className: string; textContent?: string; __component?: { textValue?: string; clickCB?: () => void } };
+const rowsIn = (tab: AudioInterfaceSettingTab) => el(tab).children.filter((c) => c.className.includes("setting-item")).length;
 
 describe("AudioInterfaceSettingTab", () => {
   it("Export aus: nur Stimme, Tempo, Export-Toggle, Dienst-Hinweis; deutsche Stimme zuerst im Dropdown", () => {
@@ -89,22 +91,22 @@ describe("AudioInterfaceSettingTab", () => {
 
 function allText(tab: AudioInterfaceSettingTab): string {
   const parts: string[] = [];
-  const walk = (el: { children?: unknown[]; textContent?: string; __component?: { textValue?: string } }): void => {
-    if (el.textContent) parts.push(el.textContent);
-    if (el.__component?.textValue) parts.push(el.__component.textValue);
-    for (const c of el.children ?? []) walk(c as never);
+  const walk = (e: FakeEl): void => {
+    if (e.textContent) parts.push(e.textContent);
+    if (e.__component?.textValue) parts.push(e.__component.textValue);
+    for (const c of e.children ?? []) walk(c);
   };
-  walk(tab.containerEl);
+  walk(el(tab));
   return parts.join(" | ");
 }
 
 function findButton(tab: AudioInterfaceSettingTab, text: string): { clickCB: () => void } {
   const found: { clickCB: () => void }[] = [];
-  const walk = (el: { children?: unknown[]; __component?: { textValue?: string; clickCB?: () => void } }): void => {
-    if (el.__component?.textValue?.includes(text)) found.push(el.__component as { clickCB: () => void });
-    for (const c of el.children ?? []) walk(c as never);
+  const walk = (e: FakeEl): void => {
+    if (e.__component?.textValue?.includes(text)) found.push(e.__component as { clickCB: () => void });
+    for (const c of e.children ?? []) walk(c);
   };
-  walk(tab.containerEl);
+  walk(el(tab));
   if (!found[0]) throw new Error(`button "${text}" not found`);
   return found[0];
 }
