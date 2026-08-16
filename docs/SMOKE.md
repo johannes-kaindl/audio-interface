@@ -59,6 +59,7 @@ Ohne `--assets` laufen nur 1–4; 5–8 werden als übersprungen gemeldet.
 
 | Datum | Obsidian | Ergebnis | Gegenprobe |
 |---|---|---|---|
+| 2026-08-16 | 1.13.7, Aufnahme-Vault `audio-interface` (englische Oberfläche), Manifest korrigiert, Cache-Schlüssel basisunabhängig | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | — |
 | 2026-08-15 | 1.13.7 / Electron 39.7.0, macOS, 00_ProtoVault | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | eine SHA-256 im generierten Manifest verfälscht → **genau Punkt 7 rot** (Engine `unavailable`, Punkt 6 bleibt grün, weil der Download nicht prüft — die Prüfung sitzt vor dem Instanziieren) |
 
 Zwei Befunde aus dem ersten Lauf, beide im Code festgehalten:

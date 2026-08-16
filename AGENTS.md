@@ -13,8 +13,11 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
   Prüfsummen stehen in `src/core/engine-manifest.generated.ts` (von `npm run assets` geschrieben —
   nie von Hand). Nach jeder Änderung am Worker (`src/worker/`, `src/core/audio.ts`,
   `src/core/piper-phonemes.ts`) **`npm run assets` laufen lassen und das Manifest mitcommitten**,
-  sonst lehnt `main.js` den CI-gebauten Worker ab (`release-assets.yml` prüft `git diff` auf die
-  Manifest-Datei).
+  sonst lehnt `main.js` den CI-gebauten Worker ab. Zwei Wächter: `npm run check:manifest` im Gate
+  (baut die Assets neu, verlangt `git diff --exit-code` auf die Manifest-Datei) und derselbe Diff in
+  `release-assets.yml`. **Gemessen 2026-08-16:** ein `git checkout` der generierten Datei nach einer
+  Gegenprobe holte den *committeten* — veralteten — Hash zurück; erst der Gate-Schritt fing das.
+  Generierte Dateien nie per `checkout` „zurücksetzen", sondern neu generieren.
 - **`src/core/` ist pur** (kein `obsidian`, kein DOM — `check:pure`). Engines/Store/Exporter in
   `src/obsidian/` mit injizierten Deps (Store, Worker-Fabrik, Clock, Vault-Port).
 - **Settings:** `getSettingDefinitions()` ist die einzige Wahrheit; bedingte Zeilen weglassen, nicht
