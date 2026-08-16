@@ -8,6 +8,7 @@ import type { EngineReadiness } from "../core/engines";
 import type { RunState } from "../core/run-state";
 import { normalizeSettings, SPEAK_RATE, type AudioInterfaceSettings } from "../core/settings-types";
 import { t } from "../i18n/strings";
+import { getLang } from "../vendor/kit/i18n";
 import { confirmAction } from "../vendor/kit-obsidian/confirm";
 import { FolderSuggest } from "../vendor/kit-obsidian/folder-suggest";
 import { refreshSettingsTab, renderSettingDefinitions } from "../vendor/kit-obsidian/settings_walker";
@@ -103,15 +104,19 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     ];
   }
 
+  private size(): string {
+    return formatBytes(totalBytes(this.host.piperDescriptor), getLang() === "de" ? "," : ".");
+  }
+
   private engineDesc(): string {
     const d = this.host.piperDescriptor;
-    return t("settings.engine.desc", formatBytes(totalBytes(d)), this.host.assetBaseUrl, d.licenseSummary);
+    return t("settings.engine.desc", this.size(), this.host.assetBaseUrl, d.licenseSummary);
   }
 
   /** Engine-Zeile: Zustand + genau der Knopf, der jetzt sinnvoll ist. */
   private renderEngineRow(setting: Setting): void {
     const dl = this.host.downloadState();
-    const size = formatBytes(totalBytes(this.host.piperDescriptor));
+    const size = this.size();
     setting.setName(this.host.piperDescriptor.label);
     setting.setDesc(this.engineDesc());
     if (dl.kind === "running") {
@@ -132,7 +137,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       return;
     }
     if (this.assetStatus === "complete") {
-      setting.controlEl.createSpan({ text: t("settings.engine.ready", ASSET_VERSION, size), cls: "audio-interface-engine-state" });
+      setting.controlEl.createSpan({ text: t("settings.engine.ready", ASSET_VERSION), cls: "audio-interface-engine-state" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.remove")).onClick(() => void this.confirmRemove()));
       return;
     }

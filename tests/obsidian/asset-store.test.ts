@@ -69,47 +69,47 @@ describe("AssetStore", () => {
   it("status: missing → partial → complete", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache));
     expect(await store.status(engine)).toBe("missing");
-    cache.store.set("https://x/releases/download/0.1.0/w.js", FILES["w.js"]);
+    cache.store.set("https://audio-interface.invalid/0.1.0/w.js", FILES["w.js"]);
     expect(await store.status(engine)).toBe("partial");
     await store.download(engine, () => {}, new AbortController().signal);
     expect(await store.status(engine)).toBe("complete");
   });
   it("download lädt nur fehlende Dateien, Fortschritt monoton bis Gesamtgröße", async () => {
     const cache = memCache(); const engine = makeEngine(FILES);
-    cache.store.set("https://x/releases/download/0.1.0/w.js", FILES["w.js"]);
+    cache.store.set("https://audio-interface.invalid/0.1.0/w.js", FILES["w.js"]);
     const store = new AssetStore(makeDeps(FILES, cache));
     const seen: number[] = []; const names = new Set<string>();
     await store.download(engine, (p) => { seen.push(p.overallReceived); names.add(p.fileName); expect(p.overallTotal).toBe(440); }, new AbortController().signal);
     expect(names.has("w.js")).toBe(false);
     expect(seen.every((v, i) => i === 0 || v >= seen[i - 1])).toBe(true);
     expect(seen[seen.length - 1]).toBe(440);
-    expect(cache.store.get("https://x/releases/download/0.1.0/m.onnx")).toEqual(FILES["m.onnx"]);
+    expect(cache.store.get("https://audio-interface.invalid/0.1.0/m.onnx")).toEqual(FILES["m.onnx"]);
   });
   it("HTTP 404 → wirft, nichts von dieser Datei im Cache", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache, { fail: "o.wasm" }));
     await expect(store.download(engine, () => {}, new AbortController().signal)).rejects.toThrow(/HTTP 404/);
-    expect(cache.store.has("https://x/releases/download/0.1.0/w.js")).toBe(true);
-    expect(cache.store.has("https://x/releases/download/0.1.0/o.wasm")).toBe(false);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/w.js")).toBe(true);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/o.wasm")).toBe(false);
   });
   it("Content-Length ≠ empfangen → Datei gelöscht, wirft", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache, { short: "m.onnx" }));
     await expect(store.download(engine, () => {}, new AbortController().signal)).rejects.toThrow(/incomplete/);
-    expect(cache.store.has("https://x/releases/download/0.1.0/m.onnx")).toBe(false);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/m.onnx")).toBe(false);
   });
   it("Abbruch mitten im Stream → AbortError, fertige Dateien bleiben, angefangene weg", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const ctrl = new AbortController();
     const store = new AssetStore(makeDeps(FILES, cache, { abortAt: { name: "m.onnx", ctrl, afterBytes: 40 } }));
     await expect(store.download(engine, () => {}, ctrl.signal)).rejects.toMatchObject({ name: "AbortError" });
-    expect(cache.store.has("https://x/releases/download/0.1.0/w.js")).toBe(true);
-    expect(cache.store.has("https://x/releases/download/0.1.0/o.wasm")).toBe(true);
-    expect(cache.store.has("https://x/releases/download/0.1.0/m.onnx")).toBe(false);
-    expect(cache.store.has("https://x/releases/download/0.1.0/m.json")).toBe(false);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/w.js")).toBe(true);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/o.wasm")).toBe(true);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/m.onnx")).toBe(false);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/m.json")).toBe(false);
   });
   it("verify erkennt manipulierte Bytes und nennt Datei + Summen", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache));
     await store.download(engine, () => {}, new AbortController().signal);
     expect(await store.verify(engine)).toEqual({ ok: true });
-    cache.store.set("https://x/releases/download/0.1.0/o.wasm", bytes(120, 4));
+    cache.store.set("https://audio-interface.invalid/0.1.0/o.wasm", bytes(120, 4));
     const r = await store.verify(engine);
     expect(r.ok).toBe(false);
     if (!r.ok) { expect(r.fileName).toBe("o.wasm"); expect(r.expected).toBe(sha(FILES["o.wasm"])); expect(r.actual).toBe(sha(bytes(120, 4))); }

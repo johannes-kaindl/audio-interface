@@ -63,7 +63,7 @@ describe("AudioInterfaceSettingTab", () => {
     const { host } = makeHost({ status: "complete", readiness: "ready" }); host.settings.exportEnabled = true;
     const tab = makeTab(host); tab.display(); await flush();
     expect(flat(tab).some((i) => i.control?.key === "speakWithLoadable")).toBe(true);
-    expect(allText(tab)).toContain("Bereit (Version");
+    expect(allText(tab)).toContain("Bereit · v");
     expect(findButton(tab, "Entfernen")).toBeTruthy();
   });
   it("laufender Download: Fortschritt + Abbrechen", async () => {

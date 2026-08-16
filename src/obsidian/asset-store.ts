@@ -42,8 +42,16 @@ export function abortError(): Error {
 export class AssetStore {
   constructor(private readonly deps: StoreDeps) {}
 
+  /** Bezugs-URL (woher geladen wird). */
   private urlFor(file: AssetFile): string {
     return assetUrl(this.deps.baseUrl, this.deps.assetVersion, file);
+  }
+
+  /** Cache-Schlüssel — bewusst OHNE Bezugs-URL: Version + Datei. Ein anderer Bezugsweg (Mirror,
+   *  lokaler Server im Smoke) darf den Bestand nicht unsichtbar machen; die Prüfsumme bindet die
+   *  Bytes an das Manifest, nicht die Herkunft. Cache API verlangt eine http(s)-URL als Schlüssel. */
+  private keyFor(file: AssetFile): string {
+    return `https://audio-interface.invalid/${this.deps.assetVersion}/${file.fileName}`;
   }
 
   private fileFor(engine: EngineDescriptor, key: AssetKey): AssetFile {
@@ -55,7 +63,7 @@ export class AssetStore {
   async cachedFiles(engine: EngineDescriptor): Promise<AssetFile[]> {
     const cache = await this.deps.openCache();
     const out: AssetFile[] = [];
-    for (const f of engine.assets) if (await cache.match(this.urlFor(f))) out.push(f);
+    for (const f of engine.assets) if (await cache.match(this.keyFor(f))) out.push(f);
     return out;
   }
 
@@ -75,6 +83,7 @@ export class AssetStore {
     for (let i = 0; i < todo.length; i++) {
       const file = todo[i];
       const url = this.urlFor(file);
+      const key = this.keyFor(file);
       if (signal.aborted) throw abortError();
       const res = await this.deps.fetchFn(url, { signal });
       if (!res.ok || !res.body) throw new Error(`download failed: HTTP ${res.status} for ${file.fileName}`);
@@ -82,7 +91,7 @@ export class AssetStore {
       const expected = lengthHeader === null ? null : Number(lengthHeader);
       const totalBytes = expected ?? file.bytes;
       const [progressBranch, cacheBranch] = res.body.tee();
-      const putDone = cache.put(url, new Response(cacheBranch, { headers: res.headers }));
+      const putDone = cache.put(key, new Response(cacheBranch, { headers: res.headers }));
       // No-op-Catch: putDone läuft NEBEN der Leseschleife; scheitert der Stream, gäbe es sonst eine
       // unhandledrejection, bevor unten `await putDone` das echte Ergebnis sieht.
       putDone.catch(() => {});
@@ -103,11 +112,11 @@ export class AssetStore {
         await putDone;
       } catch (err) {
         await putDone.catch(() => {});
-        await cache.delete(url);
+        await cache.delete(key);
         throw err;
       }
       if (expected !== null && received !== expected) {
-        await cache.delete(url);
+        await cache.delete(key);
         throw new Error(`download incomplete for ${file.fileName} (${received}/${expected} bytes)`);
       }
     }
@@ -124,7 +133,7 @@ export class AssetStore {
 
   private async matchOrThrow(engine: EngineDescriptor, key: AssetKey): Promise<Response> {
     const cache = await this.deps.openCache();
-    const res = await cache.match(this.urlFor(this.fileFor(engine, key)));
+    const res = await cache.match(this.keyFor(this.fileFor(engine, key)));
     if (!res) throw new Error(`asset not downloaded: ${key}`);
     return res;
   }
@@ -139,7 +148,7 @@ export class AssetStore {
 
   async remove(engine: EngineDescriptor): Promise<void> {
     const cache = await this.deps.openCache();
-    for (const f of engine.assets) await cache.delete(this.urlFor(f));
+    for (const f of engine.assets) await cache.delete(this.keyFor(f));
   }
 }
 

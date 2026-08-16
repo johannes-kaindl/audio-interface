@@ -13,3 +13,6 @@
 .audio-interface-engine-state.mod-warning {
   color: var(--text-warning);
 }
+.audio-interface-engine-state {
+  white-space: nowrap;
+}
