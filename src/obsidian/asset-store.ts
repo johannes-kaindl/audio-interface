@@ -2,7 +2,9 @@
 // Asset-Ablage über die Cache API: liegt im Electron-Profil AUSSERHALB des Vaults (nie gesynct),
 // überlebt Neustarts, Datei-Granularität beim Retry. Neu gegenüber der Vorlage: SHA-256-Prüfung
 // gegen das eingebettete Manifest und Abbruch per AbortSignal. Deps injizierbar → Node-testbar.
+import { requestUrl } from "obsidian";
 import { assetUrl, type AssetFile, type AssetKey, type EngineDescriptor } from "../core/engine-manifest";
+import { withTimeout } from "../vendor/kit/timeout";
 
 export const ASSET_CACHE_NAME = "audio-interface-engines";
 
@@ -157,10 +159,28 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(h), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Gemessen 2026-08-16: `fetch` gegen `github.com/…/releases/download/…` scheitert im Renderer
+ *  (Origin `app://obsidian.md`) an CORS — der erste Hop (302 auf objects.githubusercontent.com)
+ *  traegt keine CORS-Header. Ein lokaler Smoke-Server mit `Access-Control-Allow-Origin: *` verdeckt
+ *  das. Obsidians `requestUrl` geht am CORS vorbei (REGISTRY „Endpunkt-Probe mit requestUrl"), kennt
+ *  aber weder Streaming noch Abort: der Koerper kommt am Stueck (63 MB im Speicher — tragbar), der
+ *  Fortschritt springt je Datei, ein Abbruch wirkt zwischen den Dateien. Deshalb hier ein Zeitlimit
+ *  je Datei, sonst hinge ein stockender Download ewig. */
+const PER_FILE_TIMEOUT_MS = 15 * 60_000;
+
+async function fetchViaRequestUrl(url: string): Promise<Response> {
+  const timers = { setTimeout: (fn: () => void, ms: number) => window.setTimeout(fn, ms), clearTimeout: (id: number) => window.clearTimeout(id) };
+  const result = await withTimeout(requestUrl({ url, method: "GET", throw: false }), PER_FILE_TIMEOUT_MS, timers);
+  if (result.timedOut) throw new Error(`download timed out: ${url}`);
+  const r = result.value;
+  const body = r.status >= 200 && r.status < 300 ? r.arrayBuffer : null;
+  return new Response(body, { status: r.status, headers: body ? { "content-length": String(body.byteLength) } : {} });
+}
+
 export function realStoreDeps(assetVersion: string, baseUrl: string): StoreDeps {
   return {
     openCache: () => caches.open(ASSET_CACHE_NAME),
-    fetchFn: (url, init) => activeWindow.fetch(url, init),
+    fetchFn: (url) => fetchViaRequestUrl(url),
     digest: sha256Hex,
     assetVersion,
     baseUrl,

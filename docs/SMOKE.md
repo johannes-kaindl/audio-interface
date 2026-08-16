@@ -59,6 +59,7 @@ Ohne `--assets` laufen nur 1–4; 5–8 werden als übersprungen gemeldet.
 
 | Datum | Obsidian | Ergebnis | Gegenprobe |
 |---|---|---|---|
+| 2026-08-16 (2) | 1.13.7, Aufnahme-Vault, **`--assets https://github.com/johannes-kaindl/audio-interface/releases/download` (echtes Release 0.1.0)** | zuerst **5/8** — Download „Failed to fetch": CORS auf dem GitHub-Redirect, vom lokalen Server (CORS `*`) verdeckt; nach Umstellung auf `requestUrl` **8/8 grün** (Export 99 004 B, 8000 Hz, 6,2 s) | — |
 | 2026-08-16 | 1.13.7, Aufnahme-Vault `audio-interface` (englische Oberfläche), Manifest korrigiert, Cache-Schlüssel basisunabhängig | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | — |
 | 2026-08-15 | 1.13.7 / Electron 39.7.0, macOS, 00_ProtoVault | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | eine SHA-256 im generierten Manifest verfälscht → **genau Punkt 7 rot** (Engine `unavailable`, Punkt 6 bleibt grün, weil der Download nicht prüft — die Prüfung sitzt vor dem Instanziieren) |
 
@@ -71,6 +72,10 @@ Zwei Befunde aus dem ersten Lauf, beide im Code festgehalten:
 - **Ein Web Worker im Obsidian-Renderer hat ein `process`-Objekt** (Electron). ephone hält sich
   dann für Node und lädt `node:module`. Im Worker-Bundle wird `globalThis.process` zur Build-Zeit
   auf `undefined` definiert (`esbuild.config.mjs`).
+
+**Regel seit dem zweiten Lauf:** nach jedem Release den Smoke einmal mit dem **echten** Release als
+Quelle fahren (`--assets https://github.com/johannes-kaindl/audio-interface/releases/download`). Der
+lokale Server beweist die Pipeline, nicht den Bezugsweg — und genau der schlug fehl.
 
 ## Nicht automatisiert (Hand-Runde)
 

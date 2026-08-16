@@ -23,6 +23,11 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
 - **Settings:** `getSettingDefinitions()` ist die einzige Wahrheit; bedingte Zeilen weglassen, nicht
   `visible:false`. Obsidian 1.13 cacht die Definitionen beim `addSettingTab` und ruft beim Öffnen
   nur `hide()` → `refresh()` dort und nach jeder Zustandsänderung (`update()`).
+- **Downloads über `requestUrl`, nie `fetch`:** der Renderer (`app://obsidian.md`) scheitert per CORS
+  am `github.com`-Redirect der Release-Assets (gemessen 2026-08-16, „Failed to fetch"); der lokale
+  Smoke-Server mit `Access-Control-Allow-Origin: *` verdeckt das. Preis: kein Byte-Streaming
+  (Fortschritt je Datei, Abbruch zwischen Dateien), deshalb Zeitlimit je Datei. Nach jedem Release den
+  Smoke einmal gegen das echte Release fahren.
 - **Worker:** `numThreads = 1` (kein crossOriginIsolated), `wasmBinary` aus dem Cache, Backend
   `wasm`; `globalThis.process` im Worker-Bundle wegdefiniert (Electron-Worker hat `process`,
   ephone hielte sich sonst für Node). ephone/eSpeak-NG ist GPL-3 → Plugin AGPL-3.0-or-later.

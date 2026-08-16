@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The voice download from the GitHub release failed inside Obsidian (`Failed to fetch`): the
+  renderer's `fetch` is blocked by CORS on GitHub's redirect. Downloads now go through Obsidian's
+  `requestUrl` (per-file timeout 15 min). Progress advances per file rather than per byte, and
+  cancelling takes effect between files.
+- Cache keys of the downloaded assets no longer depend on the download URL (version + file name),
+  so a different source (mirror, local server) never hides an existing download.
+
+### Changed
+
+- Settings: the engine row says “Ready · v0.1.0” instead of repeating the size; the decimal
+  separator of sizes follows the UI language.
+
 ## [0.1.0] — 2026-08-16
 
 ### Added
