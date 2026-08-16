@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["node"], "module": "ESNext" },
-  "include": ["scripts/**/*.ts"]
+  "include": ["scripts/**/*.ts", "src/worker/ephone.d.ts"]
 }

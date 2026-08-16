@@ -31,6 +31,9 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
   englischen Varianten), gewählt über `langPackFor(config.espeak.voice)`. Nicht `en-us` nehmen:
   Piper setzt für en_US-Stimmen mal `en-us`, mal `en` (ljspeech, kristin), und `en-us` kennt nur
   `en-US`. Beide Packs sind im Worker-Bundle (2,8 MB statt 2,2 MB), geladen wird eines.
+  **Eine Stimme wird nach Gehör gewählt, nicht nach Lizenztabelle:** `npm run voice:sample` rendert
+  denselben Text mit beliebigen Kandidaten durch dieselbe Kette (ephone → Ids → ORT → WAV) und
+  beweist nebenbei, dass Sprachpaket und `espeak.voice` zusammenpassen.
 - **Settings:** `getSettingDefinitions()` ist die einzige Wahrheit; bedingte Zeilen weglassen, nicht
   `visible:false`. Obsidian 1.13 cacht die Definitionen beim `addSettingTab` und ruft beim Öffnen
   nur `hide()` → `refresh()` dort und nach jeder Zustandsänderung (`update()`).
@@ -56,6 +59,7 @@ LJSpeech in derselben Kette (Node-Gegenprobe 2026-08-16): RTF 0,17.
 npm run gate                     # lint · typecheck (src/tests/scripts) · tests · check:pure · check:bundle
 npm run assets                   # dist-assets/ bauen + Manifest schreiben (Downloads gecacht unter ~/.cache/audio-interface-assets)
 npm run smoke:gui -- --vault 00_ProtoVault --assets http://127.0.0.1:8765/assets   # docs/SMOKE.md
+npm run voice:sample -- en_US-ljspeech-medium probe.wav [--dir …] [--tempo 0.9] [--de]  # Hörprobe in Node
 npm run release                  # zentrales Tooling ../tools/release/ — Assets lädt release-assets.yml in CI nach
 ```
 
