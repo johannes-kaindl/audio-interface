@@ -10,8 +10,8 @@
 
 Vorlesen funktioniert sofort nach der Installation, mit den Stimmen, die auf deinem Rechner schon
 da sind. Eine Notiz als WAV zu vertonen — etwa eine Mailbox-Ansage für die Telefonanlage — ist ein
-bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann kommt eine deutsche
-Stimme auf die Platte.
+bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann kommt eine Stimme
+(deutsch oder englisch) auf die Platte.
 
 <p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="Eine Notiz mit dem Titel Mailbox greeting in der Leseansicht: drei kurze Absätze einer generischen Telefonansage (englisch), darunter der eingebettete Audio-Player der exportierten WAV-Datei"></p>
 
@@ -19,7 +19,8 @@ Stimme auf die Platte.
 
 - **Vorlesen** der aktuellen Notiz oder Auswahl mit den Systemstimmen — Start, Pause/Weiter und
   Stopp über die Befehlspalette, das Ribbon-Symbol oder die Statusleiste. Nichts einzurichten.
-- **Als WAV exportieren** mit einer ladbaren deutschen Stimme (Piper, *Thorsten*, mittlere Qualität).
+- **Als WAV exportieren** mit einer ladbaren Stimme — **deutsch** (Piper, *Thorsten*) oder
+  **englisch** (Piper, *LJSpeech*), mittlere Qualität, in den Einstellungen umschaltbar.
   Profil **Telefonanlage** (8 kHz mono 16 bit — das erwarten Mailboxen wie 3CX) oder die native
   Abtastrate der Stimme (22,05 kHz). Dateien landen neben der Notiz oder in einem Ordner deiner Wahl
   und werden nie überschrieben.
@@ -37,7 +38,8 @@ Stimme auf die Platte.
   verlässlich.
 - **Vorlesen** nutzt die Stimmen des Betriebssystems. Fehlt eine deutsche, im System eine
   installieren (macOS: Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte → Systemstimme).
-- **WAV-Export** braucht rund 80 MB freien Platz für Stimme und Laufzeit.
+- **WAV-Export** braucht rund 80 MB freien Platz für die erste Stimme samt Laufzeit; eine zweite
+  Stimme kostet noch etwa 60 MB, weil die Laufzeit geteilt wird.
 
 ## Installation
 
@@ -86,7 +88,8 @@ cd audio-interface && npm install && npm run build
 | Tempo | Sprechtempo fürs Vorlesen (0,5×–2×) | 1,0× |
 | Mit der geladenen Stimme vorlesen | Piper-Stimme statt Systemstimme fürs Vorlesen (erscheint erst, wenn die Stimme bereit ist) | aus |
 | WAV-Export aktivieren | Blendet die Stimmen-Zeile und die Export-Felder ein — lädt selbst nichts | aus |
-| Piper · Thorsten (de_DE, medium) | Die ladbare Stimme: Größe, Quelle, Lizenzen, mit **Herunterladen** / **Abbrechen** / **Entfernen** | nicht geladen |
+| Stimme für den Export | Welche ladbare Stimme spricht: *Piper · Thorsten (de_DE)* oder *Piper · LJSpeech (en_US)*. Jeder Eintrag nennt, was er noch kostet, oder *geladen* | folgt der Oberflächensprache von Obsidian |
+| Piper · … (die gewählte Stimme) | Die Stimmen-Zeile: Größe, Quelle, Lizenzen, mit **Herunterladen** / **Abbrechen** / **Entfernen** | nicht geladen |
 | Ausgabeprofil | *Telefonanlage — 8 kHz mono* oder *Nativ (Abtastrate der Stimme)* | Telefonanlage |
 | Zielordner | Vault-Ordner für die WAV-Dateien; leer = neben der Notiz | leer |
 | Dateinamen-Muster | `{{note}}` und `{{date}}` werden ersetzt; vorhandene Dateien bekommen `-2`, `-3`, … | `{{note}}` |
@@ -107,9 +110,13 @@ Server wird angesprochen:
 
 | Datei | Größe | Was das ist | Lizenz |
 |---|---|---|---|
-| `piper-worker.js` | ≈ 2 MB | Synthese-Worker (Piper-Pipeline, eSpeak-NG-Phonemisierer als WASM) | AGPL-3.0-or-later; enthält ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
+| `piper-worker.js` | ≈ 3 MB | Synthese-Worker (Piper-Pipeline, eSpeak-NG-Phonemisierer als WASM, deutsches + englisches Wörterbuch) | AGPL-3.0-or-later; enthält ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
 | `ort-wasm-simd-threaded.wasm` | ≈ 13 MB | ONNX Runtime Web (CPU) | MIT |
 | `de_DE-thorsten-medium.onnx` + `.json` | ≈ 60 MB | Piper-Stimme *Thorsten* (Deutsch, 22,05 kHz) | Datensatz CC0 |
+| `en_US-ljspeech-medium.onnx` + `.json` | ≈ 61 MB | Piper-Stimme *LJSpeech* (Englisch, 22,05 kHz) | Datensatz gemeinfrei |
+
+Geladen wird nur die gewählte Stimme — die ersten beiden Dateien sind geteilt, eine zweite Stimme
+kostet deshalb nur noch ihr Modell.
 
 <table><tr>
 <td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="Die Stimmen-Zeile in den Einstellungen vor dem Download: Name Piper Thorsten, Beschreibung mit Größe, Quelle und Lizenzen, Knopf Download 75.2 MB"></a></td>
@@ -135,7 +142,8 @@ Testgetrieben (`npm run gate`); größere Features über brainstorm → spec →
 ## Lizenz
 
 - **Code:** AGPL-3.0-or-later ([`LICENSE`](LICENSE)).
-- **Fremdkomponenten:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper-Stimme
-  *Thorsten* (Datensatz CC0) — als Release-Assets ausgeliefert, siehe Tabelle oben.
+- **Fremdkomponenten:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper-Stimmen
+  *Thorsten* (Datensatz CC0) und *LJSpeech* (Datensatz gemeinfrei) — als Release-Assets
+  ausgeliefert, siehe Tabelle oben.
 
 Copyright © 2026 Johannes Kaindl.

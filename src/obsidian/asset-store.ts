@@ -69,6 +69,20 @@ export class AssetStore {
     return out;
   }
 
+  /** Alle Dateinamen, die von diesen Engines im Cache liegen — Grundlage für „was fehlt noch".
+   *  Geteilte Dateien (Worker, ORT-WASM) erscheinen einmal, egal wie viele Stimmen sie nennen. */
+  async cachedFileNames(engines: EngineDescriptor[]): Promise<Set<string>> {
+    const cache = await this.deps.openCache();
+    const out = new Set<string>();
+    for (const e of engines) {
+      for (const f of e.assets) {
+        if (out.has(f.fileName)) continue;
+        if (await cache.match(this.keyFor(f))) out.add(f.fileName);
+      }
+    }
+    return out;
+  }
+
   async status(engine: EngineDescriptor): Promise<AssetStatus> {
     const n = (await this.cachedFiles(engine)).length;
     if (n === 0) return "missing";
@@ -148,9 +162,19 @@ export class AssetStore {
     return (await this.matchOrThrow(engine, key)).text();
   }
 
-  async remove(engine: EngineDescriptor): Promise<void> {
+  /** Entfernt die Dateien dieser Stimme. `keepAlive` nennt die übrigen Stimmen: ist eine davon noch
+   *  vollständig geladen, bleiben die GETEILTEN Dateien (Worker, ORT-WASM) liegen — sonst risse das
+   *  Entfernen der einen Stimme der anderen die Laufzeit unter den Füßen weg. */
+  async remove(engine: EngineDescriptor, keepAlive: EngineDescriptor[] = []): Promise<void> {
     const cache = await this.deps.openCache();
-    for (const f of engine.assets) await cache.delete(this.keyFor(f));
+    const keep = new Set<string>();
+    for (const other of keepAlive) {
+      if (other.id === engine.id) continue;
+      const own = other.assets.filter((a) => !engine.assets.some((b) => b.fileName === a.fileName));
+      const cached = await this.cachedFileNames([other]);
+      if (own.length > 0 && own.every((a) => cached.has(a.fileName))) for (const a of other.assets) keep.add(a.fileName);
+    }
+    for (const f of engine.assets) if (!keep.has(f.fileName)) await cache.delete(this.keyFor(f));
   }
 }
 

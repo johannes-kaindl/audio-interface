@@ -10,7 +10,8 @@
 
 Reading aloud works the moment you install the plugin, with the voices already on your computer.
 Exporting a note as a WAV file — say, a mailbox greeting for your phone system — is a deliberate
-opt-in: you enable it, you press *Download*, and only then does a German voice arrive on your disk.
+opt-in: you enable it, you press *Download*, and only then does a voice (English or German) arrive
+on your disk.
 
 <p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="A note titled Mailbox greeting in reading view: three short paragraphs of a generic phone greeting and, below them, the embedded audio player of the exported WAV file"></p>
 
@@ -18,7 +19,8 @@ opt-in: you enable it, you press *Download*, and only then does a German voice a
 
 - **Read aloud** the current note or selection with your system voices — start, pause/resume and
   stop from the command palette, the ribbon icon or the status bar. Nothing to set up.
-- **Export as WAV** with a downloadable German voice (Piper, *Thorsten*, medium quality). Choose the
+- **Export as WAV** with a downloadable voice — **English** (Piper, *LJSpeech*) or **German**
+  (Piper, *Thorsten*), medium quality, switchable in the settings. Choose the
   **phone-system profile** (8 kHz mono 16 bit — what PBX mailboxes such as 3CX expect) or the
   voice's native 22.05 kHz. Files land next to the note or in a folder of your choice and are never
   overwritten.
@@ -34,7 +36,8 @@ opt-in: you enable it, you press *Download*, and only then does a German voice a
   synthesis worker and the browser cache the voice lives in are not reliable on mobile.
 - **Reading aloud** uses the voices of your operating system. If no German voice is listed, install
   one in the OS (macOS: System Settings → Accessibility → Spoken Content → System voice).
-- **WAV export** needs about 80 MB of free disk space for the voice and its runtime.
+- **WAV export** needs about 80 MB of free disk space for the first voice and its runtime; a second
+  voice adds about 60 MB, because the runtime is shared.
 
 ## Install
 
@@ -83,7 +86,8 @@ cd audio-interface && npm install && npm run build
 | Rate | Speech rate for reading aloud (0.5×–2×) | 1.0× |
 | Read aloud with the downloaded voice | Use the Piper voice instead of the system voice for reading aloud (only shown once the voice is ready) | off |
 | Enable WAV export | Reveals the voice row and the export settings — downloads nothing by itself | off |
-| Piper · Thorsten (de_DE, medium) | The downloadable voice: size, source and licenses, with **Download** / **Cancel** / **Remove** | not downloaded |
+| Voice for export | Which downloadable voice speaks: *Piper · LJSpeech (en_US)* or *Piper · Thorsten (de_DE)*. Each entry shows what it still costs to download, or *downloaded* | follows Obsidian's display language |
+| Piper · … (the selected voice) | The voice row: size, source and licenses, with **Download** / **Cancel** / **Remove** | not downloaded |
 | Output profile | *Phone system — 8 kHz mono* or *Native (voice sample rate)* | Phone system |
 | Target folder | Vault folder for the WAV files; empty = next to the note | empty |
 | File name pattern | `{{note}}` and `{{date}}` are replaced; existing files get `-2`, `-3`, … | `{{note}}` |
@@ -103,9 +107,13 @@ and press **Download**, it fetches these files **once, from this repository's Gi
 
 | File | Size | What it is | License |
 |---|---|---|---|
-| `piper-worker.js` | ≈ 2 MB | Synthesis worker (Piper pipeline, eSpeak-NG phonemizer as WASM) | AGPL-3.0-or-later; contains ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
+| `piper-worker.js` | ≈ 3 MB | Synthesis worker (Piper pipeline, eSpeak-NG phonemizer as WASM, English + German dictionaries) | AGPL-3.0-or-later; contains ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
 | `ort-wasm-simd-threaded.wasm` | ≈ 13 MB | ONNX Runtime Web (CPU) | MIT |
+| `en_US-ljspeech-medium.onnx` + `.json` | ≈ 61 MB | Piper voice *LJSpeech* (English, 22.05 kHz) | dataset public domain |
 | `de_DE-thorsten-medium.onnx` + `.json` | ≈ 60 MB | Piper voice *Thorsten* (German, 22.05 kHz) | dataset CC0 |
+
+Only the voice you selected is fetched — the first two files are shared, so a second voice costs
+just its model.
 
 <table><tr>
 <td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper Thorsten, a description with size, source and licenses, and a Download button showing 75.2 MB"></a></td>
@@ -130,7 +138,8 @@ Test-driven (`npm run gate`); larger features via brainstorm → spec → plan �
 ## License
 
 - **Code:** AGPL-3.0-or-later ([`LICENSE`](LICENSE)).
-- **Third-party:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper voice
-  *Thorsten* (dataset CC0) — shipped as release assets, see the table above.
+- **Third-party:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper voices
+  *LJSpeech* (dataset public domain) and *Thorsten* (dataset CC0) — shipped as release assets, see
+  the table above.
 
 Copyright © 2026 Johannes Kaindl.

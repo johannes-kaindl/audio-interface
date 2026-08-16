@@ -1,10 +1,10 @@
 import { getLanguage, MarkdownView, Notice, Plugin, TFile, TFolder, type Editor } from "obsidian";
-import { engineById, PIPER_DE_ENGINE_ID, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
+import { defaultExportEngineId, engineById, loadableEngines, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
 import { exportEngineFor, speakEngineFor, type EngineReadiness } from "./core/engines";
 import { abort, begin, fail, finish, IDLE, isBusy, progress, type RunState } from "./core/run-state";
 import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-types";
 import { initI18n, t } from "./i18n/strings";
-import { AssetStore, realStoreDeps } from "./obsidian/asset-store";
+import { AssetStore, realStoreDeps, type AssetStatus } from "./obsidian/asset-store";
 import { PiperEngine, type WorkerLike } from "./obsidian/engines/piper-engine";
 import { SystemSpeechEngine } from "./obsidian/engines/system-speech";
 import { ExportError, runExport, type VaultPort } from "./obsidian/exporter";
@@ -27,13 +27,13 @@ function realMakeWorker(source: string): WorkerLike {
 export default class AudioInterfacePlugin extends Plugin {
   settings: AudioInterfaceSettings = normalizeSettings(null);
   system!: SystemSpeechEngine;
-  piper!: PiperEngine;
   store!: AssetStore;
   speaker!: Speaker;
+  /** Eine Engine je ladbarer Stimme; aktiv (Worker im Speicher) ist immer höchstens die gewählte. */
+  private engines = new Map<string, PiperEngine>();
   private statusBar!: StatusBar;
   private player!: AudioContextPlayer;
   private settingTab!: AudioInterfaceSettingTab;
-  private descriptor!: EngineDescriptor;
   private assetBaseUrl = RELEASE_BASE_URL;
   private readiness: EngineReadiness = "off";
   private download: { state: RunState; controller: AbortController | null } = { state: IDLE, controller: null };
@@ -46,14 +46,14 @@ export default class AudioInterfacePlugin extends Plugin {
     const stored: unknown = this.app.loadLocalStorage(ASSET_BASE_KEY);
     if (typeof stored === "string" && stored.trim() !== "") this.assetBaseUrl = stored.trim();
 
-    const descriptor = engineById(PIPER_DE_ENGINE_ID);
-    if (!descriptor) throw new Error("engine manifest broken");
-    this.descriptor = descriptor;
+    if (loadableEngines().length === 0) throw new Error("engine manifest broken");
     // Asset-Version = Plugin-Version: die Release-Assets liegen am Tag des Plugins.
     this.store = new AssetStore(realStoreDeps(this.manifest.version, this.assetBaseUrl));
     this.system = new SystemSpeechEngine(window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), realClock);
-    this.piper = new PiperEngine({ store: this.store, descriptor, makeWorker: realMakeWorker, clock: realClock });
-    this.piper.setEnabled(this.settings.exportEnabled);
+    for (const descriptor of loadableEngines()) {
+      this.engines.set(descriptor.id, new PiperEngine({ store: this.store, descriptor, makeWorker: realMakeWorker, clock: realClock }));
+    }
+    this.applyEngineSelection();
     this.player = new AudioContextPlayer();
     this.statusBar = new StatusBar(this.addStatusBarItem(), () => this.stopAll());
     this.speaker = new Speaker({
@@ -74,13 +74,38 @@ export default class AudioInterfacePlugin extends Plugin {
 
   onunload(): void {
     this.stopAll();
-    this.piper.dispose();
+    for (const e of this.engines.values()) e.dispose();
     void this.player.close();
+  }
+
+  // ── Stimmenauswahl ───────────────────────────────────────────────────────
+  /** Die gewählte ladbare Stimme. */
+  get piper(): PiperEngine {
+    const e = this.engines.get(this.settings.exportEngineId);
+    if (!e) throw new Error(`unknown engine: ${this.settings.exportEngineId}`);
+    return e;
+  }
+
+  private selectedDescriptor(): EngineDescriptor {
+    const d = engineById(this.settings.exportEngineId);
+    if (!d) throw new Error(`unknown engine: ${this.settings.exportEngineId}`);
+    return d;
+  }
+
+  /** Nur die gewählte Stimme ist eingeschaltet — ein Modell im Speicher kostet ~250 MB, zwei
+   *  Worker nebeneinander hätte niemand bestellt. `setEnabled(false)` gibt den Worker frei. */
+  private applyEngineSelection(): void {
+    for (const [id, engine] of this.engines) engine.setEnabled(this.settings.exportEnabled && id === this.settings.exportEngineId);
   }
 
   // ── Settings ─────────────────────────────────────────────────────────────
   async loadSettings(): Promise<void> {
-    this.settings = normalizeSettings(await this.loadData());
+    const raw: unknown = await this.loadData();
+    this.settings = normalizeSettings(raw);
+    // Erststart: Stimme nach Oberflächensprache vorwählen. Nur wenn NICHTS gespeichert ist — eine
+    // getroffene Wahl darf ein Sprachwechsel in Obsidian nicht stillschweigend überschreiben.
+    const stored = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>).exportEngineId : undefined;
+    if (typeof stored !== "string") this.settings.exportEngineId = defaultExportEngineId(getLanguage());
   }
 
   async saveSettings(): Promise<void> {
@@ -92,10 +117,16 @@ export default class AudioInterfacePlugin extends Plugin {
       settings: this.settings,
       saveSettings: () => this.saveSettings(),
       listVoices: () => this.system.listVoices(),
-      piperDescriptor: this.descriptor,
+      loadableEngines: loadableEngines(),
+      selectedEngine: () => this.selectedDescriptor(),
       assetBaseUrl: this.assetBaseUrl,
       assetVersion: this.manifest.version,
-      assetStatus: () => this.store.status(this.descriptor),
+      assetOverview: async () => {
+        const engines = loadableEngines();
+        const statuses: Record<string, AssetStatus> = {};
+        for (const e of engines) statuses[e.id] = await this.store.status(e);
+        return { statuses, cachedFiles: [...(await this.store.cachedFileNames(engines))] };
+      },
       engineReadiness: () => this.refreshReadiness(),
       engineError: () => this.piper.lastError(),
       downloadState: () => this.download.state,
@@ -103,7 +134,7 @@ export default class AudioInterfacePlugin extends Plugin {
       abortDownload: () => this.download.controller?.abort(),
       removeAssets: async () => {
         this.piper.dispose();
-        await this.store.remove(this.descriptor);
+        await this.store.remove(this.selectedDescriptor(), loadableEngines());
         await this.refreshReadiness();
       },
       retryEngine: () => {
@@ -111,8 +142,10 @@ export default class AudioInterfacePlugin extends Plugin {
         void this.refreshReadiness();
       },
       onSettingsChanged: (key) => {
-        if (key === "exportEnabled") {
-          this.piper.setEnabled(this.settings.exportEnabled);
+        if (key === "exportEnabled" || key === "exportEngineId") {
+          // Beim Stimmenwechsel läuft evtl. noch die alte Engine — erst anhalten, dann umschalten.
+          if (key === "exportEngineId") this.speaker.stop();
+          this.applyEngineSelection();
           void this.refreshReadiness();
         }
       },
@@ -150,7 +183,7 @@ export default class AudioInterfacePlugin extends Plugin {
     };
     try {
       await this.store.download(
-        this.descriptor,
+        this.selectedDescriptor(),
         (p) => setState(progress(this.download.state, "downloading", p.overallReceived, p.overallTotal)),
         controller.signal,
       );
@@ -186,7 +219,7 @@ export default class AudioInterfacePlugin extends Plugin {
 
   private exportCommand(checking: boolean, scope: "note" | "selection"): boolean {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    const engineId = exportEngineFor(this.settings, { [this.piper.id]: this.readiness });
+    const engineId = exportEngineFor(this.settings, { [this.settings.exportEngineId]: this.readiness });
     const can = view !== null && engineId !== null && !isBusy(this.exportState);
     if (!checking && can) void this.exportActive(scope);
     return can;
@@ -219,7 +252,7 @@ export default class AudioInterfacePlugin extends Plugin {
   private async speakActive(scope: "note" | "selection"): Promise<void> {
     const src = this.activeSource(scope);
     if (!src) return;
-    const useLoadable = speakEngineFor(this.settings, { [this.piper.id]: this.readiness }) === this.piper.id;
+    const useLoadable = speakEngineFor(this.settings, { [this.settings.exportEngineId]: this.readiness }) === this.settings.exportEngineId;
     try {
       await this.speaker.speak(src.text, this.settings, useLoadable);
     } catch (err) {

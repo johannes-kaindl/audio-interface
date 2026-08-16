@@ -18,6 +18,19 @@ function makeEngine(files: Record<string, Uint8Array<ArrayBuffer>>): EngineDescr
   };
 }
 
+/** Zweite Stimme: gleiche geteilte Laufzeit (w.js/o.wasm), eigenes Modell. */
+function makeSecondEngine(files: Record<string, Uint8Array<ArrayBuffer>>): EngineDescriptor {
+  return {
+    id: "e2", kind: "loadable", label: "E2", lang: "en", sampleRate: 22050, licenseSummary: "",
+    assets: [
+      { key: "worker", fileName: "w.js", bytes: files["w.js"].length, sha256: sha(files["w.js"]), license: "" },
+      { key: "wasm", fileName: "o.wasm", bytes: files["o.wasm"].length, sha256: sha(files["o.wasm"]), license: "" },
+      { key: "model", fileName: "m2.onnx", bytes: files["m2.onnx"].length, sha256: sha(files["m2.onnx"]), license: "" },
+      { key: "modelConfig", fileName: "m2.json", bytes: files["m2.json"].length, sha256: sha(files["m2.json"]), license: "" },
+    ],
+  };
+}
+
 function memCache(): CacheLike & { store: Map<string, Uint8Array<ArrayBuffer>> } {
   const store = new Map<string, Uint8Array<ArrayBuffer>>();
   return {
@@ -63,7 +76,7 @@ function makeDeps(files: Record<string, Uint8Array<ArrayBuffer>>, cache: CacheLi
   };
 }
 
-const FILES = { "w.js": bytes(50, 1), "o.wasm": bytes(120, 3), "m.onnx": bytes(300, 5), "m.json": bytes(20, 9) };
+const FILES = { "w.js": bytes(50, 1), "o.wasm": bytes(120, 3), "m.onnx": bytes(300, 5), "m.json": bytes(20, 9), "m2.onnx": bytes(280, 11), "m2.json": bytes(18, 13) };
 
 describe("AssetStore", () => {
   it("status: missing → partial → complete", async () => {
@@ -123,5 +136,43 @@ describe("AssetStore", () => {
     await store.remove(engine);
     expect(cache.store.size).toBe(0);
     expect(await store.status(engine)).toBe("missing");
+  });
+});
+
+describe("AssetStore mit zwei Stimmen (geteilte Laufzeit)", () => {
+  const bothEngines = () => [makeEngine(FILES), makeSecondEngine(FILES)];
+
+  it("die zweite Stimme lädt nur ihr Modell — Worker und WASM liegen schon", async () => {
+    const cache = memCache(); const [de, en] = bothEngines(); const store = new AssetStore(makeDeps(FILES, cache));
+    await store.download(de, () => {}, new AbortController().signal);
+    expect(await store.status(en)).toBe("partial");
+    const names = new Set<string>();
+    await store.download(en, (p) => names.add(p.fileName), new AbortController().signal);
+    expect([...names].sort()).toEqual(["m2.json", "m2.onnx"]);
+    expect(await store.status(en)).toBe("complete");
+  });
+
+  it("cachedFileNames zählt geteilte Dateien einmal", async () => {
+    const cache = memCache(); const [de, en] = bothEngines(); const store = new AssetStore(makeDeps(FILES, cache));
+    expect(await store.cachedFileNames([de, en])).toEqual(new Set());
+    await store.download(de, () => {}, new AbortController().signal);
+    expect(await store.cachedFileNames([de, en])).toEqual(new Set(["w.js", "o.wasm", "m.onnx", "m.json"]));
+  });
+
+  it("Entfernen der einen Stimme lässt die Laufzeit der anderen stehen", async () => {
+    const cache = memCache(); const [de, en] = bothEngines(); const store = new AssetStore(makeDeps(FILES, cache));
+    await store.download(de, () => {}, new AbortController().signal);
+    await store.download(en, () => {}, new AbortController().signal);
+    await store.remove(de, [de, en]);
+    expect(await store.status(de)).toBe("partial"); // Worker + WASM bleiben liegen
+    expect(await store.status(en)).toBe("complete"); // die andere Stimme bleibt benutzbar
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/m.onnx")).toBe(false);
+  });
+
+  it("ist die andere Stimme nicht geladen, geht die Laufzeit mit", async () => {
+    const cache = memCache(); const [de, en] = bothEngines(); const store = new AssetStore(makeDeps(FILES, cache));
+    await store.download(de, () => {}, new AbortController().signal);
+    await store.remove(de, [de, en]);
+    expect(cache.store.size).toBe(0);
   });
 });

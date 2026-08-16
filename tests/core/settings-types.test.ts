@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import { DEFAULT_SETTINGS, normalizeSettings } from "../../src/core/settings-types";
 
 describe("normalizeSettings", () => {
@@ -25,6 +26,12 @@ describe("normalizeSettings", () => {
   it("verwirft unbekannte exportProfile-Werte auf den Default", () => {
     expect(normalizeSettings({ exportProfile: "mp3" }).exportProfile).toBe("phone-8k");
     expect(normalizeSettings({ exportProfile: "native" }).exportProfile).toBe("native");
+  });
+  it("nimmt nur ladbare Stimmen als exportEngineId, sonst die Werksstimme", () => {
+    expect(normalizeSettings({ exportEngineId: PIPER_EN_ENGINE_ID }).exportEngineId).toBe(PIPER_EN_ENGINE_ID);
+    expect(normalizeSettings({ exportEngineId: "piper-fr-verschwunden" }).exportEngineId).toBe(PIPER_DE_ENGINE_ID);
+    expect(normalizeSettings({ exportEngineId: "system-voices" }).exportEngineId).toBe(PIPER_DE_ENGINE_ID);
+    expect(normalizeSettings({ exportEngineId: 7 }).exportEngineId).toBe(PIPER_DE_ENGINE_ID);
   });
   it("leeres Dateimuster fällt auf Default zurück", () => {
     expect(normalizeSettings({ exportFilePattern: "   " }).exportFilePattern).toBe("{{note}}");

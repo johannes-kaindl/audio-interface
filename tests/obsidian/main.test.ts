@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MarkdownView, TFile, WorkspaceLeaf } from "obsidian";
+import { PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
+import type { PiperEngine } from "../../src/obsidian/engines/piper-engine";
 import { makeFakeApp } from "../vendor/kit/obsidian-mock";
 import AudioInterfacePlugin from "../../src/main";
 
@@ -47,6 +49,27 @@ describe("AudioInterfacePlugin", () => {
   it("Settings werden normalisiert geladen", async () => {
     const { plugin } = await load({ speakRate: 7, exportProfile: "mp3" });
     expect(plugin.settings.speakRate).toBe(2); expect(plugin.settings.exportProfile).toBe("phone-8k");
+  });
+  it("ohne gespeicherte Wahl folgt die Stimme der Oberflächensprache (Mock: en)", async () => {
+    const { plugin } = await load({ exportEnabled: true });
+    expect(plugin.settings.exportEngineId).toBe(PIPER_EN_ENGINE_ID);
+    expect(plugin.piper.id).toBe(PIPER_EN_ENGINE_ID);
+  });
+  it("eine gespeicherte Wahl überschreibt die Sprachvorwahl nicht", async () => {
+    const { plugin } = await load({ exportEngineId: PIPER_DE_ENGINE_ID });
+    expect(plugin.settings.exportEngineId).toBe(PIPER_DE_ENGINE_ID);
+  });
+  it("eingeschaltet ist immer nur die gewählte Stimme — beim Wechsel geht die alte aus", async () => {
+    const { plugin } = await load({ exportEnabled: true, exportEngineId: PIPER_DE_ENGINE_ID });
+    const engines = (plugin as unknown as { engines: Map<string, PiperEngine> }).engines;
+    expect(engines.get(PIPER_DE_ENGINE_ID)!.isEnabled()).toBe(true);
+    expect(engines.get(PIPER_EN_ENGINE_ID)!.isEnabled()).toBe(false);
+    // wie der Nutzer: über den Settings-Tab
+    const tab = (plugin as unknown as { settingTab: { setControlValue(k: string, v: unknown): Promise<void> } }).settingTab;
+    await tab.setControlValue("exportEngineId", PIPER_EN_ENGINE_ID);
+    expect(engines.get(PIPER_DE_ENGINE_ID)!.isEnabled()).toBe(false);
+    expect(engines.get(PIPER_EN_ENGINE_ID)!.isEnabled()).toBe(true);
+    expect(plugin.piper.id).toBe(PIPER_EN_ENGINE_ID);
   });
   it("onunload stoppt und gibt die Engine frei", async () => {
     const { plugin } = await load();

@@ -1,6 +1,7 @@
 // Settings-Wahrheit + Normalisierung. Pur.
 // Kit-`mergeSettings` ist bewusst ein Shallow-Spread ohne Typprüfung (REGISTRY „Settings-Merge, der
 // Feldwerte prüft statt sie durchzureichen") — die Prüfung je Feld und die Bereichs-Klemmen leben hier.
+import { isLoadableEngineId, PIPER_DE_ENGINE_ID } from "./engine-manifest";
 import { mergeSettings } from "../vendor/kit/settings";
 
 export type ExportProfile = "phone-8k" | "native";
@@ -14,6 +15,7 @@ export interface AudioInterfaceSettings {
   speakWithLoadable: boolean;
   /** Opt-in für den WAV-Export (schaltet die Engine-Zeile frei; lädt selbst nichts). */
   exportEnabled: boolean;
+  /** Id einer ladbaren Stimme (Export UND Vorlesen-mit-ladbarer-Stimme). */
   exportEngineId: string;
   exportProfile: ExportProfile;
   /** Zielordner im Vault; "" = neben der Notiz. */
@@ -31,7 +33,7 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   speakRate: 1,
   speakWithLoadable: false,
   exportEnabled: false,
-  exportEngineId: "piper-de-thorsten-medium",
+  exportEngineId: PIPER_DE_ENGINE_ID,
   exportProfile: "phone-8k",
   exportFolder: "",
   exportFilePattern: "{{note}}",
@@ -53,6 +55,9 @@ export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
     ...s,
     speakRate: clamp(s.speakRate, SPEAK_RATE.min, SPEAK_RATE.max),
     exportProfile: EXPORT_PROFILES.includes(s.exportProfile) ? s.exportProfile : DEFAULT_SETTINGS.exportProfile,
+    // Eine Stimme, die es nicht (mehr) gibt, fällt auf die Werksstimme zurück — sonst zeigte der
+    // Tab eine leere Auswahl und der Export bliebe ohne Erklärung stumm.
+    exportEngineId: isLoadableEngineId(s.exportEngineId) ? s.exportEngineId : DEFAULT_SETTINGS.exportEngineId,
     exportFilePattern: s.exportFilePattern.trim() === "" ? DEFAULT_SETTINGS.exportFilePattern : s.exportFilePattern,
   };
 }

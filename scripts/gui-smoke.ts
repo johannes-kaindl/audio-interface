@@ -7,6 +7,9 @@
  *   osascript -e 'quit app "Obsidian"'; open -a Obsidian --args --remote-debugging-port=9222
  *   OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/audio-interface" npm run deploy
  *
+ * Seit 0.3.0 prüft er beide ladbaren Stimmen: deutsch laden → exportieren, auf englisch wechseln
+ * (dann fehlt nur noch das Modell, Worker + WASM sind geteilt) → laden → exportieren.
+ *
  * Assets kommen im Smoke von einem lokalen Server statt von GitHub (kein Release nötig):
  *   npm run assets && python3 -m http.server -d dist-assets 8765   # + CORS, s. docs/SMOKE.md
  *   npm run smoke:gui -- --vault 00_ProtoVault --assets http://127.0.0.1:8765
@@ -18,7 +21,12 @@ import { Cdp, notices, openNote, pollUntil } from "./lib/cdp.js";
 const PLUGIN_ID = "audio-interface";
 const SMOKE_NOTE = "_audio-interface-smoke.md";
 const SMOKE_BODY = "# Ansage\n\nGuten Tag, Sie erreichen die Mailbox der Beispiel GmbH. Bitte hinterlassen Sie eine Nachricht.\n";
+// Für den Lauf mit der englischen Stimme — eine deutsche Ansage englisch phonemisiert wäre ein
+// Ergebnis, das niemand hören will, und der Prüfpunkt soll den echten Weg gehen.
+const SMOKE_BODY_EN = "# Greeting\n\nHello, you have reached the mailbox of Example Company. Please leave a message after the tone.\n";
 const ASSET_KEY = "audio-interface-asset-base";
+const DE_ENGINE_ID = "piper-de-thorsten-medium";
+const EN_ENGINE_ID = "piper-en-ljspeech-medium";
 
 interface Check { name: string; passed: boolean; detail: string }
 const checks: Check[] = [];
@@ -79,7 +87,7 @@ async function main(): Promise<void> {
     record("Export-Kommando vor Download ausgeblendet", before === false, `checkCallback=${before}`);
 
     if (!assets) {
-      record("Download/Export (übersprungen — kein --assets)", true, "Prüfpunkte 5–8 brauchen einen Asset-Server");
+      record("Download/Export (übersprungen — kein --assets)", true, "Prüfpunkte 5–10 brauchen einen Asset-Server");
     } else {
       // 5 Settings: Export einschalten → Engine-Zeile mit „Herunterladen“
       const rowText = await cdp.evaluate<string>(`
@@ -120,7 +128,43 @@ async function main(): Promise<void> {
       const wav = outcome?.wav ?? null;
       record("Export erzeugt WAV 8 kHz > 1 s", can && !!wav && wav.rate === 8000 && wav.seconds > 1, wav ? `${wav.bytes} B, ${wav.rate} Hz, ${wav.seconds.toFixed(1)} s` : `checkCallback=${can}, keine Datei — ${outcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
 
-      // 8 Entfernen → wieder „Herunterladen“
+      // 8 Stimmenwechsel auf Englisch: nur das Modell fehlt noch (Worker + WASM sind geteilt)
+      const enRow = await cdp.evaluate<string>(`
+        app.setting.open(); app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+        await new Promise((r) => setTimeout(r, 600));
+        const tab = app.setting.activeTab;
+        await tab.setControlValue("exportEngineId", ${JSON.stringify(EN_ENGINE_ID)});
+        await new Promise((r) => setTimeout(r, 900));
+        const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
+        return btns.join(" | ");`);
+      // Nur Modell + Config fehlen → der Knopf nennt ~60 MB, nicht ~75 MB.
+      const enSizeOk = /Herunterladen|Download/.test(enRow) && !/7\d[.,]\d MB/.test(enRow);
+      record("Stimmenwechsel: englische Stimme, nur das Modell fehlt", enSizeOk, enRow.slice(0, 140));
+
+      await cdp.evaluate(`
+        const tab = app.setting.activeTab;
+        const btn = [...(tab?.containerEl ?? document).querySelectorAll("button")].find((b) => /Herunterladen|Download/.test(b.textContent));
+        btn.click(); return true;`);
+      const enReady = await pollUntil<string>(cdp, `
+        const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
+        const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
+      record("Englische Stimme geladen → Bereit", !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
+      await cdp.evaluate(`app.setting.close(); return true;`);
+
+      // 9 Export mit der englischen Stimme (zweite Datei, weil die erste noch liegt)
+      await openNote(cdp, SMOKE_NOTE, SMOKE_BODY_EN, "source");
+      await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
+      const enOutcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
+        const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
+        if (bad) return { notice: bad };
+        const f = app.vault.getAbstractFileByPath("_audio-interface-smoke-2.wav"); if (!f) return null;
+        const buf = await app.vault.readBinary(f); const dv = new DataView(buf);
+        const rate = dv.getUint32(24, true); const data = dv.getUint32(40, true);
+        return { wav: { bytes: buf.byteLength, rate, seconds: data / 2 / rate } };`, 120_000, 500);
+      const enWav = enOutcome?.wav ?? null;
+      record("Export mit englischer Stimme erzeugt WAV 8 kHz > 1 s", !!enWav && enWav.rate === 8000 && enWav.seconds > 1, enWav ? `${enWav.bytes} B, ${enWav.rate} Hz, ${enWav.seconds.toFixed(1)} s` : `keine Datei — ${enOutcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
+
+      // 10 Entfernen → wieder „Herunterladen“
       const removed = await cdp.evaluate<string>(`
         const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
         const cache = await caches.open("audio-interface-engines"); const keys = await cache.keys();
@@ -131,6 +175,11 @@ async function main(): Promise<void> {
         const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
         app.setting.close(); return btns.join(" | ");`);
       record("Nach Entfernen wieder Herunterladen-Knopf", /Herunterladen|Download/.test(removed), removed.slice(0, 120));
+
+      // Stimmenwahl zurücksetzen — der Smoke hinterlässt keinen fremden Zustand.
+      await cdp.evaluate(`
+        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+        p.settings.exportEngineId = ${JSON.stringify(DE_ENGINE_ID)}; await p.saveSettings(); return true;`).catch(() => undefined);
     }
   } finally {
     // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück.

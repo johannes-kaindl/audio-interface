@@ -3,7 +3,7 @@
 // paperless-storage/src/obsidian/settings-tab.ts). Bedingte Zeilen werden WEGGELASSEN, nicht per
 // `visible` versteckt — der native 1.13-Renderer wertet `visible` an Gruppen-Items nicht aus.
 import { PluginSettingTab, Setting, type App, type Plugin, type SettingDefinitionItem, type SettingGroupItem } from "obsidian";
-import { formatBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
+import { formatBytes, missingBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
 import type { EngineReadiness } from "../core/engines";
 import type { RunState } from "../core/run-state";
 import { normalizeSettings, SPEAK_RATE, type AudioInterfaceSettings } from "../core/settings-types";
@@ -20,11 +20,16 @@ export interface SettingsHost {
   settings: AudioInterfaceSettings;
   saveSettings(): Promise<void>;
   listVoices(): VoiceInfo[];
-  piperDescriptor: EngineDescriptor;
+  /** Die ladbaren Stimmen in Anzeigereihenfolge. */
+  loadableEngines: EngineDescriptor[];
+  /** Die gerade gewählte ladbare Stimme (Export + Vorlesen). */
+  selectedEngine(): EngineDescriptor;
   assetBaseUrl: string;
   /** Version, unter der die Assets im Release liegen (= Plugin-Version). */
   assetVersion: string;
-  assetStatus(): Promise<AssetStatus>;
+  /** Zustand je Stimme + die Dateinamen, die schon im Cache liegen (Worker/WASM sind geteilt —
+   *  daraus rechnet der Tab, was ein Wechsel noch kostet). */
+  assetOverview(): Promise<{ statuses: Record<string, AssetStatus>; cachedFiles: string[] }>;
   engineReadiness(): Promise<EngineReadiness>;
   engineError(): string | null;
   downloadState(): RunState;
@@ -41,7 +46,8 @@ type Def = SettingGroupItem<Key>;
 
 export class AudioInterfaceSettingTab extends PluginSettingTab {
   // Zwischengespeicherte asynchrone Zustände — getSettingDefinitions() muss synchron sein.
-  private assetStatus: AssetStatus = "missing";
+  private statuses: Record<string, AssetStatus> = {};
+  private cachedFiles = new Set<string>();
   private readiness: EngineReadiness = "off";
   private cleanupPrevious: () => void = () => {};
 
@@ -86,8 +92,15 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       { name: t("settings.exportEnabled.name"), desc: t("settings.exportEnabled.desc"), control: { type: "toggle", key: "exportEnabled" } },
     ];
     if (s.exportEnabled) {
+      const voiceOptionsForExport: Record<string, string> = {};
+      for (const e of this.host.loadableEngines) voiceOptionsForExport[e.id] = this.voiceOptionLabel(e);
       exportItems.push(
-        { name: this.host.piperDescriptor.label, desc: this.engineDesc(), render: (setting) => this.renderEngineRow(setting) },
+        {
+          name: t("settings.exportEngineId.name"),
+          desc: t("settings.exportEngineId.desc"),
+          control: { type: "dropdown", key: "exportEngineId", options: voiceOptionsForExport },
+        },
+        { name: this.host.selectedEngine().label, desc: this.engineDesc(), render: (setting) => this.renderEngineRow(setting) },
         {
           name: t("settings.exportProfile.name"),
           desc: t("settings.exportProfile.desc"),
@@ -106,20 +119,31 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     ];
   }
 
-  private size(): string {
-    return formatBytes(totalBytes(this.host.piperDescriptor), getLang() === "de" ? "," : ".");
+  private sep(): string {
+    return getLang() === "de" ? "," : ".";
+  }
+
+  /** Was der Download JETZT noch kostet: die geteilte Laufzeit zählt nur, wenn sie fehlt. */
+  private size(engine: EngineDescriptor = this.host.selectedEngine()): string {
+    return formatBytes(missingBytes(engine, this.cachedFiles), this.sep());
+  }
+
+  private voiceOptionLabel(e: EngineDescriptor): string {
+    if (this.statuses[e.id] === "complete") return `${e.label} · ${t("settings.exportEngineId.loaded")}`;
+    return `${e.label} · ${this.size(e)}`;
   }
 
   private engineDesc(): string {
-    const d = this.host.piperDescriptor;
-    return t("settings.engine.desc", this.size(), this.host.assetBaseUrl, d.licenseSummary);
+    const d = this.host.selectedEngine();
+    return t("settings.engine.desc", formatBytes(totalBytes(d), this.sep()), this.host.assetBaseUrl, d.licenseSummary);
   }
 
   /** Engine-Zeile: Zustand + genau der Knopf, der jetzt sinnvoll ist. */
   private renderEngineRow(setting: Setting): void {
     const dl = this.host.downloadState();
-    const size = this.size();
-    setting.setName(this.host.piperDescriptor.label);
+    const engine = this.host.selectedEngine();
+    const size = this.size(engine);
+    setting.setName(engine.label);
     setting.setDesc(this.engineDesc());
     if (dl.kind === "running") {
       const mb = (n: number) => (n / 1048576).toFixed(1);
@@ -138,12 +162,12 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       setting.addButton((b) => b.setButtonText(t("settings.engine.retry")).setCta().onClick(() => this.host.startDownload()));
       return;
     }
-    if (this.assetStatus === "complete") {
+    if (this.statuses[engine.id] === "complete") {
       setting.controlEl.createSpan({ text: t("settings.engine.ready", this.host.assetVersion), cls: "audio-interface-engine-state" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.remove")).onClick(() => void this.confirmRemove()));
       return;
     }
-    if (this.assetStatus === "partial") {
+    if (this.statuses[engine.id] === "partial") {
       setting.controlEl.createSpan({ text: t("settings.engine.partial"), cls: "audio-interface-engine-state" });
     }
     setting.addButton((b) => b.setButtonText(t("settings.engine.download", size)).setCta().onClick(() => this.host.startDownload()));
@@ -173,13 +197,16 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     this.host.settings = normalizeSettings({ ...this.host.settings, [key]: value });
     await this.host.saveSettings();
     this.host.onSettingsChanged(key as keyof AudioInterfaceSettings);
-    if (key === "exportEnabled") this.refresh();
+    // Beide Schlüssel ändern, WELCHE Zeilen der Tab zeigt (Engine-Zeile, Vorlese-Toggle) — der
+    // deklarative Host zeichnet von sich aus nur den geänderten Regler neu.
+    if (key === "exportEnabled" || key === "exportEngineId") this.refresh();
   }
 
   /** Zustände frisch lesen (Cache API, Engine) und den Tab neu zeichnen — nie aus gespeicherten Werten. */
   refresh(): void {
-    void Promise.all([this.host.assetStatus(), this.host.engineReadiness()]).then(([status, readiness]) => {
-      this.assetStatus = status;
+    void Promise.all([this.host.assetOverview(), this.host.engineReadiness()]).then(([overview, readiness]) => {
+      this.statuses = overview.statuses;
+      this.cachedFiles = new Set(overview.cachedFiles);
       this.readiness = readiness;
       refreshSettingsTab(this, () => this.rebuild());
     });

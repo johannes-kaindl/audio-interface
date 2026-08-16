@@ -51,9 +51,12 @@ einmal neu.
 | 5 | Settings: Toggle Export → Engine-Zeile mit „Herunterladen (xx MB)" | über `tab.setControlValue`, wie der Nutzer |
 | 6 | Download über den Knopf → „Bereit" | Klick im echten Settings-DOM, Poll bis 180 s |
 | 7 | Export erzeugt WAV 8 kHz, > 1 s | Datei im Vault, RIFF-Header gelesen; bricht früher ab, wenn ein Fehler-Notice erscheint |
-| 8 | Entfernen → wieder „Herunterladen" | Cache geleert, Tab neu gezeichnet |
+| 8 | Stimmenwechsel auf Englisch → nur das Modell fehlt → „Bereit" | `tab.setControlValue("exportEngineId", …)`; der Knopf darf **nicht** die volle Größe nennen (Worker + WASM sind geteilt) |
+| 9 | Export mit der englischen Stimme erzeugt WAV 8 kHz, > 1 s | zweite Datei (`…-2.wav`), englischer Ansagetext |
+| 10 | Entfernen → wieder „Herunterladen" | Cache geleert, Tab neu gezeichnet |
 
-Ohne `--assets` laufen nur 1–4; 5–8 werden als übersprungen gemeldet.
+Ohne `--assets` laufen nur 1–4; 5–10 werden als übersprungen gemeldet. Punkt 8 ist der Prüfpunkt für
+die geteilte Laufzeit: er fällt rot aus, sobald die zweite Stimme wieder alles herunterladen will.
 
 ## Durchläufe
 

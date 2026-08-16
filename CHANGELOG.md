@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A second downloadable voice: English** (Piper *LJSpeech*, en_US, medium, dataset public domain)
+  next to the German *Thorsten*. A new setting **Voice for export** switches between them; it also
+  applies to reading aloud with the downloaded voice.
+- On first start the voice follows Obsidian's display language (English UI → English voice). A
+  choice you have made is never overwritten.
+
+### Changed
+
+- Worker and ONNX runtime are now **shared between voices**: a second voice downloads only its
+  model (≈ 60 MB instead of ≈ 75 MB), the voice list shows what each one still costs, and
+  **Remove** keeps the shared runtime as long as another voice needs it.
+- The synthesis worker carries both eSpeak-NG dictionaries (English and German), ≈ 2.8 MB instead
+  of ≈ 2.2 MB; only the one the selected voice needs is loaded at runtime.
+
 ## [0.2.0] — 2026-08-16
 
 ### Changed

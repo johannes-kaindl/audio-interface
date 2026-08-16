@@ -32,7 +32,10 @@ const worker = await esbuild.context({
   // fuer Node → `import("node:module")` scheitert. Zur Build-Zeit wegdefinieren; der Worker ist Browser.
   define: { "globalThis.process": "undefined" },
   // ephone exportiert nur ".", die Lang-Packs liegen aber als Dateien im Paket — Alias statt Subpath.
-  alias: { "ephone/lang/gmw.js": "./node_modules/ephone/lang/gmw.js" },
+  alias: {
+    "ephone/lang/gmw.js": "./node_modules/ephone/lang/gmw.js",
+    "ephone/lang/en-all.js": "./node_modules/ephone/lang/en-all.js",
+  },
   outfile: "dist-assets/piper-worker.js",
 });
 

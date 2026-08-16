@@ -20,6 +20,17 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
   Generierte Dateien nie per `checkout` „zurücksetzen", sondern neu generieren.
 - **`src/core/` ist pur** (kein `obsidian`, kein DOM — `check:pure`). Engines/Store/Exporter in
   `src/obsidian/` mit injizierten Deps (Store, Worker-Fabrik, Clock, Vault-Port).
+- **Mehrstimmig seit 0.3.0 — geteilte Laufzeit, Stimme je Modell.** `build-assets.mjs` kennt die
+  Stimmenliste (Bezug, Lizenz) und schreibt `PIPER_SHARED_ASSETS` (Worker + ORT-WASM) plus
+  `PIPER_VOICES` (Modell + Config je Stimme); die redaktionelle Seite (Label, Werks-Tempo,
+  Lizenz-Kurzform) steht in `engine-manifest.ts`. Eine neue Stimme heißt: Zeile in beiden Listen,
+  `npm run assets`, Manifest committen. Der Cache-Schlüssel ist dateibasiert — die zweite Stimme
+  lädt deshalb nur ihr Modell, und `AssetStore.remove` lässt die geteilten Dateien liegen, solange
+  eine andere Stimme sie braucht. Im Speicher ist immer nur die **gewählte** Engine eingeschaltet.
+- **Sprachpakete im Worker:** ephone bekommt genau ein Pack — `gmw` (de/nl) oder `en-all` (alle
+  englischen Varianten), gewählt über `langPackFor(config.espeak.voice)`. Nicht `en-us` nehmen:
+  Piper setzt für en_US-Stimmen mal `en-us`, mal `en` (ljspeech, kristin), und `en-us` kennt nur
+  `en-US`. Beide Packs sind im Worker-Bundle (2,8 MB statt 2,2 MB), geladen wird eines.
 - **Settings:** `getSettingDefinitions()` ist die einzige Wahrheit; bedingte Zeilen weglassen, nicht
   `visible:false`. Obsidian 1.13 cacht die Definitionen beim `addSettingTab` und ruft beim Öffnen
   nur `hide()` → `refresh()` dort und nach jeder Zustandsänderung (`update()`).
@@ -35,8 +46,9 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
 ## Messwerte (Spike 2026-08-15, M5, Obsidian 1.13.7)
 
 Piper thorsten-medium im Renderer, CPU-WASM einfädig: Session ~0,9 s, **RTF 0,17**; WebGPU
-RTF 0,05 (nicht genutzt — Kür). Assets: Worker 2,2 MB · ORT-WASM 13,5 MB · Stimme 63,2 MB.
-Deutsche Systemstimmen unter macOS: 9.
+RTF 0,05 (nicht genutzt — Kür). Assets: Worker 2,8 MB (seit 0.3.0, zwei Sprachpakete) ·
+ORT-WASM 13,5 MB · Stimme 63,2 MB (de) bzw. 63,5 MB (en). Deutsche Systemstimmen unter macOS: 9.
+LJSpeech in derselben Kette (Node-Gegenprobe 2026-08-16): RTF 0,17.
 
 ## Kommandos
 
@@ -50,7 +62,7 @@ npm run release                  # zentrales Tooling ../tools/release/ — Asset
 ## Release-Ablauf (Besonderheit)
 
 `release.yml` (byte-identisch zur Vorlage) legt das GitHub-Release mit dem Trio an;
-**`release-assets.yml`** läuft danach (`workflow_run`), baut die vier Assets in CI, verlangt
+**`release-assets.yml`** läuft danach (`workflow_run`), baut die sechs Assets in CI, verlangt
 Byte-Gleichheit der Prüfsummen mit dem committeten Manifest und lädt sie an dasselbe Release.
 Vor dem Tag also: `npm run assets` gelaufen, Manifest committet, `manifest.json`-Version = Tag
 (die Asset-URL enthält die Version).

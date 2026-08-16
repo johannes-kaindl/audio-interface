@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { App, Plugin } from "obsidian";
-import { engineById, PIPER_DE_ENGINE_ID } from "../../src/core/engine-manifest";
+import { engineById, loadableEngines, PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import type { EngineReadiness } from "../../src/core/engines";
 import { IDLE, type RunState } from "../../src/core/run-state";
 import { DEFAULT_SETTINGS } from "../../src/core/settings-types";
@@ -11,16 +11,20 @@ import { AudioInterfaceSettingTab, type SettingsHost } from "../../src/obsidian/
 initI18n("de");
 const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
 
-function makeHost(over: Partial<SettingsHost> & { status?: AssetStatus; readiness?: EngineReadiness; dl?: RunState } = {}) {
+function makeHost(over: Partial<SettingsHost> & { status?: AssetStatus; statuses?: Record<string, AssetStatus>; cachedFiles?: string[]; readiness?: EngineReadiness; dl?: RunState } = {}) {
   const calls = { start: 0, abort: 0, remove: 0, retry: 0, changed: [] as string[], saved: 0 };
   const host: SettingsHost = {
     settings: { ...DEFAULT_SETTINGS },
     saveSettings: async () => { calls.saved++; },
     listVoices: () => [{ uri: "en1", name: "Sam", lang: "en-US", local: true }, { uri: "de1", name: "Anna", lang: "de-DE", local: true }],
-    piperDescriptor: engineById(PIPER_DE_ENGINE_ID)!,
+    loadableEngines: loadableEngines(),
+    selectedEngine: () => engineById(host.settings.exportEngineId)!,
     assetBaseUrl: "https://github.com/x/releases/download",
     assetVersion: "0.1.0",
-    assetStatus: async () => over.status ?? "missing",
+    assetOverview: async () => ({
+      statuses: over.statuses ?? Object.fromEntries(loadableEngines().map((e) => [e.id, e.id === host.settings.exportEngineId ? (over.status ?? "missing") : "missing"])),
+      cachedFiles: over.cachedFiles ?? [],
+    }),
     engineReadiness: async () => over.readiness ?? "off",
     engineError: () => "wasm boom",
     downloadState: () => over.dl ?? IDLE,
@@ -52,7 +56,7 @@ describe("AudioInterfaceSettingTab", () => {
     const tab = makeTab(host); tab.display(); await flush();
     const items = flat(tab);
     expect(items.some((i) => typeof i.render === "function" && i.name?.includes("Piper"))).toBe(true);
-    expect(items.map((i) => i.control?.key).filter(Boolean)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "exportProfile", "exportFilePattern", "exportInsertLink"]);
+    expect(items.map((i) => i.control?.key).filter(Boolean)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "exportEngineId", "exportProfile", "exportFilePattern", "exportInsertLink"]);
     const texts = allText(tab);
     expect(texts).toContain("Herunterladen (");
     expect(texts).toContain("MB");
@@ -79,6 +83,33 @@ describe("AudioInterfaceSettingTab", () => {
     const tab = makeTab(host); tab.display(); await flush();
     expect(allText(tab)).toContain("wasm boom");
     findButton(tab, "Erneut").clickCB(); expect(calls.retry).toBe(1);
+  });
+  it("Stimmen-Dropdown: beide ladbaren Stimmen, geladene markiert, sonst die noch fehlende Größe", async () => {
+    const de = engineById(PIPER_DE_ENGINE_ID)!;
+    const { host } = makeHost({
+      statuses: { [PIPER_DE_ENGINE_ID]: "complete", [PIPER_EN_ENGINE_ID]: "partial" },
+      cachedFiles: de.assets.map((a) => a.fileName),
+      readiness: "ready",
+    });
+    host.settings.exportEnabled = true;
+    const tab = makeTab(host); tab.display(); await flush();
+    const dd = flat(tab).find((i) => i.control?.key === "exportEngineId")!;
+    const options = dd.control!.options!;
+    expect(Object.keys(options)).toEqual([PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID]);
+    expect(options[PIPER_DE_ENGINE_ID]).toContain("geladen");
+    // Die englische Stimme kostet nur noch ihr Modell — die Laufzeit liegt bereits.
+    expect(options[PIPER_EN_ENGINE_ID]).toMatch(/6\d,\d MB/);
+  });
+  it("Stimmenwechsel: Engine-Zeile zeigt die neue Stimme, der Tab baut neu", async () => {
+    const { host, calls } = makeHost({ status: "missing", readiness: "needs-download" });
+    host.settings.exportEnabled = true;
+    const engineRowName = () => flat(tab).find((i) => typeof i.render === "function" && i.name?.startsWith("Piper"))!.name;
+    const tab = makeTab(host); tab.display(); await flush();
+    expect(engineRowName()).toContain("Thorsten");
+    await tab.setControlValue("exportEngineId", PIPER_EN_ENGINE_ID); await flush();
+    expect(host.settings.exportEngineId).toBe(PIPER_EN_ENGINE_ID);
+    expect(calls.changed).toContain("exportEngineId");
+    expect(engineRowName()).toContain("LJSpeech");
   });
   it("setControlValue klemmt über normalizeSettings, speichert, meldet; exportEnabled-Umschalten baut neu", async () => {
     const { host, calls } = makeHost(); const tab = makeTab(host); tab.display(); await flush();

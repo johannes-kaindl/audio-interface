@@ -8,6 +8,18 @@ export interface PiperConfig {
   phoneme_id_map: Record<string, number[]>;
 }
 
+/** Welches eSpeak-NG-Sprachpaket eine Piper-Stimme braucht. Der Worker bündelt beide Pakete, lädt
+ *  aber nur das eine — die Wahl steckt in der Stimmen-Config (`espeak.voice`), nicht in der Engine:
+ *  Piper setzt für en_US-Stimmen mal `en-us`, mal `en` (gemessen 2026-08-16 an ljspeech vs. joe).
+ *  `gmw` (West-Germanisch) trägt `de`/`nl`, `en-all` alle englischen Varianten. */
+export type LangPackId = "gmw" | "en-all";
+
+export function langPackFor(espeakVoice: string): LangPackId {
+  const v = espeakVoice.toLowerCase();
+  if (v === "en" || v.startsWith("en-") || v.startsWith("en_")) return "en-all";
+  return "gmw";
+}
+
 const BOS = "^";
 const EOS = "$";
 const PAD = "_";

@@ -4,8 +4,9 @@
 import * as ort from "onnxruntime-web/wasm";
 import createEphone, { type ephoneModule } from "ephone";
 import { loadData as loadGmw } from "ephone/lang/gmw.js";
+import { loadData as loadEnAll } from "ephone/lang/en-all.js";
 import { concatWithSilence, type PcmBuffer } from "../core/audio";
-import { ipaToIds, type PiperConfig } from "../core/piper-phonemes";
+import { ipaToIds, langPackFor, type PiperConfig } from "../core/piper-phonemes";
 import type { WorkerRequest, WorkerResponse } from "../core/worker-protocol";
 
 // Minimaler Worker-Scope statt DedicatedWorkerGlobalScope: hält Lint (no-undef) und Typecheck ohne
@@ -19,6 +20,10 @@ const scope = self as unknown as WorkerScope;
 
 const post = (m: WorkerResponse, transfer: Transferable[] = []): void => scope.postMessage(m, transfer);
 
+// Beide Sprachpakete sind im Bundle (zusammen ~0,8 MB des Worker-Assets), geladen wird nur das eine,
+// das die Stimme braucht — eSpeak-NG hält sonst Wörterbücher im WASM-Heap, die niemand anspricht.
+const LANG_PACKS = { gmw: loadGmw, "en-all": loadEnAll } as const;
+
 let session: ort.InferenceSession | null = null;
 let eph: ephoneModule | null = null;
 let config: PiperConfig | null = null;
@@ -30,7 +35,7 @@ async function init(msg: Extract<WorkerRequest, { type: "init" }>): Promise<void
   config = msg.config;
   const [s, e] = await Promise.all([
     ort.InferenceSession.create(msg.model, { executionProviders: ["wasm"] }),
-    createEphone({ languages: [async (m: unknown) => loadGmw(m)] }),
+    createEphone({ languages: [async (m: unknown) => LANG_PACKS[langPackFor(msg.config.espeak.voice)](m)] }),
   ]);
   session = s;
   eph = e;
