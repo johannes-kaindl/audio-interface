@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-16
+
 ### Changed
 
 - Factory tempo of the Piper voice is now 0.85× (`length_scale`) for export and for reading aloud
