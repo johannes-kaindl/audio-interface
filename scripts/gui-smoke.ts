@@ -16,7 +16,7 @@
  * Der Treiber setzt dafür app.saveLocalStorage("audio-interface-asset-base", <url>) und lädt das
  * Plugin neu; am Ende räumt er den Schlüssel, die Cache-Einträge und die Smoke-Notiz wieder weg.
  */
-import { Cdp, notices, openNote, pollUntil } from "./lib/cdp.js";
+import { Cdp, notices, openNote, pollUntil } from "../../tools/obsidian-cdp/cdp.js";
 
 const PLUGIN_ID = "audio-interface";
 const SMOKE_NOTE = "_audio-interface-smoke.md";

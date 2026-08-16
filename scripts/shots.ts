@@ -1,8 +1,9 @@
 /**
  * README-Bilder aufnehmen (Skill readme-shots) — das plugin-spezifische Rezept.
  *
- * Bruecke, Aufnahme-Primitive und Fixture→Vault sind vendored aus 3d-codeblocks
- * (`scripts/lib/{cdp,shot,vault}.ts`); die Bruecke teilt sich dieser Treiber mit dem GUI-Smoke.
+ * Bruecke, Aufnahme-Primitive und Fixture→Vault liegen zentral im Dach
+ * (`obsidian-plugins/tools/obsidian-cdp/`, seit 2026-08-16 — vorher vendored unter
+ * `scripts/lib/`); die Bruecke teilt sich dieser Treiber mit dem GUI-Smoke.
  *
  * ```bash
  * export STAGING_VAULTS_DIR="…"                     # Ort der Aufnahme-Vaults
@@ -21,9 +22,9 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { argv, cwd, env, exit } from "node:process";
 
-import { attachTo, Cdp, openExisting, pollUntil, setAppConfig } from "./lib/cdp.js";
-import { boxOf, capture, setWindowSize, withMetrics, writeShot, type Rect, type ShotOptions } from "./lib/shot.js";
-import { buildVault, stagingVaultDir } from "./lib/vault.js";
+import { attachTo, Cdp, openExisting, pollUntil, setAppConfig } from "../../tools/obsidian-cdp/cdp.js";
+import { boxOf, capture, setWindowSize, withMetrics, writeShot, type Rect, type ShotOptions } from "../../tools/obsidian-cdp/shot.js";
+import { buildVault, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
 const PLUGIN_ID = "audio-interface";
 const REPO_NAME = "audio-interface";
@@ -266,7 +267,7 @@ async function main(): Promise<void> {
   if (argv.includes("--setup")) {
     const vaultDir = stagingVaultDir(REPO_NAME);
     console.log(`Aufnahme-Vault: ${vaultDir}`);
-    for (const zeile of buildVault({ repoRoot, vaultDir, fixtureDir: join(repoRoot, "docs/images/fixture"), pluginId: PLUGIN_ID })) console.log(`  ${zeile}`);
+    for (const zeile of buildVault({ repoRoot, vaultDir, fixtureDir: join(repoRoot, "docs/images/fixture"), generator: "make-audio.mjs", pluginId: PLUGIN_ID })) console.log(`  ${zeile}`);
     console.log(
       "\n⚠️  Obsidian jetzt neu starten und diesen Vault oeffnen (Debug-Port offen):\n" +
       "  osascript -e 'quit app \"Obsidian\"'\n" +
