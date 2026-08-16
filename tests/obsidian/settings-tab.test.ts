@@ -19,6 +19,7 @@ function makeHost(over: Partial<SettingsHost> & { status?: AssetStatus; readines
     listVoices: () => [{ uri: "en1", name: "Sam", lang: "en-US", local: true }, { uri: "de1", name: "Anna", lang: "de-DE", local: true }],
     piperDescriptor: engineById(PIPER_DE_ENGINE_ID)!,
     assetBaseUrl: "https://github.com/x/releases/download",
+    assetVersion: "0.1.0",
     assetStatus: async () => over.status ?? "missing",
     engineReadiness: async () => over.readiness ?? "off",
     engineError: () => "wasm boom",

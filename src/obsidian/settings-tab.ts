@@ -3,7 +3,7 @@
 // paperless-storage/src/obsidian/settings-tab.ts). Bedingte Zeilen werden WEGGELASSEN, nicht per
 // `visible` versteckt — der native 1.13-Renderer wertet `visible` an Gruppen-Items nicht aus.
 import { PluginSettingTab, Setting, type App, type Plugin, type SettingDefinitionItem, type SettingGroupItem } from "obsidian";
-import { ASSET_VERSION, formatBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
+import { formatBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
 import type { EngineReadiness } from "../core/engines";
 import type { RunState } from "../core/run-state";
 import { normalizeSettings, SPEAK_RATE, type AudioInterfaceSettings } from "../core/settings-types";
@@ -22,6 +22,8 @@ export interface SettingsHost {
   listVoices(): VoiceInfo[];
   piperDescriptor: EngineDescriptor;
   assetBaseUrl: string;
+  /** Version, unter der die Assets im Release liegen (= Plugin-Version). */
+  assetVersion: string;
   assetStatus(): Promise<AssetStatus>;
   engineReadiness(): Promise<EngineReadiness>;
   engineError(): string | null;
@@ -137,7 +139,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       return;
     }
     if (this.assetStatus === "complete") {
-      setting.controlEl.createSpan({ text: t("settings.engine.ready", ASSET_VERSION), cls: "audio-interface-engine-state" });
+      setting.controlEl.createSpan({ text: t("settings.engine.ready", this.host.assetVersion), cls: "audio-interface-engine-state" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.remove")).onClick(() => void this.confirmRemove()));
       return;
     }

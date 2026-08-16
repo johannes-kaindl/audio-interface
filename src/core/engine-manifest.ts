@@ -1,6 +1,6 @@
 // Beschreibung der Engines und ihrer Assets. Pur. Die Prüfsummen kommen aus der generierten Datei
 // (Build), damit main.js jede Asset-Datei vor dem Instanziieren gegen SHA-256 prüfen kann (Spec §5).
-import { ASSET_VERSION, PIPER_DE_ASSETS, PIPER_DE_SAMPLE_RATE } from "./engine-manifest.generated";
+import { PIPER_DE_ASSETS, PIPER_DE_SAMPLE_RATE } from "./engine-manifest.generated";
 
 export type AssetKey = "worker" | "wasm" | "model" | "modelConfig";
 export type EngineKind = "builtin" | "loadable" | "service";
@@ -29,7 +29,6 @@ export interface EngineDescriptor {
 export const BUILTIN_ENGINE_ID = "system-voices";
 export const PIPER_DE_ENGINE_ID = "piper-de-thorsten-medium";
 export const RELEASE_BASE_URL = "https://github.com/johannes-kaindl/audio-interface/releases/download";
-export { ASSET_VERSION };
 
 export const ENGINES: EngineDescriptor[] = [
   { id: BUILTIN_ENGINE_ID, kind: "builtin", label: "System voices", lang: "de", sampleRate: null, assets: [], licenseSummary: "" },

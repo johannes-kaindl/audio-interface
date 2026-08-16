@@ -1,6 +1,7 @@
 // GENERIERT von scripts/build-assets.mjs — nicht von Hand editieren. Größe/SHA-256 der Release-Assets.
+// Bewusst OHNE Version: die kommt zur Laufzeit aus manifest.json — sonst aendert jeder Release-Bump
+// diese Datei, und check:manifest waere im Release-Lauf immer rot.
 import type { AssetFile } from "./engine-manifest";
-export const ASSET_VERSION = "0.1.0";
 export const PIPER_DE_SAMPLE_RATE = 22050;
 export const PIPER_DE_ASSETS: AssetFile[] = [
   {

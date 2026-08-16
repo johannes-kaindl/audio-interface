@@ -1,5 +1,5 @@
 import { getLanguage, MarkdownView, Notice, Plugin, TFile, TFolder, type Editor } from "obsidian";
-import { ASSET_VERSION, engineById, PIPER_DE_ENGINE_ID, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
+import { engineById, PIPER_DE_ENGINE_ID, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
 import { exportEngineFor, speakEngineFor, type EngineReadiness } from "./core/engines";
 import { abort, begin, fail, finish, IDLE, isBusy, progress, type RunState } from "./core/run-state";
 import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-types";
@@ -49,7 +49,8 @@ export default class AudioInterfacePlugin extends Plugin {
     const descriptor = engineById(PIPER_DE_ENGINE_ID);
     if (!descriptor) throw new Error("engine manifest broken");
     this.descriptor = descriptor;
-    this.store = new AssetStore(realStoreDeps(ASSET_VERSION, this.assetBaseUrl));
+    // Asset-Version = Plugin-Version: die Release-Assets liegen am Tag des Plugins.
+    this.store = new AssetStore(realStoreDeps(this.manifest.version, this.assetBaseUrl));
     this.system = new SystemSpeechEngine(window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), realClock);
     this.piper = new PiperEngine({ store: this.store, descriptor, makeWorker: realMakeWorker, clock: realClock });
     this.piper.setEnabled(this.settings.exportEnabled);
@@ -93,6 +94,7 @@ export default class AudioInterfacePlugin extends Plugin {
       listVoices: () => this.system.listVoices(),
       piperDescriptor: this.descriptor,
       assetBaseUrl: this.assetBaseUrl,
+      assetVersion: this.manifest.version,
       assetStatus: () => this.store.status(this.descriptor),
       engineReadiness: () => this.refreshReadiness(),
       engineError: () => this.piper.lastError(),

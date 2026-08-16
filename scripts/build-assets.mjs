@@ -43,12 +43,12 @@ for (const f of files) {
 }
 
 const cfg = JSON.parse(readFileSync(join("dist-assets", `${VOICE}.onnx.json`), "utf8"));
-const version = JSON.parse(readFileSync("manifest.json", "utf8")).version;
 const rows = files.map(({ key, fileName, bytes, sha256, license }) => ({ key, fileName, bytes, sha256, license }));
 const ts = [
   "// GENERIERT von scripts/build-assets.mjs — nicht von Hand editieren. Größe/SHA-256 der Release-Assets.",
+  "// Bewusst OHNE Version: die kommt zur Laufzeit aus manifest.json — sonst aendert jeder Release-Bump",
+  "// diese Datei, und check:manifest waere im Release-Lauf immer rot.",
   'import type { AssetFile } from "./engine-manifest";',
-  `export const ASSET_VERSION = ${JSON.stringify(version)};`,
   `export const PIPER_DE_SAMPLE_RATE = ${cfg.audio.sample_rate};`,
   `export const PIPER_DE_ASSETS: AssetFile[] = ${JSON.stringify(rows, null, 2)};`,
   "",
