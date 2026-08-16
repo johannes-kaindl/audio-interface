@@ -128,18 +128,21 @@ async function main(): Promise<void> {
       const wav = outcome?.wav ?? null;
       record("Export erzeugt WAV 8 kHz > 1 s", can && !!wav && wav.rate === 8000 && wav.seconds > 1, wav ? `${wav.bytes} B, ${wav.rate} Hz, ${wav.seconds.toFixed(1)} s` : `checkCallback=${can}, keine Datei — ${outcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
 
-      // 8 Stimmenwechsel auf Englisch: nur das Modell fehlt noch (Worker + WASM sind geteilt)
+      // 8 Stimmenwechsel auf die ANDERE Stimme: nur das Modell fehlt noch (Worker + WASM sind geteilt).
+      // Welche das ist, haengt an der Oberflaechensprache — der Erststart waehlt danach vor.
+      const geladene = await cdp.evaluate<string>(`return app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}].settings.exportEngineId;`);
+      const andere = geladene === EN_ENGINE_ID ? DE_ENGINE_ID : EN_ENGINE_ID;
       const enRow = await cdp.evaluate<string>(`
         app.setting.open(); app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
         await new Promise((r) => setTimeout(r, 600));
         const tab = app.setting.activeTab;
-        await tab.setControlValue("exportEngineId", ${JSON.stringify(EN_ENGINE_ID)});
+        await tab.setControlValue("exportEngineId", ${JSON.stringify(andere)});
         await new Promise((r) => setTimeout(r, 900));
         const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
         return btns.join(" | ");`);
       // Nur Modell + Config fehlen → der Knopf nennt ~60 MB, nicht ~75 MB.
       const enSizeOk = /Herunterladen|Download/.test(enRow) && !/7\d[.,]\d MB/.test(enRow);
-      record("Stimmenwechsel: englische Stimme, nur das Modell fehlt", enSizeOk, enRow.slice(0, 140));
+      record(`Stimmenwechsel auf ${andere}: nur das Modell fehlt`, enSizeOk, enRow.slice(0, 140));
 
       await cdp.evaluate(`
         const tab = app.setting.activeTab;
@@ -148,11 +151,11 @@ async function main(): Promise<void> {
       const enReady = await pollUntil<string>(cdp, `
         const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
         const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
-      record("Englische Stimme geladen → Bereit", !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
+      record("Zweite Stimme geladen → Bereit", !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
       await cdp.evaluate(`app.setting.close(); return true;`);
 
-      // 9 Export mit der englischen Stimme (zweite Datei, weil die erste noch liegt)
-      await openNote(cdp, SMOKE_NOTE, SMOKE_BODY_EN, "source");
+      // 9 Export mit der zweiten Stimme (zweite Datei, weil die erste noch liegt) — Text in ihrer Sprache
+      await openNote(cdp, SMOKE_NOTE, andere === EN_ENGINE_ID ? SMOKE_BODY_EN : SMOKE_BODY, "source");
       await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
       const enOutcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
         const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
@@ -162,7 +165,7 @@ async function main(): Promise<void> {
         const rate = dv.getUint32(24, true); const data = dv.getUint32(40, true);
         return { wav: { bytes: buf.byteLength, rate, seconds: data / 2 / rate } };`, 120_000, 500);
       const enWav = enOutcome?.wav ?? null;
-      record("Export mit englischer Stimme erzeugt WAV 8 kHz > 1 s", !!enWav && enWav.rate === 8000 && enWav.seconds > 1, enWav ? `${enWav.bytes} B, ${enWav.rate} Hz, ${enWav.seconds.toFixed(1)} s` : `keine Datei — ${enOutcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
+      record("Export mit der zweiten Stimme erzeugt WAV 8 kHz > 1 s", !!enWav && enWav.rate === 8000 && enWav.seconds > 1, enWav ? `${enWav.bytes} B, ${enWav.rate} Hz, ${enWav.seconds.toFixed(1)} s` : `keine Datei — ${enOutcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
 
       // 10 Entfernen → wieder „Herunterladen“
       const removed = await cdp.evaluate<string>(`
@@ -179,7 +182,7 @@ async function main(): Promise<void> {
       // Stimmenwahl zurücksetzen — der Smoke hinterlässt keinen fremden Zustand.
       await cdp.evaluate(`
         const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
-        p.settings.exportEngineId = ${JSON.stringify(DE_ENGINE_ID)}; await p.saveSettings(); return true;`).catch(() => undefined);
+        p.settings.exportEngineId = ${JSON.stringify(geladene)}; await p.saveSettings(); return true;`).catch(() => undefined);
     }
   } finally {
     // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück.

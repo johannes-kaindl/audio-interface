@@ -93,7 +93,7 @@ cd audio-interface && npm install && npm run build
 | File name pattern | `{{note}}` and `{{date}}` are replaced; existing files get `-2`, `-3`, … | `{{note}}` |
 | Insert link into note | Append `![[file.wav]]` at the cursor after a successful export | off |
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="The plugin settings tab with three groups: Read aloud (voice, rate, read aloud with the downloaded voice), Voice-over and export (enable WAV export, the Piper Thorsten voice row marked Ready with a Remove button, output profile, target folder, file name pattern, insert link into note) and Local service">
+<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="The plugin settings tab with three groups: Read aloud (voice, rate, read aloud with the downloaded voice), Voice-over and export (enable WAV export, the selector Voice for export showing Piper LJSpeech marked downloaded, below it the LJSpeech voice row marked Ready with a Remove button, output profile, target folder, file name pattern, insert link into note) and Local service">
 
 ## How it works
 
@@ -116,7 +116,7 @@ Only the voice you selected is fetched — the first two files are shared, so a 
 just its model.
 
 <table><tr>
-<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper Thorsten, a description with size, source and licenses, and a Download button showing 75.2 MB"></a></td>
+<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper LJSpeech (en_US, medium), a description with size, source and licenses, and a Download button showing 76.2 MB"></a></td>
 <td>Every file is checked against a <b>SHA-256 checksum embedded in the plugin</b> before it is used; a mismatch disables the voice and names the file. The files live in the browser cache of the Obsidian app, <b>outside your vault</b> — never synced, never in your files — and <b>Remove</b> deletes them again. The download can be cancelled; partial downloads resume.</td>
 </tr></table>
 

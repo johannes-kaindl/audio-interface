@@ -8,9 +8,13 @@ wie man sie reproduzierbar neu aufnimmt. Geprüft wird er automatisch: `readme_l
 ## Status
 
 Stand 2026-08-16: siehe Tabelle unten (Spalte *Stand*). Aufgenommen mit `npm run shots` gegen
-Obsidian 1.13.7, englische Oberfläche, helles Theme. **Mit 0.3.0 (zweite Stimme) sind `settings.png`
-und `download.png` überholt** — der Export-Bereich hat jetzt die Zeile *Voice for export*, und bei
-englischer Oberfläche ist *Piper · LJSpeech (en_US, medium)* vorgewählt.
+Obsidian 1.13.7, englische Oberfläche, helles Theme. **Alle fünf Bilder sind auf dem Stand von
+0.3.0** (2026-08-16): der Export-Bereich hat die Zeile *Voice for export*, und bei englischer
+Oberfläche ist *Piper · LJSpeech (en_US, medium)* vorgewählt.
+
+`settings.png` wird seit 0.3.0 mit **doppelter Pixeldichte** aufgenommen: der Inhaltsbereich des
+Einstellungen-Fensters ist nur ~950 CSS-px breit, bei 1× lief das Bild unter die Anzeigebreite
+(`readme_lint`-Befund *image-scale*).
 
 ## Konventionen
 
@@ -29,8 +33,8 @@ kanonische Fassung, README.de.md bettet dieselben Bilder ein.
 |---|---|---|---|---|
 | `hero.png` | hero | `README.md`, `README.de.md` (Kopf) | Die Notiz **Mailbox greeting** in der Lesefläche: Überschrift, ein generischer englischer Ansagetext (Beispielfirma, keine echten Namen) mit einer Hervorhebung, darunter der eingebettete Audio-Player der Datei **Mailbox greeting.wav** — vorlesen und vertonen an einem Gegenstand. Ruhiges Bild, keine Seitenleisten, keine Palette. | ✅ |
 | `command-palette.png` | feature | `README.md` (Usage) | Die Befehlspalette, gefiltert auf **Audio Interface**, mit allen sechs Kommandos lesbar: **Read note aloud**, **Read selection aloud**, **Pause / resume reading**, **Stop reading / cancel export**, **Export note as WAV**, **Export selection as WAV**. | ✅ |
-| `settings.png` | feature | `README.md` (Configuration) | Der Einstellungen-Tab mit den drei Gruppen **Read aloud**, **Voice-over & export**, **Local service**; Export eingeschaltet, die Zeile **Voice for export** mit der Auswahl beider Stimmen und darunter die Engine-Zeile der gewählten Stimme im Zustand **Ready (version …)** mit **Remove**. | ⚠️ neu aufnehmen (0.3.0) |
-| `download.png` | detail | `README.md` (WAV export is an opt-in) | Nur die Engine-Zeile der gewählten Stimme (englische Oberfläche → **Piper · LJSpeech (en_US, medium)**) vor dem Download: Beschreibung mit Größe, Quelle und Lizenzen, Knopf **Download (…)**. Zeigt, dass nichts ohne Klick geladen wird. | ⚠️ neu aufnehmen (0.3.0) |
+| `settings.png` | feature | `README.md` (Configuration) | Der Einstellungen-Tab mit den drei Gruppen **Read aloud**, **Voice-over & export**, **Local service**; Export eingeschaltet, die Zeile **Voice for export** mit der Auswahl beider Stimmen und darunter die Engine-Zeile der gewählten Stimme im Zustand **Ready (version …)** mit **Remove**. | ✅ |
+| `download.png` | detail | `README.md` (WAV export is an opt-in) | Nur die Engine-Zeile der gewählten Stimme (englische Oberfläche → **Piper · LJSpeech (en_US, medium)**) vor dem Download: Beschreibung mit Größe, Quelle und Lizenzen, Knopf **Download (…)**. Zeigt, dass nichts ohne Klick geladen wird. | ✅ |
 | `status-bar.png` | detail | `README.md` (Usage) | Rechter Teil der Statusleiste während des Vorlesens mit dem Eintrag **Reading 1/3** (Klick = Stopp). | ✅ |
 
 ## Reproduktion

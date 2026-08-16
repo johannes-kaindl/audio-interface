@@ -228,7 +228,9 @@ async function settingsBilder(cdp: Cdp, port: number, opts: ShotOptions, assets:
               if (!box) throw new Error("kein Inhaltsbereich im Einstellungen-Fenster");
               const inhalt = await boxOf(fenster2, ".vertical-tab-content > *:last-child", 0);
               const clip = { ...box, height: inhalt ? inhalt.y + inhalt.height + 24 - box.y : box.height };
-              return capture(fenster2, clip);
+              // 2x aufnehmen: der Inhaltsbereich des Einstellungen-Fensters ist nur ~950 CSS-px breit;
+              // bei 1x liefe das Bild unter der Anzeigebreite (readme_lint „image-scale", 2026-08-16).
+              return captureScharf(fenster2, clip);
             });
             out.push(await writeShot(fenster2, "settings.png", png, { ...opts, thumb: false }));
           }

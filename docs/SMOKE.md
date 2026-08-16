@@ -55,13 +55,16 @@ einmal neu.
 | 9 | Export mit der englischen Stimme erzeugt WAV 8 kHz, > 1 s | zweite Datei (`…-2.wav`), englischer Ansagetext |
 | 10 | Entfernen → wieder „Herunterladen" | Cache geleert, Tab neu gezeichnet |
 
-Ohne `--assets` laufen nur 1–4; 5–10 werden als übersprungen gemeldet. Punkt 8 ist der Prüfpunkt für
+Punkt 8 meldet zwei Zeilen (Wechsel, dann „Bereit"), der Lauf zählt deshalb 11 Prüfungen.
+Welche Stimme die „andere" ist, hängt an der Oberflächensprache — der Treiber liest die geladene und
+wechselt auf die verbleibende. Ohne `--assets` laufen nur 1–4; 5–10 werden als übersprungen gemeldet. Punkt 8 ist der Prüfpunkt für
 die geteilte Laufzeit: er fällt rot aus, sobald die zweite Stimme wieder alles herunterladen will.
 
 ## Durchläufe
 
 | Datum | Obsidian | Ergebnis | Gegenprobe |
 |---|---|---|---|
+| 2026-08-16 (3) | 1.13.7, Aufnahme-Vault (englische Oberfläche → englische Stimme vorgewählt), lokaler Asset-Server, **zwei Stimmen** | **11/11 grün** (LJSpeech: Download 76,2 MB → Export 157 334 B/8000 Hz/9,8 s; Wechsel auf Thorsten: **Download 60,3 MB** — die geteilte Laufzeit lag schon → Export 120 738 B/7,5 s) | Erstlauf rot an Punkt 8: der Treiber wechselte fest „auf englisch", obwohl bei englischer Oberfläche schon die englische Stimme geladen war — er nimmt jetzt die *andere* Stimme |
 | 2026-08-16 (2) | 1.13.7, Aufnahme-Vault, **`--assets https://github.com/johannes-kaindl/audio-interface/releases/download` (echtes Release 0.1.0)** | zuerst **5/8** — Download „Failed to fetch": CORS auf dem GitHub-Redirect, vom lokalen Server (CORS `*`) verdeckt; nach Umstellung auf `requestUrl` **8/8 grün** (Export 99 004 B, 8000 Hz, 6,2 s) | — |
 | 2026-08-16 | 1.13.7, Aufnahme-Vault `audio-interface` (englische Oberfläche), Manifest korrigiert, Cache-Schlüssel basisunabhängig | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | — |
 | 2026-08-15 | 1.13.7 / Electron 39.7.0, macOS, 00_ProtoVault | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | eine SHA-256 im generierten Manifest verfälscht → **genau Punkt 7 rot** (Engine `unavailable`, Punkt 6 bleibt grün, weil der Download nicht prüft — die Prüfung sitzt vor dem Instanziieren) |

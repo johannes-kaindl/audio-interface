@@ -95,7 +95,7 @@ cd audio-interface && npm install && npm run build
 | Dateinamen-Muster | `{{note}}` und `{{date}}` werden ersetzt; vorhandene Dateien bekommen `-2`, `-3`, … | `{{note}}` |
 | Link in die Notiz einfügen | Nach erfolgreichem Export `![[datei.wav]]` am Cursor einfügen | aus |
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="Der Einstellungen-Tab (englische Oberfläche) mit drei Gruppen: Vorlesen, Vertonen und Export mit der Stimmen-Zeile im Zustand Bereit und dem Knopf Entfernen, sowie Lokaler Dienst">
+<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="Der Einstellungen-Tab (englische Oberfläche) mit drei Gruppen: Vorlesen, Vertonen und Export mit der Auswahl Stimme für den Export (Piper LJSpeech, als geladen markiert), darunter die Stimmen-Zeile im Zustand Bereit mit dem Knopf Entfernen, sowie Lokaler Dienst">
 
 ## Funktionsweise
 
@@ -119,7 +119,7 @@ Geladen wird nur die gewählte Stimme — die ersten beiden Dateien sind geteilt
 kostet deshalb nur noch ihr Modell.
 
 <table><tr>
-<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="Die Stimmen-Zeile in den Einstellungen vor dem Download: Name Piper Thorsten, Beschreibung mit Größe, Quelle und Lizenzen, Knopf Download 75.2 MB"></a></td>
+<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="Die Stimmen-Zeile in den Einstellungen vor dem Download: Name Piper LJSpeech (en_US, medium), Beschreibung mit Größe, Quelle und Lizenzen, Knopf Download 76.2 MB"></a></td>
 <td>Jede Datei wird vor der Nutzung gegen eine <b>im Plugin eingebettete SHA-256-Prüfsumme</b> geprüft; bei Abweichung bleibt die Stimme aus, und die Meldung nennt die Datei. Die Dateien liegen im Browser-Cache der Obsidian-App, <b>außerhalb deines Vaults</b> — nie synchronisiert, nie in deinen Dateien — und <b>Entfernen</b> löscht sie wieder. Der Download lässt sich abbrechen; Teilstände werden fortgesetzt.</td>
 </tr></table>
 
