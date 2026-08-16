@@ -46,6 +46,18 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
   `wasm`; `globalThis.process` im Worker-Bundle wegdefiniert (Electron-Worker hat `process`,
   ephone hielte sich sonst für Node). ephone/eSpeak-NG ist GPL-3 → Plugin AGPL-3.0-or-later.
 
+## Store-Scorecard (gemessen 2026-08-16, Release 0.3.0)
+
+**Health `Excellent` · Review `Passed`** — die Bestnote, mit der gewählten Bauart. Keine `low`/`medium`/`high`-Befunde.
+`pass`: Attestierung für `main.js` und `styles.css`, `No suspicious network patterns found`,
+keine verwundbaren Abhängigkeiten, keine Obfuskation und **`Build reproduced the release main.js byte-for-byte`**
+— der Scanner baut den Tag nach; ein von Hand nachgebessertes `main.js` im Release verlöre das.
+`info` (kostet die Note nicht): `Release contains extra unsupported files` (die sechs Engine-Assets),
+`Plugin references unrecognized WASM files` (ORT-WASM), `License AGPL-3.0 is a copyleft license`,
+`Malware scan not available`. Die vorab erwartete Zeile `Number of network request calls` erschien
+**nicht** — der Opt-in-Download über `requestUrl` fällt dem Scanner nicht als Netzverhalten auf.
+Nachlesen: `python3 tools/scorecard.py audio-interface`.
+
 ## Messwerte (Spike 2026-08-15, M5, Obsidian 1.13.7)
 
 Piper thorsten-medium im Renderer, CPU-WASM einfädig: Session ~0,9 s, **RTF 0,17**; WebGPU
