@@ -9,6 +9,7 @@ describe("engine-manifest", () => {
     const piper = engineById(PIPER_DE_ENGINE_ID)!;
     expect(piper.assets.map((a) => a.key)).toEqual(["worker", "wasm", "model", "modelConfig"]);
     expect(totalBytes(piper)).toBeGreaterThan(70_000_000);
+    expect(piper.tempo).toBe(0.85);
     for (const a of piper.assets) {
       expect(a.bytes).toBeGreaterThan(0);
       expect(a.sha256).toMatch(/^[0-9a-f]{64}$/);

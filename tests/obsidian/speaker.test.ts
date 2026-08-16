@@ -16,7 +16,7 @@ function setup(opts: { loadable?: boolean } = {}) {
     pause: () => { sys.pause++; }, resume: () => { sys.resume++; },
   } as unknown as SystemSpeechEngine;
   const eng = { def: deferred<PcmBuffer>(), calls: [] as unknown[] };
-  const loadable = { synthesize: (chunks: unknown, o: unknown, signal: AbortSignal, onProgress: (d: number, t: number) => void) => { eng.calls.push({ chunks, o }); onProgress(1, 2); signal.addEventListener("abort", () => eng.def.reject(Object.assign(new Error("aborted"), { name: "AbortError" }))); return eng.def.promise; } } as unknown as PiperEngine;
+  const loadable = { tempo: 0.85, synthesize: (chunks: unknown, o: unknown, signal: AbortSignal, onProgress: (d: number, t: number) => void) => { eng.calls.push({ chunks, o }); onProgress(1, 2); signal.addEventListener("abort", () => eng.def.reject(Object.assign(new Error("aborted"), { name: "AbortError" }))); return eng.def.promise; } } as unknown as PiperEngine;
   const pl = { def: deferred<void>(), played: [] as PcmBuffer[], pause: 0, resume: 0 };
   const player: PcmPlayer = { play: (pcm, signal) => { pl.played.push(pcm); signal.addEventListener("abort", () => pl.def.reject(Object.assign(new Error("aborted"), { name: "AbortError" }))); return pl.def.promise; }, pause: () => { pl.pause++; }, resume: () => { pl.resume++; } };
   const speaker = new Speaker({ system, loadable: () => (opts.loadable === false ? null : loadable), player, onState: (s) => states.push(s) });
@@ -40,7 +40,7 @@ describe("Speaker", () => {
   it("loadable: rendering → speaking über Player; lengthScale = 1/rate", async () => {
     const { speaker, states, eng, pl } = setup();
     const p = speaker.speak("Hallo Welt.", { ...DEFAULT_SETTINGS, speakRate: 2 }, true); await flush();
-    expect(eng.calls[0]).toMatchObject({ o: { lengthScale: 0.5 } });
+    expect(eng.calls[0]).toMatchObject({ o: { lengthScale: 0.85 / 2 } });
     expect(states.some((s) => s.kind === "rendering" && s.done === 1)).toBe(true);
     eng.def.resolve({ samples: new Float32Array(10), sampleRate: 22050 }); await flush();
     expect(pl.played.length).toBe(1);

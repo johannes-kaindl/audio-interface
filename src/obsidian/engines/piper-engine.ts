@@ -43,6 +43,8 @@ export class EngineAbortError extends Error {
 export class PiperEngine {
   readonly kind = "loadable" as const;
   readonly id: string;
+  /** Werks-Tempo der Stimme (length_scale-Basis); Aufrufer teilen durch das Sprechtempo. */
+  readonly tempo: number;
   private enabled = false;
   private worker: WorkerLike | null = null;
   private workerReady: Promise<void> | null = null;
@@ -55,6 +57,7 @@ export class PiperEngine {
 
   constructor(private readonly deps: PiperEngineDeps) {
     this.id = deps.descriptor.id;
+    this.tempo = deps.descriptor.tempo ?? 1;
   }
 
   setEnabled(on: boolean): void {

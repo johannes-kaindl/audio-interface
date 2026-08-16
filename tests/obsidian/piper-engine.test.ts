@@ -38,6 +38,11 @@ const chunks = [{ text: "Hallo.", pauseAfterMs: 0 }];
 const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
 
 describe("PiperEngine", () => {
+  it("tempo kommt aus dem Descriptor (Default 1)", () => {
+    const st = fakeStore(); const f = fakeWorkerFactory(); const c = fakeClock();
+    expect(new PiperEngine({ store: st.store, descriptor, makeWorker: f.make, clock: c.clock }).tempo).toBe(1);
+    expect(new PiperEngine({ store: st.store, descriptor: { ...descriptor, tempo: 0.85 }, makeWorker: f.make, clock: c.clock }).tempo).toBe(0.85);
+  });
   it("readiness: off → needs-download → ready → loading/ready mit Worker", async () => {
     const st = fakeStore({ status: "missing" }); const f = fakeWorkerFactory(); const c = fakeClock();
     const e = new PiperEngine({ store: st.store, descriptor, makeWorker: f.make, clock: c.clock });

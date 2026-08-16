@@ -72,7 +72,7 @@ export async function runExport(input: ExportInput, deps: ExportDeps, signal: Ab
     emit(progress(state, "synthesizing", 0, chunks.length));
     let pcm: PcmBuffer;
     try {
-      pcm = await deps.engine.synthesize(chunks, { lengthScale: 1 }, signal, (done, total) => emit(progress(state, "synthesizing", done, total)));
+      pcm = await deps.engine.synthesize(chunks, { lengthScale: deps.engine.tempo }, signal, (done, total) => emit(progress(state, "synthesizing", done, total)));
     } catch (err) {
       if (signal.aborted) throw new ExportError("aborted");
       const msg = err instanceof Error ? err.message : String(err);

@@ -22,6 +22,9 @@ export interface EngineDescriptor {
   lang: "de";
   /** null = Systemstimmen (kein PCM). */
   sampleRate: number | null;
+  /** Werks-Tempo als Piper-`length_scale`-Faktor (1 = Modell-Default, < 1 = schneller). Gewählt nach
+   *  Hörprobe 2026-08-16: thorsten-medium klingt bei 1,0 „verschlafen", 0,85 nicht. */
+  tempo?: number;
   assets: AssetFile[];
   licenseSummary: string;
 }
@@ -38,6 +41,7 @@ export const ENGINES: EngineDescriptor[] = [
     label: "Piper · Thorsten (de_DE, medium)",
     lang: "de",
     sampleRate: PIPER_DE_SAMPLE_RATE,
+    tempo: 0.85,
     assets: PIPER_DE_ASSETS,
     licenseSummary: "Voice CC0 · onnxruntime-web MIT · eSpeak-NG/ephone GPL-3.0",
   },

@@ -65,7 +65,7 @@ export class Speaker {
         if (!engine) throw new SpeakerError("engine-unavailable");
         this.activeEngine = "loadable";
         this.set({ kind: "rendering", done: 0, total });
-        const pcm = await engine.synthesize(chunks, { lengthScale: 1 / settings.speakRate }, controller.signal, (done, t) =>
+        const pcm = await engine.synthesize(chunks, { lengthScale: engine.tempo / settings.speakRate }, controller.signal, (done, t) =>
           this.set({ kind: "rendering", done, total: t }),
         );
         if (controller.signal.aborted) return;

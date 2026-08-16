@@ -8,15 +8,19 @@ import { runExport, type VaultPort } from "../../src/obsidian/exporter";
 const sine = (sr: number, sec: number) => Float32Array.from({ length: Math.round(sr * sec) }, (_, i) => 0.5 * Math.sin((2 * Math.PI * 440 * i) / sr));
 
 function fakeEngine(opts: { fail?: string; hangUntilAbort?: boolean } = {}) {
+  const seen: { lengthScale?: number }[] = [];
   const engine = {
-    synthesize: (chunks: { text: string }[], _o: unknown, signal: AbortSignal, onProgress: (d: number, t: number) => void): Promise<PcmBuffer> =>
+    tempo: 0.85,
+    seen,
+    synthesize: (chunks: { text: string }[], o: { lengthScale: number }, signal: AbortSignal, onProgress: (d: number, t: number) => void): Promise<PcmBuffer> =>
       new Promise((resolve, reject) => {
+        seen.push(o);
         if (opts.fail) { reject(new Error(opts.fail)); return; }
         onProgress(1, chunks.length);
         if (opts.hangUntilAbort) { signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" }))); return; }
         resolve({ samples: sine(22050, 1), sampleRate: 22050 });
       }),
-  } as unknown as PiperEngine;
+  } as unknown as PiperEngine & { seen: { lengthScale?: number }[] };
   return engine;
 }
 function fakeVault(existing: string[] = [], folders: string[] = []) {
@@ -38,9 +42,11 @@ const run = (settings: Partial<AudioInterfaceSettings>, engine = fakeEngine(), v
 };
 
 describe("runExport", () => {
-  it("Zustandsfolge preparing→synthesizing→encoding→writing→done, Datei neben der Notiz, 8 kHz", async () => {
-    const { p, states, v } = run({});
+  it("Zustandsfolge preparing→synthesizing→encoding→writing→done, Datei neben der Notiz, 8 kHz, Werks-Tempo der Engine", async () => {
+    const engine = fakeEngine();
+    const { p, states, v } = run({}, engine);
     const r = await p;
+    expect(engine.seen[0]).toEqual({ lengthScale: 0.85 });
     expect(states.map((s) => (s.kind === "running" ? s.phase : s.kind))).toEqual(["preparing", "synthesizing", "synthesizing", "encoding", "writing", "done"]);
     expect(r.path).toBe("Arbeit/Mailbox.wav"); expect(r.sampleRate).toBe(8000); expect(r.seconds).toBeCloseTo(1, 1);
     expect(wavRate(v.files.get("Arbeit/Mailbox.wav")!)).toBe(8000);
