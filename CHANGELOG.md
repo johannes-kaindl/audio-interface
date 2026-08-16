@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-08-16
+
 ### Fixed
 
 - The voice download from the GitHub release failed inside Obsidian (`Failed to fetch`): the
