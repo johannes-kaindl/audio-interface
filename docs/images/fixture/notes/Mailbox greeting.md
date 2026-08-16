@@ -1,9 +1,9 @@
 # Mailbox greeting
 
-Guten Tag, Sie erreichen die Mailbox von Johannes Kaindl. Leider kann ich Ihren Anruf gerade nicht entgegennehmen.
+Thank you for calling Acme Consulting. Unfortunately, nobody can take your call right now.
 
-Bitte hinterlassen Sie **Ihren Namen** und Ihre Rufnummer nach dem Signalton — ich rufe Sie schnellstmöglich zurück.
+Please leave **your name** and phone number after the tone — we will get back to you as soon as possible.
 
-Vielen Dank und auf Wiederhören.
+Thank you, and goodbye.
 
 ![[Mailbox greeting.wav]]

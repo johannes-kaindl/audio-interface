@@ -12,6 +12,8 @@ Obsidian 1.13.7, englische Oberfläche, helles Theme.
 
 ## Konventionen
 
+**Beispieldaten sind generisch und englisch** — keine echten Namen, Firmen oder Nummern; Beispiel-Inhalte auf Englisch, weil README.md die kanonische Fassung ist (deutsche Beispiel-Inhalte für die deutsche README wären zulässig, sind aber nicht nötig).
+
 Verbindlich ist der workspace-weite Bild-Standard (`_docs/readme/readme-spec.json`, Block `images`):
 Aufnahme bei 1200 px Breite; `hero`/`feature` mit `width="820"`, `detail` als Vorschaubild
 `width="380"` (unter `thumbs/`) verlinkt auf die Vollauflösung; Einbettung immer per `<img>`, absolute
@@ -23,7 +25,7 @@ kanonische Fassung, README.de.md bettet dieselben Bilder ein.
 
 | Datei | Klasse | Referenziert von | Muss zeigen | Stand |
 |---|---|---|---|---|
-| `hero.png` | hero | `README.md`, `README.de.md` (Kopf) | Die Notiz **Mailbox greeting** in der Lesefläche: Überschrift, der deutsche Ansagetext mit einer Hervorhebung, darunter der eingebettete Audio-Player der Datei **Mailbox greeting.wav** — vorlesen und vertonen an einem Gegenstand. Ruhiges Bild, keine Seitenleisten, keine Palette. | ✅ |
+| `hero.png` | hero | `README.md`, `README.de.md` (Kopf) | Die Notiz **Mailbox greeting** in der Lesefläche: Überschrift, ein generischer englischer Ansagetext (Beispielfirma, keine echten Namen) mit einer Hervorhebung, darunter der eingebettete Audio-Player der Datei **Mailbox greeting.wav** — vorlesen und vertonen an einem Gegenstand. Ruhiges Bild, keine Seitenleisten, keine Palette. | ✅ |
 | `command-palette.png` | feature | `README.md` (Usage) | Die Befehlspalette, gefiltert auf **Audio Interface**, mit allen sechs Kommandos lesbar: **Read note aloud**, **Read selection aloud**, **Pause / resume reading**, **Stop reading / cancel export**, **Export note as WAV**, **Export selection as WAV**. | ✅ |
 | `settings.png` | feature | `README.md` (Configuration) | Der Einstellungen-Tab mit den drei Gruppen **Read aloud**, **Voice-over & export**, **Local service**; Export eingeschaltet und die Engine-Zeile im Zustand **Ready (version …)** mit **Remove**. | ✅ |
 | `download.png` | detail | `README.md` (WAV export is an opt-in) | Nur die Engine-Zeile **Piper · Thorsten (de_DE, medium)** vor dem Download: Beschreibung mit Größe, Quelle und Lizenzen, Knopf **Download (…)**. Zeigt, dass nichts ohne Klick geladen wird. | ✅ |

@@ -17,7 +17,7 @@ import { Cdp, notices, openNote, pollUntil } from "./lib/cdp.js";
 
 const PLUGIN_ID = "audio-interface";
 const SMOKE_NOTE = "_audio-interface-smoke.md";
-const SMOKE_BODY = "# Ansage\n\nGuten Tag, Sie erreichen die Mailbox. Bitte hinterlassen Sie eine Nachricht.\n";
+const SMOKE_BODY = "# Ansage\n\nGuten Tag, Sie erreichen die Mailbox der Beispiel GmbH. Bitte hinterlassen Sie eine Nachricht.\n";
 const ASSET_KEY = "audio-interface-asset-base";
 
 interface Check { name: string; passed: boolean; detail: string }

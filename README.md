@@ -12,7 +12,7 @@ Reading aloud works the moment you install the plugin, with the voices already o
 Exporting a note as a WAV file — say, a mailbox greeting for your phone system — is a deliberate
 opt-in: you enable it, you press *Download*, and only then does a German voice arrive on your disk.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="A note titled Mailbox greeting in reading view: three short German paragraphs and, below them, the embedded audio player of the exported WAV file"></p>
+<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="A note titled Mailbox greeting in reading view: three short paragraphs of a generic phone greeting and, below them, the embedded audio player of the exported WAV file"></p>
 
 ## Features
 

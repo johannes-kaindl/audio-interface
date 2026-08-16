@@ -13,7 +13,7 @@ da sind. Eine Notiz als WAV zu vertonen — etwa eine Mailbox-Ansage für die Te
 bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann kommt eine deutsche
 Stimme auf die Platte.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="Eine Notiz mit dem Titel Mailbox greeting in der Leseansicht: drei kurze deutsche Absätze, darunter der eingebettete Audio-Player der exportierten WAV-Datei"></p>
+<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="Eine Notiz mit dem Titel Mailbox greeting in der Leseansicht: drei kurze Absätze einer generischen Telefonansage (englisch), darunter der eingebettete Audio-Player der exportierten WAV-Datei"></p>
 
 ## Features
 
