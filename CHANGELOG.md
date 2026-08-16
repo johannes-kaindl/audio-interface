@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-08-16
+
 ### Added
 
 - Read notes or the current selection aloud with the system voices (`speechSynthesis`):
