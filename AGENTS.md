@@ -2,7 +2,9 @@
 
 Obsidian-Plugin: Vorlesen (Systemstimmen) + WAV-Export (ladbare Piper-Stimme). Dach: `../AGENTS.md`
 (Kit-first, UI-STANDARD, Store-Regeln) gilt. Spec: `docs/superpowers/specs/2026-08-15-audio-interface-release-1-design.md`,
-Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOKE.md`.
+Spikes: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md` (Piper, gruen) und
+`docs/spikes/2026-08-19-qwen3-tts-im-obsidian-renderer.md` (Qwen3-TTS, **rot** — RTF 4,8 statt < 1),
+Smoke: `docs/SMOKE.md`.
 
 ## Bauart-Regeln (tragend, gemessen)
 
@@ -45,6 +47,13 @@ Spike: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md`, Smoke: `docs/SMOK
 - **Worker:** `numThreads = 1` (kein crossOriginIsolated), `wasmBinary` aus dem Cache, Backend
   `wasm`; `globalThis.process` im Worker-Bundle wegdefiniert (Electron-Worker hat `process`,
   ephone hielte sich sonst für Node). ephone/eSpeak-NG ist GPL-3 → Plugin AGPL-3.0-or-later.
+- **WebGPU ist im Renderer kein pauschaler Beschleuniger — je Graph messen.** Gemessen 2026-08-19
+  am Qwen3-TTS-Graphen: derselbe ORT-web-Lauf ist auf WebGPU beim conv-lastigen Vocoder **20,8× schneller**,
+  bei den beiden Transformern aber **4–5× langsamer** (mit `Invalid ComputePipeline "Concat"`-Meldungen,
+  d. h. Rückfall auf CPU je Knoten). Für Piper war CPU-WASM deshalb die richtige Wahl — aber aus
+  Bequemlichkeit, nicht aus Messung. Wer eine zweite Engine erwägt, misst **pro Teilgraph**, nicht pro Modell.
+  Zweiter Befund aus demselben Lauf: `ort.env.wasm.proxy = true` ist hier **nicht** nutzbar
+  (`Failed to resolve module specifier 'worker_threads'`) — derselbe Electron-Grund wie bei ephone.
 
 ## Store-Scorecard (gemessen 2026-08-16, Release 0.3.0)
 
