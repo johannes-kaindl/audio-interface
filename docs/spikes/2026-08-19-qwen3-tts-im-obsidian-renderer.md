@@ -106,3 +106,68 @@ weiterhin nicht Echtzeit. Weitere Beobachtung fürs Protokoll: `text_embedding.n
 - `talker_prefill` (Erstlatenz) und `speaker_encoder` (Cloning-Enrollment).
 - Qualität/Korrektheit der Ausgabe — es liefen Dummy-Eingaben; gemessen wurde **Zeit**, nicht Klang.
 - Der LiteRT-Weg im Browser (LiteRT.js) — eigene Schiene, hier nicht angefasst.
+
+---
+
+# Nachtrag: zweiter Spike — bringt ein eigener ONNX-Export die LiteRT-Zahlen? (2026-08-19, vormittags)
+
+**Frage:** Der erste Spike endete mit der Hochrechnung „mit gefaltetem/quantisiertem Export
+RTF ~1,5". Diese Zahl stammte aus den LiteRT-Faktoren, nicht aus einer Messung. Hält sie?
+
+**Antwort: nein. Erreichbar sind ~RTF 2,8 — der Quantisierungs-Anteil der Rechnung entfällt
+vollständig.**
+
+## Was gemessen wurde (MTP, je 80-ms-Frame, Renderer, `numThreads = 1`)
+
+| Variante | Größe | WASM | WebGPU |
+|---|---|---|---|
+| fp32 (Original) | 440 MB | **215–251 ms** | 1097 ms |
+| int8 dynamisch (`MatMulInteger`) | 110 MB | 326,7 ms (**+52 %**) | 2451,4 ms |
+| int4 blockwise-32 (`MatMulNBits`) | 175 MB | 2210,7 ms (**10×**) | 817,9 ms |
+
+**Quantisierung verschlechtert in ORT-web durchgängig.** Auch auf WebGPU, wo `MatMulNBits` der
+für LLMs optimierte Pfad ist, bleibt alles hinter fp32-auf-WASM zurück. Damit ist die
+Bandbreiten-Hypothese (aus der die RTF-1,5-Schätzung stammte) **widerlegt**: der MTP ist nicht
+bandbreiten-limitiert, sondern hängt daran, dass fp32 der einzige gut optimierte Kernel-Pfad ist.
+
+## Wo die Zeit stattdessen liegt — Einzelschritte aufgelöst
+
+Die 15 Aufrufe einzeln gestoppt: `7,9 · 8,2 · 8,3 · 8,3 · 8,4 · 8,4 · 9,2 · 9,7 · 9,6 · 9,7 · 12,9 · 10,1 · 12,8 · 15,4 · 16,0` ms.
+
+- Summe der reinen Inferenz: **154,9 ms** — Gesamtzeit des Frames: **251,0 ms**.
+- **38 % der Zeit liegt zwischen den Aufrufen**, nicht in ihnen (Tensor-Aufbau, Weiterreichen des
+  KV-Cache über die JS-Grenze).
+- Die Einzelschritte **verdoppeln sich** (7,9 → 16,0 ms), obwohl der Cache nur 17 Slots hat — der
+  `[5,1,8,seq,128]`-Tensor wird je Schritt neu materialisiert.
+
+Beides verschwindet bei einem gefalteten Graphen (KV bleibt graphintern, ein Aufruf statt 15).
+Optimistisch gerechnet: **118 ms statt 251 — Faktor 2,1.** Nicht die 5×, die LiteRT meldet.
+
+## Warum eine ONNX-Portierung die LiteRT-Zahlen *nicht* erbt
+
+Das ist der übertragbare Kern: LiteRTs 5× kommt aus **Faltung × int8**. Der int8-Anteil hängt an
+**XNNPACKs** Quantisierungs-Kerneln — die hat ORT-web-WASM nicht. Übrig bleibt der Faltungsanteil.
+Wer LiteRT-Benchmarks auf einen ONNX-Web-Port überträgt, rechnet mit einem Faktor, der an eine
+fremde Kernel-Bibliothek gebunden ist.
+
+## Realistische Endrechnung
+
+| Stufe | bester Weg | ms/Frame |
+|---|---|---|
+| Talker fp32 | WASM | ~100 |
+| MTP fp32, **gefaltet** (geschätzt) | WASM | ~118 |
+| Vocoder | WebGPU | 7,5 |
+| **Summe** | | **~226 → RTF ~2,8** |
+
+Eine 30-s-Ansage: **~85 s** (statt der erhofften ~45 s, statt gemessener 2,4 min heute).
+Die Faltung selbst wurde **nicht gebaut** — gemessen ist der Overhead, den sie einspart; die
+118 ms sind eine begründete Untergrenze, keine Messung.
+
+## Empfehlung nach dem zweiten Spike
+
+Die Entscheidung ist jetzt frei von Schätzungen — bis auf eine: ob die Faltung überhaupt gelingt.
+Der Ertrag dafür ist **Faktor 2,1 auf 72 % der Rechenzeit**, Endstand RTF ~2,8. Ob eine
+Opt-in-Export-Stufe das wert ist, bleibt eine Produktfrage — aber sie wird mit dieser Zahl
+deutlich unattraktiver als mit RTF 1,5. **Mein Rat: nicht bauen, solange kein konkreter
+Anwendungsfall Voice Cloning verlangt.** Der Befund ist damit festgehalten und jederzeit
+wieder aufnehmbar; nichts davon verfällt.
