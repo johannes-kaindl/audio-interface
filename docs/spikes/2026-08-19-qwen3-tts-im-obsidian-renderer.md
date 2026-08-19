@@ -8,8 +8,10 @@ die Frage war eine Messung, kein Bauwerk.
 
 ## Ergebnis in einem Satz
 
-**Rot: die Pipeline läuft im Renderer, aber um Faktor ~4,8 zu langsam für Echtzeit — und der
-Engpass ist nicht der Talker, sondern der MTP; WebGPU hilft nur dem Vocoder.**
+**Rot für Echtzeit: die Pipeline läuft im Renderer, aber um Faktor ~4,8 zu langsam — und der
+Engpass ist nicht der Talker, sondern der MTP; WebGPU hilft nur dem Vocoder.** Für eine *optionale
+Export*-Stufe ist es dagegen offen: dort scheitert es nicht an der Geschwindigkeit, sondern daran,
+dass der brauchbare (gefaltete, quantisierte) Export nur als TFLite existiert — s. § Empfehlung.
 
 ## Die Frage war richtig gestellt, hat aber die falsche Zahl gemessen
 
@@ -73,20 +75,31 @@ weiterhin nicht Echtzeit. Weitere Beobachtung fürs Protokoll: `text_embedding.n
 | WASM-Heap | bis 4,0 GB (32-bit-Deckel) |
 | 1774 MB über `fetch` von localhost | 1,5–8,9 s |
 | Session-Aufbau `talker_decode` | 4,1 s |
-| ORT im Proxy-Worker | **scheitert**: `Failed to resolve module specifier 'worker_threads'` — derselbe Electron-Befund wie bei ephone (Worker hat `process`); ohne Bundle-Patch blockiert die Inferenz den Hauptthread so lange, dass **CDP selbst nicht mehr antwortet** |
+| ORT im Proxy-Worker | `ort.env.wasm.proxy = true` scheitert bei **Laufzeit-Import**: `Failed to resolve module specifier 'worker_threads'`. ⚠️ **Das ist ein Artefakt dieses Wegwerf-Aufbaus, kein Plugin-Befund** — `src/worker/piper-worker.ts` importiert ORT statisch und `esbuild.config.mjs` setzt `define: {"globalThis.process": "undefined"}`; im Plugin läuft ORT längst im Worker. Für den Spike hiess es nur: die Inferenz blockierte den Hauptthread, bis **CDP selbst nicht mehr antwortete**. Offen (ungetestet): ob der WebGPU-Gewinn des Vocoders auch **im Worker** verfügbar ist — das Plugin bündelt heute `onnxruntime-web/wasm`, nicht den jsep-Build. |
 
 ## Empfehlung
 
 - **Als Echtzeit-/Vorlese-Engine: nein.** Nicht am Fleiß, sondern an Renderer-Einfädigkeit und
   Modellstruktur. Der Dienst-Weg (`audio-ui serve`) bleibt der Weg für Qwen3-TTS-Qualität.
-- **Als reine Export-Engine ist es keine klare Absage**, sondern eine Preisfrage: WAV-Export
-  verträgt RTF > 1 (Piper liegt bei 0,17, hier wären es ~4,8 → 30-s-Ansage in ~2,4 min). Der Preis
-  ist ~2,5 GB Download selbst nach Optimierung, ein Eigen-Export der gefalteten Graphen und ein
-  blockierender Renderer, solange der Worker-Weg nicht gelöst ist. Gegenwert wäre Voice Cloning.
-  **Das ist eine Produktentscheidung, keine technische mehr.**
-- **Kein eigenes Repo `qwen3-tts-web` anlegen**, solange diese Entscheidung offen ist.
-- **Wenn es später doch weitergeht**, ist der erste Schritt nicht Code, sondern der **ONNX-Export
-  der gefalteten MTP-Variante** — dort liegen 72 % der Rechenzeit.
+- **Als optionale Export-Stufe ist es keine Absage.** WAV-Export verträgt RTF > 1, und die Bauart
+  ist ohnehin auf Freigabe-Modi gebaut (eingebaut · ladbar · Dienst) — eine dritte Stufe fügt sich
+  strukturell ein und belästigt niemanden, der sie nicht anklickt. *Korrektur gegenüber der ersten
+  Fassung dieses Dokuments: „der Renderer blockiert" wurde hier als Kostenpunkt geführt und ist für
+  das Plugin **falsch** (Worker existiert, s. o.); und „2,5 GB Download" wiegt bei einer Opt-in-Stufe
+  weniger, als dort behauptet.*
+- **Der einzige harte Punkt: das Artefakt existiert nicht.** Der gemessene ONNX-Export ist fp32 und
+  für Server gebaut. Was brauchbar wäre — `talker_int4` (256 statt 1774 MB), `mtp_folded_int8`
+  (15 Aufrufe in **einem** Graphen), Codec-Split — gibt es nur als **TFLite**.
+- **Damit ist die Frage verschoben, nicht beantwortet:** nicht „läuft es schnell genug?", sondern
+  **„baut man den ONNX-Export?"**. Hochgerechnet aus den Messungen oben plus den LiteRT-Faktoren:
+  MTP 277 → ~77 ms, Talker ~35 ms, Vocoder 7,5 ms (WebGPU) → **RTF ~1,5 bei ~1,0–1,6 GB**, also
+  eine 30-s-Ansage in ~45 s. **Hochrechnung, keine Messung** — die Graph-Faltung ist genau der Teil
+  ohne ONNX-Vorbild.
+- **Ein eigenes Repo `qwen3-tts-web` ist dafür der richtige Ort** — aber als *Export-Werkstatt*,
+  nicht als Inferenz-Portierung: die Inferenz ist hiermit gemessen und funktioniert. Die
+  Konversionsskripte (`john-rocky/hf-to-litertlm`) sind offen, zielen aber auf LiteRT und wären zu
+  adaptieren. Unbekannt bleibt der Aufwand dieser Adaption — das ist der Posten, den ein zweiter,
+  eng geschnittener Spike zuerst klären müsste.
 
 ## Nicht gemessen
 
