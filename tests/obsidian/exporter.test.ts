@@ -47,10 +47,10 @@ describe("runExport", () => {
     const { p, states, v } = run({}, engine);
     const r = await p;
     expect(engine.seen[0]).toEqual({ lengthScale: 0.85 });
-    expect(states.map((s) => (s.kind === "running" ? s.phase : s.kind))).toEqual(["preparing", "synthesizing", "synthesizing", "encoding", "writing", "done"]);
+    expect(states.map((s) => (s.status === "running" ? s.phase : s.status))).toEqual(["preparing", "synthesizing", "synthesizing", "encoding", "writing", "done"]);
     expect(r.path).toBe("Arbeit/Mailbox.wav"); expect(r.sampleRate).toBe(8000); expect(r.seconds).toBeCloseTo(1, 1);
     expect(wavRate(v.files.get("Arbeit/Mailbox.wav")!)).toBe(8000);
-    expect(states[states.length - 1]).toEqual({ kind: "done", detail: "Arbeit/Mailbox.wav" });
+    expect(states[states.length - 1]).toEqual({ status: "done", detail: "Arbeit/Mailbox.wav" });
   });
   it("Profil native behält 22050 Hz; Exportordner wird angelegt; Muster mit Datum", async () => {
     const { p, v } = run({ exportProfile: "native", exportFolder: "Audio/Out", exportFilePattern: "{{date}} {{note}}" });
@@ -65,20 +65,20 @@ describe("runExport", () => {
   it("leerer Text → failed(empty), nichts geschrieben", async () => {
     const states: RunState[] = []; const v = fakeVault();
     await expect(runExport({ ...input, markdown: "---\nx: 1\n---\n" }, { engine: fakeEngine(), vault: v.vault, settings: DEFAULT_SETTINGS, onState: (s) => states.push(s) }, new AbortController().signal)).rejects.toMatchObject({ code: "empty" });
-    expect(states[states.length - 1]).toEqual({ kind: "failed", message: "empty" }); expect(v.files.size).toBe(0);
+    expect(states[states.length - 1]).toEqual({ status: "failed", message: "empty" }); expect(v.files.size).toBe(0);
   });
   it("Engine-Fehler → failed mit Meldung", async () => {
     const { p, states } = run({}, fakeEngine({ fail: "wasm boom" }));
     await expect(p).rejects.toMatchObject({ code: "engine" });
-    expect(states[states.length - 1]).toEqual({ kind: "failed", message: "wasm boom" });
+    expect(states[states.length - 1]).toEqual({ status: "failed", message: "wasm boom" });
   });
   it("Abbruch während synthesizing → aborted, kein createBinary, kein späterer Fehler überschreibt", async () => {
     const ctrl = new AbortController(); const v = fakeVault();
     const { p, states } = run({}, fakeEngine({ hangUntilAbort: true }), v, ctrl.signal);
     await Promise.resolve(); ctrl.abort();
     await expect(p).rejects.toMatchObject({ code: "aborted" });
-    expect(states[states.length - 1]).toEqual({ kind: "aborted" }); expect(v.files.size).toBe(0);
-    expect(states.filter((s) => s.kind === "failed").length).toBe(0);
-    expect(IDLE.kind).toBe("idle");
+    expect(states[states.length - 1]).toEqual({ status: "aborted" }); expect(v.files.size).toBe(0);
+    expect(states.filter((s) => s.status === "failed").length).toBe(0);
+    expect(IDLE.status).toBe("idle");
   });
 });

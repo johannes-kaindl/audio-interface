@@ -1,44 +1,47 @@
-// uebernommen (Muster) aus apple-health/src/core/import-state.ts (2. Exemplar obsidian-transmute/src/core/vault/state.ts), 2026-08-15
-// Zustandsautomat für abbrechbare Langläufer (Download, Export). Pur, dep-frei. Drittes Exemplar
-// des REGISTRY-Musters — Phasen sind plugin-eigen, die zwei tragenden Regeln nicht:
-// (1) ein Abbruch wird nie von einem Folgefehler überschrieben; (2) die Schreibphase ist der Punkt
-// ohne Wiederkehr — Abbruch dort wird verweigert, sonst meldet die UI „abgebrochen" bei fertiger Datei.
+// Adapter auf das Kit-Modul: die Zustandslogik liegt seit dem Vendoring in
+// src/vendor/kit/run-state.ts (obsidian-kit 0.27.0, kanonisch aus apple-health/transmute/audio-interface
+// zusammengefuehrt) — hier bleiben nur die repo-eigenen Arities, damit keine Aufrufstelle sich aendert.
+// Die zwei tragenden Regeln stehen jetzt in der Fabrik: (1) ein Abbruch wird nie von einem Folgefehler
+// ueberschrieben — das Kit verlangt dafuer `running` und schuetzt damit auch ein fertiges Ergebnis mit;
+// (2) die Schreibphase ist der Punkt ohne Wiederkehr (`abortableIn`), sonst meldet die UI
+// „abgebrochen" bei fertiger Datei.
+
+import { makeRunState, type RunState as KitRunState } from "../vendor/kit/run-state";
 
 export type RunPhase = "preparing" | "downloading" | "synthesizing" | "encoding" | "writing";
 
-export type RunState =
-  | { kind: "idle" }
-  | { kind: "running"; phase: RunPhase; done: number; total: number }
-  | { kind: "done"; detail: string }
-  | { kind: "aborted" }
-  | { kind: "failed"; message: string };
+export type RunState = KitRunState<RunPhase, { done: number; total: number }, { detail: string }>;
 
-export const IDLE: RunState = { kind: "idle" };
+const ops = makeRunState<RunPhase, { done: number; total: number }, { detail: string }>({
+  abortableIn: (p) => p !== "writing",
+});
+
+export const IDLE: RunState = ops.IDLE;
 
 export function begin(phase: RunPhase): RunState {
-  return { kind: "running", phase, done: 0, total: 0 };
+  return ops.begin(phase, { done: 0, total: 0 });
 }
 
 export function progress(s: RunState, phase: RunPhase, done: number, total: number): RunState {
-  return s.kind === "running" ? { kind: "running", phase, done, total } : s;
+  return ops.progress(s, { phase, done, total });
 }
 
 export function canAbort(s: RunState): boolean {
-  return s.kind === "running" && s.phase !== "writing";
+  return ops.canAbort(s);
 }
 
 export function abort(s: RunState): RunState {
-  return canAbort(s) ? { kind: "aborted" } : s;
+  return ops.abort(s);
 }
 
 export function fail(s: RunState, message: string): RunState {
-  return s.kind === "aborted" ? s : { kind: "failed", message };
+  return ops.fail(s, message);
 }
 
 export function finish(s: RunState, detail: string): RunState {
-  return s.kind === "aborted" ? s : { kind: "done", detail };
+  return ops.finish(s, { detail });
 }
 
 export function isBusy(s: RunState): boolean {
-  return s.kind === "running";
+  return ops.isBusy(s);
 }

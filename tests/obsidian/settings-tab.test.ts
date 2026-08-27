@@ -72,7 +72,7 @@ describe("AudioInterfaceSettingTab", () => {
     expect(findButton(tab, "Entfernen")).toBeTruthy();
   });
   it("laufender Download: Fortschritt + Abbrechen", async () => {
-    const { host, calls } = makeHost({ status: "partial", readiness: "needs-download", dl: { kind: "running", phase: "downloading", done: 12 * 1048576, total: 78 * 1048576 } });
+    const { host, calls } = makeHost({ status: "partial", readiness: "needs-download", dl: { status: "running", phase: "downloading", done: 12 * 1048576, total: 78 * 1048576 } });
     host.settings.exportEnabled = true;
     const tab = makeTab(host); tab.display(); await flush();
     expect(allText(tab)).toContain("Lade 12.0/78.0 MB");
