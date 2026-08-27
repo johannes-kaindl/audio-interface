@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Shared logic (run state, cached downloads, settings validation, vault paths) now comes from
+  `obsidian-kit` 0.27.0 instead of local copies. Three behaviours change, all of them fixes that no
+  test covered before:
+  - **Export folder**: backslashes and repeated slashes in the folder field are now normalised
+    (`Audio\\Sub` and `Audio//Sub` both become `Audio/Sub`). The field is free text, so this is
+    visible — previously such a path was passed through unchanged.
+  - **Downloads**: a response without a usable `content-length` header no longer counts as size 0,
+    so a complete download is no longer reported as *incomplete*.
+  - **Status messages**: once an export has finished or been cancelled, a later error no longer
+    overwrites that outcome — you keep seeing what actually happened.
+
 ## [0.3.0] — 2026-08-16
 
 ### Added
