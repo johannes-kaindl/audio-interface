@@ -1,8 +1,12 @@
-// Settings-Wahrheit + Normalisierung. Pur.
-// Kit-`mergeSettings` ist bewusst ein Shallow-Spread ohne Typprüfung (REGISTRY „Settings-Merge, der
-// Feldwerte prüft statt sie durchzureichen") — die Prüfung je Feld und die Bereichs-Klemmen leben hier.
+// Settings-Wahrheit + Schema. Pur.
+// Die generische Feldschleife dieser Datei IST der Kern des Kit-Moduls `pure/settings_schema`
+// (obsidian-kit 0.27.0 nennt sie in seinem Modulkopf als kanonische Quelle, zusammengefuehrt mit vier
+// weiteren Fassungen) — sie ist von hier ins Kit gewandert und kommt seit 2026-08-27 vendoriert zurueck.
+// Hier liegt seitdem nur noch das SCHEMA: welches Feld welche Sonderregel hat. Die Pruefung selbst
+// steht in src/vendor/kit/settings_schema.ts.
 import { isLoadableEngineId, PIPER_DE_ENGINE_ID } from "./engine-manifest";
 import { mergeSettings } from "../vendor/kit/settings";
+import { check, clampFloatField, nonEmptyString, oneOf, validateSettings } from "../vendor/kit/settings_schema";
 
 export type ExportProfile = "phone-8k" | "native";
 
@@ -40,24 +44,19 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   exportInsertLink: false,
 };
 
-const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
-
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
-  const merged = mergeSettings(DEFAULT_SETTINGS, raw) as unknown as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  // Typ je Feld gegen den Default prüfen — ein Feld mit fremdem Typ fällt auf den Default zurück.
-  for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
-    const v = merged[key];
-    out[key] = typeof v === typeof def && !(typeof v === "number" && !Number.isFinite(v)) ? v : def;
-  }
-  const s = out as unknown as AudioInterfaceSettings;
-  return {
-    ...s,
-    speakRate: clamp(s.speakRate, SPEAK_RATE.min, SPEAK_RATE.max),
-    exportProfile: EXPORT_PROFILES.includes(s.exportProfile) ? s.exportProfile : DEFAULT_SETTINGS.exportProfile,
-    // Eine Stimme, die es nicht (mehr) gibt, fällt auf die Werksstimme zurück — sonst zeigte der
-    // Tab eine leere Auswahl und der Export bliebe ohne Erklärung stumm.
-    exportEngineId: isLoadableEngineId(s.exportEngineId) ? s.exportEngineId : DEFAULT_SETTINGS.exportEngineId,
-    exportFilePattern: s.exportFilePattern.trim() === "" ? DEFAULT_SETTINGS.exportFilePattern : s.exportFilePattern,
-  };
+  return validateSettings(DEFAULT_SETTINGS, mergeSettings(DEFAULT_SETTINGS, raw), {
+    speakRate: clampFloatField(SPEAK_RATE.min, SPEAK_RATE.max),
+    exportProfile: oneOf(EXPORT_PROFILES),
+    // Eine Stimme, die es nicht (mehr) gibt, faellt auf die Werksstimme zurueck — sonst zeigte der
+    // Tab eine leere Auswahl und der Export bliebe ohne Erklaerung stumm. Der typeof-Guard ist
+    // Pflicht: `check` reicht den ROHEN Wert durch, `isLoadableEngineId` nimmt einen String.
+    exportEngineId: check<string>((v) => typeof v === "string" && isLoadableEngineId(v)),
+    // "check": die Raender zaehlen beim Leer-Test mit ("   " ist leer), gespeichert wird der rohe Wert.
+    exportFilePattern: nonEmptyString({ trim: "check" }),
+  });
 }
+
+// exportFolder bekommt bewusst KEINEN Schema-Eintrag: "" heisst dort „neben der Notiz"
+// (s. Feld-Doku oben, ausgewertet in obsidian/exporter.ts) — ein nonEmptyString wuerde den Fall
+// unerreichbar machen. Die generische Bauform-Pruefung des Kits reicht.

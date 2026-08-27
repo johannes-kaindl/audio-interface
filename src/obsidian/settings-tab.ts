@@ -145,7 +145,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     const size = this.size(engine);
     setting.setName(engine.label);
     setting.setDesc(this.engineDesc());
-    if (dl.kind === "running") {
+    if (dl.status === "running") {
       const mb = (n: number) => (n / 1048576).toFixed(1);
       setting.controlEl.createSpan({ text: t("settings.engine.downloading", mb(dl.done), mb(dl.total)), cls: "audio-interface-engine-state" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.abort")).onClick(() => this.host.abortDownload()));
@@ -157,7 +157,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       setting.addButton((b) => b.setButtonText(t("settings.engine.remove")).onClick(() => void this.confirmRemove()));
       return;
     }
-    if (dl.kind === "failed") {
+    if (dl.status === "failed") {
       setting.controlEl.createSpan({ text: t("settings.engine.error", dl.message), cls: "audio-interface-engine-state mod-warning" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.retry")).setCta().onClick(() => this.host.startDownload()));
       return;

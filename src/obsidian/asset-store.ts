@@ -4,15 +4,14 @@
 // gegen das eingebettete Manifest und Abbruch per AbortSignal. Deps injizierbar → Node-testbar.
 import { requestUrl } from "obsidian";
 import { assetUrl, type AssetFile, type AssetKey, type EngineDescriptor } from "../core/engine-manifest";
+import { streamIntoCache, type CacheLike } from "../vendor/kit/cache-download";
 import { withTimeout } from "../vendor/kit/timeout";
 
 export const ASSET_CACHE_NAME = "audio-interface-engines";
 
-export interface CacheLike {
-  match(url: string): Promise<Response | undefined>;
-  put(url: string, res: Response): Promise<void>;
-  delete(url: string): Promise<boolean>;
-}
+// Eine Definition statt zweier: das Kit-Modul bringt den Cache-API-Port mit, der Test importiert
+// ihn weiterhin von hier.
+export type { CacheLike };
 
 export interface StoreDeps {
   openCache(): Promise<CacheLike>;
@@ -100,41 +99,25 @@ export class AssetStore {
       const file = todo[i];
       const url = this.urlFor(file);
       const key = this.keyFor(file);
-      if (signal.aborted) throw abortError();
-      const res = await this.deps.fetchFn(url, { signal });
-      if (!res.ok || !res.body) throw new Error(`download failed: HTTP ${res.status} for ${file.fileName}`);
-      const lengthHeader = res.headers.get("content-length");
-      const expected = lengthHeader === null ? null : Number(lengthHeader);
-      const totalBytes = expected ?? file.bytes;
-      const [progressBranch, cacheBranch] = res.body.tee();
-      const putDone = cache.put(key, new Response(cacheBranch, { headers: res.headers }));
-      // No-op-Catch: putDone läuft NEBEN der Leseschleife; scheitert der Stream, gäbe es sonst eine
-      // unhandledrejection, bevor unten `await putDone` das echte Ergebnis sieht.
-      putDone.catch(() => {});
-      let received = 0;
-      const reader = progressBranch.getReader();
-      try {
-        for (;;) {
-          if (signal.aborted) {
-            await reader.cancel();
-            throw abortError();
-          }
-          const { done, value } = await reader.read();
-          if (done) break;
-          received += value.byteLength;
-          overallReceived += value.byteLength;
-          onProgress({ fileIndex: i + 1, totalFiles: todo.length, fileName: file.fileName, receivedBytes: received, totalBytes, overallReceived, overallTotal });
-        }
-        await putDone;
-      } catch (err) {
-        await putDone.catch(() => {});
-        await cache.delete(key);
-        throw err;
-      }
-      if (expected !== null && received !== expected) {
-        await cache.delete(key);
-        throw new Error(`download incomplete for ${file.fileName} (${received}/${expected} bytes)`);
-      }
+      // Eine Datei gestreamt in den Cache — Abbruchkanten, Stall-freie Leseschleife, Aufraeumen
+      // bei Fehler liegen im Kit-Modul. Hier bleibt nur, was pro Lauf zaehlt.
+      const overallBefore = overallReceived;
+      const r = await streamIntoCache({
+        cache,
+        fetchFn: (u, init) => this.deps.fetchFn(u, init),
+        url,
+        key,
+        signal,
+        label: file.fileName,
+        // requestUrl liefert nur content-length — die Antwort-Header werden bewusst uebernommen.
+        putHeaders: (res) => res.headers,
+        abortError,
+        onProgress: (received, contentLength) => {
+          overallReceived = overallBefore + received;
+          onProgress({ fileIndex: i + 1, totalFiles: todo.length, fileName: file.fileName, receivedBytes: received, totalBytes: contentLength ?? file.bytes, overallReceived, overallTotal });
+        },
+      });
+      overallReceived = overallBefore + r.received;
     }
   }
 
