@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   `obsidian-kit` 0.27.0 instead of local copies. Three behaviours change, all of them fixes that no
   test covered before:
   - **Export folder**: backslashes and repeated slashes in the folder field are now normalised
-    (`Audio\\Sub` and `Audio//Sub` both become `Audio/Sub`). The field is free text, so this is
+    (`Audio\Sub` and `Audio//Sub` both become `Audio/Sub`). The field is free text, so this is
     visible — previously such a path was passed through unchanged.
   - **Downloads**: a response without a usable `content-length` header no longer counts as size 0,
     so a complete download is no longer reported as *incomplete*.
