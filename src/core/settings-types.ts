@@ -5,7 +5,6 @@
 // Hier liegt seitdem nur noch das SCHEMA: welches Feld welche Sonderregel hat. Die Pruefung selbst
 // steht in src/vendor/kit/settings_schema.ts.
 import { isLoadableEngineId, PIPER_DE_ENGINE_ID } from "./engine-manifest";
-import { mergeSettings } from "../vendor/kit/settings";
 import { check, clampFloatField, nonEmptyString, oneOf, validateSettings } from "../vendor/kit/settings_schema";
 
 export type ExportProfile = "phone-8k" | "native";
@@ -45,7 +44,7 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
 };
 
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
-  return validateSettings(DEFAULT_SETTINGS, mergeSettings(DEFAULT_SETTINGS, raw), {
+  return validateSettings(DEFAULT_SETTINGS, raw, {
     speakRate: clampFloatField(SPEAK_RATE.min, SPEAK_RATE.max),
     exportProfile: oneOf(EXPORT_PROFILES),
     // Eine Stimme, die es nicht (mehr) gibt, faellt auf die Werksstimme zurueck — sonst zeigte der
