@@ -5,6 +5,18 @@
  * (`obsidian-plugins/tools/obsidian-cdp/`, seit 2026-08-16 — vorher vendored unter
  * `scripts/lib/`); die Bruecke teilt sich dieser Treiber mit dem GUI-Smoke.
  *
+ * ⚠️ **Vor dem Quit koordinieren — Obsidian ist geteilte Infrastruktur.** Dieses Rezept
+ * braucht den frischen Start (ein Bild pro Start, jeder Lauf hinterlaesst Zustand); Mitnutzen
+ * ist hier keine Alternative. Aber Obsidian ist Single-Instance: der Quit trifft die Instanz,
+ * an der moeglicherweise eine andere Session arbeitet, und zerstoert deren Zustand. Der eigene
+ * Lauf ist danach sauber gruen; der Schaden faellt nicht auf.
+ *
+ * ```bash
+ * lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "belegt — erst fragen, wem"
+ * ```
+ *
+ * Hoert der Port, haengt jemand dran: **erst fragen, dann quitten.**
+ *
  * ```bash
  * export STAGING_VAULTS_DIR="…"                     # Ort der Aufnahme-Vaults
  * npm run build && npm run shots -- --setup         # Vault aus dem Fixture bauen, dann Obsidian neu starten
@@ -269,6 +281,10 @@ async function main(): Promise<void> {
     console.log(`Aufnahme-Vault: ${vaultDir}`);
     for (const zeile of buildVault({ repoRoot, vaultDir, fixtureDir: join(repoRoot, "docs/images/fixture"), generator: "make-audio.mjs", pluginId: PLUGIN_ID })) console.log(`  ${zeile}`);
     console.log(
+      "\n⚠️  Erst prüfen, ob schon ein Obsidian läuft — ein Quit zerstört den Zustand\n" +
+      "    einer fremden Session, und der eigene Lauf ist danach trotzdem grün:\n" +
+      "      lsof -nP -iTCP:9222 -sTCP:LISTEN\n" +
+      "    Hört der Port, hängt jemand dran: erst fragen, dann quitten.\n" +
       "\n⚠️  Obsidian jetzt neu starten und diesen Vault oeffnen (Debug-Port offen):\n" +
       "  osascript -e 'quit app \"Obsidian\"'\n" +
       "  open -a Obsidian --args --remote-debugging-port=9222\n" +
