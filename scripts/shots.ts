@@ -177,7 +177,7 @@ async function settingsBilder(cdp: Cdp, port: number, opts: ShotOptions, assets:
     await app.setting.activeTab.setControlValue("exportEnabled", true);
     await new Promise((r) => setTimeout(r, 900));
     return true;`);
-  const fenster = await attachTo("settings", port);
+  const fenster = await attachTo("settings", port, REPO_NAME);
   if (!fenster) return ["settings/download — kein Einstellungen-Fenster gefunden"];
   try {
     await fenster.send("Page.bringToFront");
@@ -213,7 +213,7 @@ async function settingsBilder(cdp: Cdp, port: number, opts: ShotOptions, assets:
           return true;`);
         await fenster.evaluate("window.close(); return true;").catch(() => undefined);
         fenster.close();
-        const fenster2 = await attachTo("settings", port);
+        const fenster2 = await attachTo("settings", port, REPO_NAME);
         if (!fenster2) { out.push("settings.png — Einstellungen-Fenster nach Neuladen nicht gefunden"); return out; }
         try {
           await fenster2.send("Page.bringToFront");
