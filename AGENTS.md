@@ -79,7 +79,7 @@ LJSpeech in derselben Kette (Node-Gegenprobe 2026-08-16): RTF 0,17.
 ```bash
 npm run gate                     # lint · typecheck (src/tests/scripts) · tests · check:pure · check:bundle
 npm run assets                   # dist-assets/ bauen + Manifest schreiben (Downloads gecacht unter ~/.cache/audio-interface-assets)
-npm run smoke:gui -- --vault 00_ProtoVault --assets http://127.0.0.1:8765/assets   # docs/SMOKE.md
+npm run smoke:gui -- --assets http://127.0.0.1:8765/assets   # Vault-Default = Repo-Name; docs/SMOKE.md
 npm run voice:sample -- en_US-ljspeech-medium probe.wav [--dir …] [--tempo 0.9] [--de]  # Hörprobe in Node
 npm run release                  # zentrales Tooling ../tools/release/ — Assets lädt release-assets.yml in CI nach
 ```

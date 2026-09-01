@@ -25,8 +25,8 @@ Erst wenn nichts läuft — oder nach Absprache mit dem, der es benutzt — gilt
 ```bash
 osascript -e 'quit app "Obsidian"'
 open -a Obsidian --args --remote-debugging-port=9222
-open "obsidian://open?vault=00_ProtoVault"                     # Test-Vault
-OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/audio-interface" npm run deploy
+open "obsidian://open?vault=audio-interface"                   # Staging-Vault
+OBSIDIAN_PLUGIN_DIR="$STAGING_VAULTS_DIR/audio-interface/.obsidian/plugins/audio-interface" npm run deploy
 ```
 
 Plugin im Test-Vault einmal aktivieren (Community-Plugins). Assets kommen im Smoke von einem
@@ -44,7 +44,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*"); super().end_headers()
 http.server.ThreadingHTTPServer(("127.0.0.1", 8765), H).serve_forever()
 PY
-npm run smoke:gui -- --vault 00_ProtoVault --assets http://127.0.0.1:8765/assets
+npm run smoke:gui -- --assets http://127.0.0.1:8765/assets
 ```
 
 Der Treiber setzt `app.saveLocalStorage("audio-interface-asset-base", <url>)` (das Plugin liest

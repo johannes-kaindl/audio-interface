@@ -21,20 +21,23 @@
  *
  * Voraussetzung (der eine Handgriff, der Handarbeit bleibt):
  *   osascript -e 'quit app "Obsidian"'; open -a Obsidian --args --remote-debugging-port=9222
- *   OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/audio-interface" npm run deploy
+ *   OBSIDIAN_PLUGIN_DIR="$STAGING_VAULTS_DIR/audio-interface/.obsidian/plugins/audio-interface" npm run deploy
  *
  * Seit 0.3.0 prüft er beide ladbaren Stimmen: deutsch laden → exportieren, auf englisch wechseln
  * (dann fehlt nur noch das Modell, Worker + WASM sind geteilt) → laden → exportieren.
  *
  * Assets kommen im Smoke von einem lokalen Server statt von GitHub (kein Release nötig):
  *   npm run assets && python3 -m http.server -d dist-assets 8765   # + CORS, s. docs/SMOKE.md
- *   npm run smoke:gui -- --vault 00_ProtoVault --assets http://127.0.0.1:8765
+ *   npm run smoke:gui -- --assets http://127.0.0.1:8765   # --vault nur, wenn der Vault anders heisst
  * Der Treiber setzt dafür app.saveLocalStorage("audio-interface-asset-base", <url>) und lädt das
  * Plugin neu; am Ende räumt er den Schlüssel, die Cache-Einträge und die Smoke-Notiz wieder weg.
  */
 import { Cdp, notices, openNote, pollUntil } from "../../tools/obsidian-cdp/cdp.js";
 
 const PLUGIN_ID = "audio-interface";
+// Der Staging-Vault heisst wie das Repo (Dach-Konvention) — nicht wie die Plugin-Id,
+// auch wenn beide hier denselben Text tragen.
+const REPO_NAME = "audio-interface";
 const SMOKE_NOTE = "_audio-interface-smoke.md";
 const SMOKE_BODY = "# Ansage\n\nGuten Tag, Sie erreichen die Mailbox der Beispiel GmbH. Bitte hinterlassen Sie eine Nachricht.\n";
 // Für den Lauf mit der englischen Stimme — eine deutsche Ansage englisch phonemisiert wäre ein
@@ -62,7 +65,7 @@ async function reloadPlugin(cdp: Cdp): Promise<void> {
 
 async function main(): Promise<void> {
   const port = Number(arg("port", "9222"));
-  const vault = arg("vault", "00_ProtoVault");
+  const vault = arg("vault", REPO_NAME);
   const assets = arg("assets", "");
   const keep = process.argv.includes("--keep");
   const cdp = await Cdp.attach(port, vault);
