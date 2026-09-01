@@ -175,3 +175,51 @@ Opt-in-Export-Stufe das wert ist, bleibt eine Produktfrage — aber sie wird mit
 deutlich unattraktiver als mit RTF 1,5. **Mein Rat: nicht bauen, solange kein konkreter
 Anwendungsfall Voice Cloning verlangt.** Der Befund ist damit festgehalten und jederzeit
 wieder aufnehmbar; nichts davon verfällt.
+
+---
+
+# Nachtrag: dritter Spike — trägt fp16? (2026-09-01, in `40_Tools/TTS`)
+
+**Frage:** Beide Spikes oben haben fp32 gegen int8/int4 gemessen und **fp16 nie angefasst** —
+das Wort kommt in ihnen nicht vor. Es ist die naheliegendste Halbierung und hängt nicht an den
+Quantisierungs-Kerneln, an denen int8/int4 gescheitert sind. Trägt es?
+
+**Antwort: nein, nicht als Laufzeitformat. fp16 halbiert die Datei sauber und kostet in
+ORT-web Faktor 2,6 Laufzeit — dieselbe Pathologie wie int8 (+52 %), nur ausgeprägter.**
+
+Gemessen wurde derselbe Teilgraph wie in Spike 2 (MTP `code_predictor`, ein 80-ms-Frame,
+15 Aufrufe), aber in einem **nackten Chromium** statt in Obsidian: Chromium 151 (Playwright),
+`onnxruntime-web` 1.29.0, `numThreads = 1`, `crossOriginIsolated == false`. Die
+Renderer-Einfädigkeit ist damit nachgebaut, nicht weggeräumt — und der Vergleich fp16/fp32
+teilt sie ohnehin auf beiden Seiten.
+
+| Fassung | Datei | WASM ms/Frame |
+|---|---|---|
+| fp32 (Original) | 440,7 MB | 123 ± 5 |
+| **fp16** | **220,6 MB** | **320 ± 8 (2,6×)** |
+| fp16, I/O fp32 | 220,6 MB | 322 ± 8 |
+
+**Der Grund ist belegt, nicht vermutet:** ORTs optimierter Graph enthält aus der fp32-Fassung
+**einen** `Cast`-Knoten, aus der fp16-Fassung **90** (53 davon zurück nach fp32). Es fehlt der
+fp16-Kernel; ORT rechnet den Hauptteil weiter in fp32 und zahlt die Umrechnung obendrauf.
+Dieselbe Wurzel wie bei int8 — nur dass es dort XNNPACK war. Zum Vergleich: nativ auf arm64,
+wo es fp16-SIMD gibt, kostet dieselbe Fassung nur 13 %.
+
+Die Zahlen des fp16-Gusses stimmen (max |Δlogit| = 0,008, Argmax 15/15 gleich) — er ist nicht
+kaputt, nur langsam. Auf WebGPU hilft fp16 um 13 % (492 → 429 ms), aber WebGPU ist für den MTP
+viermal schlechter als WASM; das bestätigt Spike 2.
+
+**Ein Nebenweg bleibt offen, und er gehört ins Protokoll:** *fp16 auf der Leitung, fp32 im
+Speicher* — ausgeliefert werden die halben Bytes, aufgeblasen wird beim Laden. Gemessen mit
+einer Fassung, deren Werte durch fp16 gedreht und als fp32 abgelegt wurden: **102 ms, kein
+Laufzeitverlust** bei halber Downloadgrösse. Hochgerechnet auf die volle Auslieferung wären das
+~2,1 GB, ohne die Lookup-Tabelle `text_embedding.npy` ~1,4 GB — unter der 2,5-GB-Grenze. **Aber
+er löst nur die Download-Grösse:** im Speicher bleibt alles fp32, und die deduplizierte Summe
+liegt bei ~3,95 GB, also praktisch am 4,0-GB-Deckel des WASM-Heaps aus Spike 1.
+
+**Damit ist die Werkstatt an ihrer vorab gesetzten Abbruchbedingung beendet.** Die Stufen
+Dedup und MTP-Faltung sind nicht gebaut; RTF ~2,8 bleibt die Hochrechnung aus Spike 2.
+
+Messstand, Skripte und die vollständigen Zahlen liegen in `/Users/Shared/40_Tools/TTS`
+(`13_onnx_fp16_cast.py`, `14_bench_onnx_native.py`, `web/`), dokumentiert in dessen
+AGENTS.md § 8. **Am Plugin wurde nichts geändert.**
