@@ -96,6 +96,10 @@ weiterhin nicht Echtzeit. Weitere Beobachtung fürs Protokoll: `text_embedding.n
   eine 30-s-Ansage in ~45 s. **Hochrechnung, keine Messung** — die Graph-Faltung ist genau der Teil
   ohne ONNX-Vorbild.
 - **Ein eigenes Repo `qwen3-tts-web` ist dafür der richtige Ort** — aber als *Export-Werkstatt*,
+  ⚠️ *Ortsempfehlung am 2026-09-01 revidiert: die Werkstatt liegt in `/Users/Shared/40_Tools/TTS`,
+  dem seit dem 02.08. bestehenden Qwen3-TTS-Repo (gleiches Modell inkl. 0.6B, HF-Cache, venv,
+  Bench-Skripte für fp16/bf16 und 0.6B/1.7B). Dieser Absatz kannte es nicht. Die inhaltliche
+  Aussage — Export-Werkstatt, nicht Inferenz-Portierung — steht unverändert.*
   nicht als Inferenz-Portierung: die Inferenz ist hiermit gemessen und funktioniert. Die
   Konversionsskripte (`john-rocky/hf-to-litertlm`) sind offen, zielen aber auf LiteRT und wären zu
   adaptieren. Unbekannt bleibt der Aufwand dieser Adaption — das ist der Posten, den ein zweiter,
