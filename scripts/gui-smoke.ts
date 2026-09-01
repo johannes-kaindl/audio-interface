@@ -135,7 +135,7 @@ async function main(): Promise<void> {
       await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
       await cdp.evaluate(`app.vault.getAbstractFileByPath("_audio-interface-smoke.wav") && await app.vault.delete(app.vault.getAbstractFileByPath("_audio-interface-smoke.wav")); return true;`);
       const can = await cdp.evaluate<boolean>(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); const c = app.commands.commands["${PLUGIN_ID}:export-note-wav"]; return c.checkCallback(true) === true;`);
-      await cdp.evaluate(`app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
+      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
       // Entweder die Datei erscheint, oder ein Fehler-Notice — beides beendet das Warten (sonst 120 s Blindflug).
       const outcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
         const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
@@ -175,7 +175,7 @@ async function main(): Promise<void> {
 
       // 9 Export mit der zweiten Stimme (zweite Datei, weil die erste noch liegt) — Text in ihrer Sprache
       await openNote(cdp, SMOKE_NOTE, andere === EN_ENGINE_ID ? SMOKE_BODY_EN : SMOKE_BODY, "source");
-      await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
+      await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); document.querySelectorAll(".notice").forEach((n) => n.remove()); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
       const enOutcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
         const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
         if (bad) return { notice: bad };
