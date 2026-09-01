@@ -35,7 +35,9 @@ lokalen Server statt von GitHub — so braucht der Smoke kein Release:
 ```bash
 npm run assets                                   # dist-assets/ (Worker, WASM, Stimme, Config)
 # Server mit CORS (`Access-Control-Allow-Origin: *`) und Layout <base>/<version>/<datei>, z. B.:
-mkdir -p /tmp/ai-assets/assets && ln -sfn "$PWD/dist-assets" /tmp/ai-assets/assets/0.1.0
+# Der Pfad traegt die PLUGIN-Version (assetVersion = manifest.version) — nicht hart eintragen:
+V=$(python3 -c "import json;print(json.load(open('manifest.json'))['version'])")
+mkdir -p /tmp/ai-assets/assets && ln -sfn "$PWD/dist-assets" "/tmp/ai-assets/assets/$V"
 python3 - <<'PY' &
 import http.server, os
 os.chdir("/tmp/ai-assets")
@@ -85,6 +87,7 @@ die geteilte Laufzeit: er fällt rot aus, sobald die zweite Stimme wieder alles 
 | 2026-08-16 (3) | 1.13.7, Aufnahme-Vault (englische Oberfläche → englische Stimme vorgewählt), lokaler Asset-Server, **zwei Stimmen** | **11/11 grün** (LJSpeech: Download 76,2 MB → Export 157 334 B/8000 Hz/9,8 s; Wechsel auf Thorsten: **Download 60,3 MB** — die geteilte Laufzeit lag schon → Export 120 738 B/7,5 s) | Erstlauf rot an Punkt 8: der Treiber wechselte fest „auf englisch", obwohl bei englischer Oberfläche schon die englische Stimme geladen war — er nimmt jetzt die *andere* Stimme |
 | 2026-08-16 (2) | 1.13.7, Aufnahme-Vault, **`--assets https://github.com/johannes-kaindl/audio-interface/releases/download` (echtes Release 0.1.0)** | zuerst **5/8** — Download „Failed to fetch": CORS auf dem GitHub-Redirect, vom lokalen Server (CORS `*`) verdeckt; nach Umstellung auf `requestUrl` **8/8 grün** (Export 99 004 B, 8000 Hz, 6,2 s) | — |
 | 2026-08-16 | 1.13.7, Aufnahme-Vault `audio-interface` (englische Oberfläche), Manifest korrigiert, Cache-Schlüssel basisunabhängig | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | — |
+| 2026-09-01 | 1.13.7, macOS, Staging-Vault `audio-interface` | **11/11 grün** (de: 156 776 B / 9,8 s · en: 117 394 B / 7,3 s, beide 8000 Hz) | erster Lauf ohne `--vault`: der neue Default (Repo-Name) hat das richtige Fenster gewählt, bei drei fremden Vaults am Port. Notice-Fix separat in beiden Hälften gegengeprobt — eine gesetzte Fremdmeldung („…fehlgeschlagen") wird ohne die Räum-Zeile gefunden, mit ihr nicht |
 | 2026-08-15 | 1.13.7 / Electron 39.7.0, macOS, 00_ProtoVault | **8/8 grün** (Export: 103 648 B, 8000 Hz, 6,5 s) | eine SHA-256 im generierten Manifest verfälscht → **genau Punkt 7 rot** (Engine `unavailable`, Punkt 6 bleibt grün, weil der Download nicht prüft — die Prüfung sitzt vor dem Instanziieren) |
 
 Zwei Befunde aus dem ersten Lauf, beide im Code festgehalten:
