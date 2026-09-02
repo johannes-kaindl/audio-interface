@@ -96,7 +96,7 @@ weiterhin nicht Echtzeit. Weitere Beobachtung fürs Protokoll: `text_embedding.n
   eine 30-s-Ansage in ~45 s. **Hochrechnung, keine Messung** — die Graph-Faltung ist genau der Teil
   ohne ONNX-Vorbild.
 - **Ein eigenes Repo `qwen3-tts-web` ist dafür der richtige Ort** — aber als *Export-Werkstatt*,
-  ⚠️ *Ortsempfehlung am 2026-09-01 revidiert: die Werkstatt liegt in `/Users/Shared/40_Tools/TTS`,
+  ⚠️ *Ortsempfehlung am 2026-09-01 revidiert: die Werkstatt liegt in `$SHARED/40_Tools/TTS`,
   dem seit dem 02.08. bestehenden Qwen3-TTS-Repo (gleiches Modell inkl. 0.6B, HF-Cache, venv,
   Bench-Skripte für fp16/bf16 und 0.6B/1.7B). Dieser Absatz kannte es nicht. Die inhaltliche
   Aussage — Export-Werkstatt, nicht Inferenz-Portierung — steht unverändert.*
@@ -220,6 +220,6 @@ liegt bei ~3,95 GB, also praktisch am 4,0-GB-Deckel des WASM-Heaps aus Spike 1.
 **Damit ist die Werkstatt an ihrer vorab gesetzten Abbruchbedingung beendet.** Die Stufen
 Dedup und MTP-Faltung sind nicht gebaut; RTF ~2,8 bleibt die Hochrechnung aus Spike 2.
 
-Messstand, Skripte und die vollständigen Zahlen liegen in `/Users/Shared/40_Tools/TTS`
+Messstand, Skripte und die vollständigen Zahlen liegen in `$SHARED/40_Tools/TTS`
 (`13_onnx_fp16_cast.py`, `14_bench_onnx_native.py`, `web/`), dokumentiert in dessen
 AGENTS.md § 8. **Am Plugin wurde nichts geändert.**
