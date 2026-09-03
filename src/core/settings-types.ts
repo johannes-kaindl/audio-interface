@@ -26,7 +26,39 @@ export interface AudioInterfaceSettings {
   /** Dateiname ohne Endung, Platzhalter {{note}} und {{date}}. */
   exportFilePattern: string;
   exportInsertLink: boolean;
+  /** Opt-in fuer die Transkription (schaltet die Dienst-Zeile frei; spricht selbst nichts an). */
+  transcribeEnabled: boolean;
+  /**
+   * Basis-URL des lokalen `audio-ui`-Diensts.
+   *
+   * ⚠️ Nur localhost — s. `isLocalServiceUrl`. Eine frei waehlbare Adresse hiesse,
+   * dass ein Vertipper private Sprachnotizen an einen fremden Server schickt.
+   */
+  transcribeServiceUrl: string;
 }
+
+/**
+ * Erlaubt genau die Adressen, unter denen der Dienst ueberhaupt lauscht: er bindet
+ * fest auf `127.0.0.1` und weist alles ab, dessen `Host` nicht `127.0.0.1`,
+ * `localhost` oder `[::1]` ist (audio-ui `service/app.py`). Diese Grenze hier
+ * spiegelt das, damit das Plugin gar nicht erst irgendwohin sendet.
+ *
+ * `http://127.0.0.1.evil.test` faellt durch: `hostname` ist dann der ganze Name,
+ * nicht das Praefix.
+ */
+export function isLocalServiceUrl(value: unknown): boolean {
+  if (typeof value !== "string" || value.trim() === "") return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "http:") return false;
+  return LOCAL_HOSTS.includes(url.hostname);
+}
+
+const LOCAL_HOSTS: readonly string[] = ["127.0.0.1", "localhost", "[::1]"];
 
 export const SPEAK_RATE = { min: 0.5, max: 2, step: 0.1 } as const;
 export const EXPORT_PROFILES: readonly ExportProfile[] = ["phone-8k", "native"];
@@ -41,6 +73,8 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   exportFolder: "",
   exportFilePattern: "{{note}}",
   exportInsertLink: false,
+  transcribeEnabled: false,
+  transcribeServiceUrl: "http://127.0.0.1:8765",
 };
 
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
@@ -53,6 +87,9 @@ export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
     exportEngineId: check<string>((v) => typeof v === "string" && isLoadableEngineId(v)),
     // "check": die Raender zaehlen beim Leer-Test mit ("   " ist leer), gespeichert wird der rohe Wert.
     exportFilePattern: nonEmptyString({ trim: "check" }),
+    // Faellt eine fremde Adresse auf den Default zurueck, statt sie zu uebernehmen:
+    // die Einstellung ist eine Ziel-Erlaubnis, kein Freitext.
+    transcribeServiceUrl: check<string>(isLocalServiceUrl),
   });
 }
 

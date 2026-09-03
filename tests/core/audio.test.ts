@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { concatWithSilence, encodeWav, normalizePeak, resample, silence, toInt16 } from "../../src/core/audio";
+import { concatWithSilence, encodeWav, normalizePeak, resample, silence, toInt16, mixToMono } from "../../src/core/audio";
 
 const sine = (f: number, sr: number, sec: number) =>
   Float32Array.from({ length: Math.round(sr * sec) }, (_, i) => Math.sin((2 * Math.PI * f * i) / sr));
@@ -83,5 +83,17 @@ describe("toInt16 / encodeWav / normalizePeak", () => {
     expect(peakOf(normalizePeak(Float32Array.from([0.5, -2]), 0.9))).toBeCloseTo(0.9, 5);
     const quiet = Float32Array.from([0.1, -0.2]);
     expect(normalizePeak(quiet, 0.9)).toBe(quiet);
+  });
+});
+
+describe("mixToMono", () => {
+  it("mittelt mehrere Kanaele, statt einen zu nehmen", () => {
+    const links = new Float32Array([1, 0, -1]);
+    const rechts = new Float32Array([0, 1, -1]);
+    expect(Array.from(mixToMono([links, rechts]))).toEqual([0.5, 0.5, -1]);
+  });
+  it("laesst einen einzelnen Kanal unveraendert und kommt mit null Kanaelen klar", () => {
+    expect(Array.from(mixToMono([new Float32Array([0.25, -0.5])]))).toEqual([0.25, -0.5]);
+    expect(mixToMono([]).length).toBe(0);
   });
 });

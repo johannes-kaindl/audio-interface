@@ -42,3 +42,20 @@ describe("normalizeSettings", () => {
     expect(s.foo).toBeUndefined();
   });
 });
+
+describe("Diktat-Dienst: Basis-URL", () => {
+  it("nimmt localhost-Adressen mit eigenem Port an", () => {
+    for (const url of ["http://127.0.0.1:8765", "http://localhost:8799", "http://[::1]:8765"]) {
+      expect(normalizeSettings({ transcribeServiceUrl: url }).transcribeServiceUrl).toBe(url);
+    }
+  });
+  it("weist fremde Hosts ab — Vault-Audio verlaesst den Rechner nicht", () => {
+    // Ohne diese Grenze waere ein Vertipper oder eine uebernommene Einstellung
+    // ein Upload privater Sprachnotizen an einen fremden Server.
+    for (const url of ["http://example.com:8765", "https://evil.test", "http://127.0.0.1.evil.test:8765"]) {
+      expect(normalizeSettings({ transcribeServiceUrl: url }).transcribeServiceUrl).toBe(
+        DEFAULT_SETTINGS.transcribeServiceUrl,
+      );
+    }
+  });
+});
