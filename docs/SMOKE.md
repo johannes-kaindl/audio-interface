@@ -72,6 +72,10 @@ einmal neu.
 | 8 | Stimmenwechsel auf Englisch → nur das Modell fehlt → „Bereit" | `tab.setControlValue("exportEngineId", …)`; der Knopf darf **nicht** die volle Größe nennen (Worker + WASM sind geteilt) |
 | 9 | Export mit der englischen Stimme erzeugt WAV 8 kHz, > 1 s | zweite Datei (`…-2.wav`), englischer Ansagetext |
 | 10 | Entfernen → wieder „Herunterladen" | Cache geleert, Tab neu gezeichnet |
+| 11 | Umschrift **aus**: kein Kontextmenü-Eintrag an einer Audiodatei | `file-menu`-Trigger mit einem Fake-Menü — das Plugin spricht ungefragt nichts an |
+| 12 | Umschrift **an**: Eintrag an der Audiodatei, **nicht** an der Notiz | derselbe Trigger für `.webm` und `.md` |
+| 13a | *ohne* `--service`: benannte Meldung, **keine** Notiz | Adresse zeigt auf Port 8798, wo garantiert nichts lauscht |
+| 13b | *mit* `--service`: echte Umschrift einer **WebM**-Datei legt eine Notiz mit Embed an | der ganze Weg: Renderer dekodiert, 16-kHz-Mono-WAV an den echten Dienst, Notiz im Vault |
 
 Punkt 8 meldet zwei Zeilen (Wechsel, dann „Bereit"), der Lauf zählt deshalb 11 Prüfungen.
 Welche Stimme die „andere" ist, hängt an der Oberflächensprache — der Treiber liest die geladene und
@@ -82,6 +86,7 @@ die geteilte Laufzeit: er fällt rot aus, sobald die zweite Stimme wieder alles 
 
 | Datum | Obsidian | Ergebnis | Gegenprobe |
 |---|---|---|---|
+| 2026-09-03 | **1.12.4 in einer Zweitinstanz** (eigenes `--user-data-dir`, Port 9334 — die reguläre Instanz auf 9222 war von einer fremden Session belegt und blieb unberührt), Staging-Vault, ohne Asset-Server | **8/8 grün mit** laufendem Dienst (`--service http://127.0.0.1:8799`), **9/9 grün ohne** — die neuen Punkte 11–13 für die Umschrift | Beide Lagen einzeln gefahren, weil sie sich ausschliessen: der Offline-Zweig prüft die Meldung, der Online-Zweig die echte Umschrift. Erster Offline-Lauf war wertlos, weil die Ausweich-Adresse auf Port **8799** zeigte — dort lief der Dienst gerade; auf 8798 umgestellt. Vorher am selben Renderer gemessen, dass `decodeAudioData` **webm, m4a und wav** kann (Electron 39.7.0) — das ist die Annahme, auf der die ganze Bauart steht |
 | 2026-08-27 | 1.13.7, Aufnahme-Vault, lokaler Asset-Server — **Pflichtlauf nach dem Kit-0.27.0-Vendoring** (der Download-Pfad ist umgebaut: die eigene `tee()`-Leseschleife ist jetzt `streamIntoCache` aus dem Kit) | **11/11 grün** (LJSpeech: Download 76,2 MB → Export 160 862 B/8000 Hz/10,1 s; Wechsel auf Thorsten: Download 60,3 MB → Export 114 608 B/7,2 s; Entfernen → 75,8 MB) | Die Exportgröße streut gegenüber 2026-08-16 (4) um +3 % bzw. −1 %. Geprüft, weil eine unerklärte Abweichung nach einem Umbau kein „grün" ist: Prüftext, Modelle, `tempo`, `speakRate` und `exporter.ts`/`audio.ts` sind seit dem Baseline-Lauf **unverändert** (git), und die drei Läufe derselben Stimme streuen auch untereinander (157 334 / 156 218 / 160 862 B) — in beide Richtungen. Synthese-Varianz in ORT-WASM, kein Signal |
 | 2026-08-16 (4) | 1.13.7, Aufnahme-Vault, **`--assets https://github.com/johannes-kaindl/audio-interface/releases/download` (echtes Release 0.3.0)** | **11/11 grün** — der Pflichtlauf nach dem Release: Download 76,2 MB über `requestUrl` → Export 156 218 B/8000 Hz/9,8 s; Wechsel auf die zweite Stimme 60,3 MB → Export 115 722 B/7,2 s | — |
 | 2026-08-16 (3) | 1.13.7, Aufnahme-Vault (englische Oberfläche → englische Stimme vorgewählt), lokaler Asset-Server, **zwei Stimmen** | **11/11 grün** (LJSpeech: Download 76,2 MB → Export 157 334 B/8000 Hz/9,8 s; Wechsel auf Thorsten: **Download 60,3 MB** — die geteilte Laufzeit lag schon → Export 120 738 B/7,5 s) | Erstlauf rot an Punkt 8: der Treiber wechselte fest „auf englisch", obwohl bei englischer Oberfläche schon die englische Stimme geladen war — er nimmt jetzt die *andere* Stimme |

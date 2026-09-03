@@ -44,6 +44,28 @@ const SMOKE_BODY = "# Ansage\n\nGuten Tag, Sie erreichen die Mailbox der Beispie
 // Ergebnis, das niemand hören will, und der Prüfpunkt soll den echten Weg gehen.
 const SMOKE_BODY_EN = "# Greeting\n\nHello, you have reached the mailbox of Example Company. Please leave a message after the tone.\n";
 const ASSET_KEY = "audio-interface-asset-base";
+const PROBE_AUDIO = "_audio-interface-probe.webm";
+const PROBE_NOTE = "_audio-interface-probe.md";
+// 1 s Stille als WebM/Opus. Genau das Format, das der DIENST nicht lesen kann
+// (gemessen 2026-09-03: HTTP 400) und das der RENDERER dekodieren muss, damit die
+// Funktion traegt — Obsidians eigener Audio-Recorder erzeugt es. Als Konstante statt
+// als Fixture-Datei, damit der Treiber selbstgenuegsam bleibt.
+const PROBE_WEBM_B64 =
+  "GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAPCEU2bdLpNu4tTq4QVSalmU6yBoU27i1Or" +
+  "hBZUrmtTrIHWTbuMU6uEElTDZ1OsggFMTbuMU6uEHFO7a1OsggOs7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrX" +
+  "sYMPQkBNgIxMYXZmNjMuMS4xMDFXQYxMYXZmNjMuMS4xMDFEiYhAj4AAAAAAABZUrmvxrgEAAAAAAABo14EBc8WIvOuIxQ85" +
+  "gG6cgQAitZyDdW5kiIEAhoZBX09QVVNWqoNjLqBWu4QExLQAg4ECI+ODhAExLQDhkZ+BAbWIQM9AAAAAAABiZIEQVe6BAGOi" +
+  "k09wdXNIZWFkAQE4AYA+AAAAAAASVMNn+3Nzn2PAgGfImUWjh0VOQ09ERVJEh4xMYXZmNjMuMS4xMDFzc9ZjwItjxYi864jF" +
+  "DzmAbmfIoUWjh0VOQ09ERVJEh5RMYXZjNjMuMS4xMDEgbGlib3B1c2fIoUWjiERVUkFUSU9ORIeTMDA6MDA6MDEuMDA4MDAw" +
+  "MDAwAB9DtnVB2ueBAKOHgQAAgLj//qOHgQAVgLj//qOHgQApgLj//qOHgQA9gLj//qOHgQBRgLj//qOHgQBlgLj//qOHgQB5" +
+  "gLj//qOHgQCNgLj//qOHgQChgLj//qOHgQC1gLj//qOHgQDJgLj//qOHgQDdgLj//qOHgQDxgLj//qOHgQEFgLj//qOHgQEZ" +
+  "gLj//qOHgQEtgLj//qOHgQFBgLj//qOHgQFVgLj//qOHgQFpgLj//qOHgQF9gLj//qOHgQGRgLj//qOHgQGlgLj//qOHgQG5" +
+  "gLj//qOHgQHNgLj//qOHgQHhgLj//qOHgQH1gLj//qOHgQIJgLj//qOHgQIdgLj//qOHgQIxgLj//qOHgQJFgLj//qOHgQJZ" +
+  "gLj//qOHgQJtgLj//qOHgQKBgLj//qOHgQKVgLj//qOHgQKpgLj//qOHgQK9gLj//qOHgQLRgLj//qOHgQLlgLj//qOHgQL5" +
+  "gLj//qOHgQMNgLj//qOHgQMhgLj//qOHgQM1gLj//qOHgQNJgLj//qOHgQNdgLj//qOHgQNxgLj//qOHgQOFgLj//qOHgQOZ" +
+  "gLj//qOHgQOtgLj//qOHgQPBgLj//qOHgQPVgLj//qCToYeBA+kAuP/+m4EHdaKEAM3+YBxTu2uRu4+zgQC3iveBAfGCAczw" +
+  "gQM=";
 const DE_ENGINE_ID = "piper-de-thorsten-medium";
 const EN_ENGINE_ID = "piper-en-ljspeech-medium";
 
@@ -203,14 +225,101 @@ async function main(): Promise<void> {
         const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
         p.settings.exportEngineId = ${JSON.stringify(geladene)}; await p.saveSettings(); return true;`).catch(() => undefined);
     }
+    // ── Umschrift: Audiodatei → Text ───────────────────────────────────────
+    const service = arg("service", "");
+    await cdp.evaluate(`
+      const raw = atob(${JSON.stringify(PROBE_WEBM_B64)});
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      for (const path of [${JSON.stringify(PROBE_AUDIO)}, ${JSON.stringify(PROBE_NOTE)}]) {
+        const alt = app.vault.getAbstractFileByPath(path); if (alt) await app.vault.delete(alt);
+      }
+      await app.vault.createBinary(${JSON.stringify(PROBE_AUDIO)}, bytes.buffer);
+      return true;`);
+
+    const menuTitles = (path: string) =>
+      cdp.evaluate<string[]>(`
+        // Kein require("obsidian") — im CDP-Renderer-Scope ist das Modul nicht
+        // aufloesbar. Ein Fake-Menue reicht und prueft genau unseren
+        // Registrierungscode: er ruft addItem(cb) und darin setTitle/setIcon/onClick.
+        const file = app.vault.getAbstractFileByPath(${JSON.stringify(path)});
+        const items = [];
+        const menu = {
+          addItem(cb) {
+            const item = {
+              title: "",
+              setTitle(text) { this.title = text; return this; },
+              setIcon() { return this; },
+              onClick(fn) { this.click = fn; return this; },
+            };
+            cb(item);
+            items.push(item);
+            return this;
+          },
+        };
+        app.workspace.trigger("file-menu", menu, file, "file-explorer");
+        return items.map((i) => i.title).filter(Boolean);`);
+
+    // 11 Ohne Opt-in kein Eintrag — das Plugin spricht ungefragt nichts an.
+    const menuOff = await menuTitles(PROBE_AUDIO);
+    record("Umschrift aus: kein Kontextmenue-Eintrag", !menuOff.some((x) => /Text umwandeln|Transcribe/i.test(x)), menuOff.join(" | ") || "(leer)");
+
+    await cdp.evaluate(`
+      const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+      p.settings.transcribeEnabled = true;
+      p.settings.transcribeServiceUrl = ${JSON.stringify(service || "http://127.0.0.1:8798")};
+      await p.saveSettings(); return true;`);
+
+    // 12 Mit Opt-in erscheint er — aber nur an Audiodateien, nicht an Notizen.
+    const menuOn = await menuTitles(PROBE_AUDIO);
+    const menuNote = await menuTitles(SMOKE_NOTE);
+    record(
+      "Umschrift an: Eintrag an der Audiodatei, nicht an der Notiz",
+      menuOn.some((x) => /Text umwandeln|Transcribe/i.test(x)) && !menuNote.some((x) => /Text umwandeln|Transcribe/i.test(x)),
+      `Audio: ${menuOn.join(" | ")} || Notiz: ${menuNote.join(" | ") || "(leer)"}`,
+    );
+
+    if (!service) {
+      // 13 Ohne Dienst: eine benannte Meldung, kein Absturz und keine halbe Notiz.
+      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); return true;`);
+      await cdp.evaluate(`
+        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+        void p.transcribeAudio(app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_AUDIO)}));
+        return true;`);
+      const offline = await pollUntil<string>(cdp, `
+        const hit = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((x) => /antwortet nicht|not answering/i.test(x));
+        return hit ?? null;`, 8000, 200);
+      const stray = await cdp.evaluate<boolean>(`return app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_NOTE)}) !== null;`);
+      record("Ohne Dienst: benannte Meldung, keine Notiz", !!offline && !stray, offline ? offline.slice(0, 90) : `keine Meldung; Notiz da: ${stray}`);
+      record("Echte Umschrift (uebersprungen — kein --service)", true, "braucht einen laufenden audio-ui-Dienst");
+    } else {
+      // 13 Der ganze Weg: WebM dekodieren, 16-kHz-Mono senden, Notiz anlegen.
+      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); return true;`);
+      await cdp.evaluate(`
+        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+        void p.transcribeAudio(app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_AUDIO)}));
+        return true;`);
+      const made = await pollUntil<{ body?: string; notice?: string } | null>(cdp, `
+        const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((x) => /fehlgeschlagen|failed|antwortet nicht|not answering|noch nicht bereit|not ready/i.test(x));
+        if (bad) return { notice: bad };
+        const f = app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_NOTE)});
+        if (!f) return null;
+        return { body: await app.vault.read(f) };`, 90_000, 500);
+      record(
+        "Echte Umschrift einer WebM-Datei legt eine Notiz mit Embed an",
+        !!made?.body && made.body.includes(`![[${PROBE_AUDIO}]]`),
+        made?.notice ?? (made?.body ? made.body.slice(0, 80).replace(/\n/g, " ") : "keine Notiz"),
+      );
+    }
+
   } finally {
     // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück.
     if (!keep) {
       await cdp.evaluate(`
-        for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
+        for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav", "_audio-interface-probe.webm", "_audio-interface-probe.md"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
         const cache = await caches.open("audio-interface-engines"); for (const k of await cache.keys()) await cache.delete(k);
         app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(previousBase ?? null)});
-        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; await p.saveSettings(); }
+        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; p.settings.transcribeEnabled = false; p.settings.transcribeServiceUrl = "http://127.0.0.1:8765"; await p.saveSettings(); }
         return true;`).catch(() => undefined);
       await reloadPlugin(cdp).catch(() => undefined);
     }
