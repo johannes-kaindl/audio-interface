@@ -42,8 +42,8 @@ describe("transcribeOutcome — Fehlerarten", () => {
       const r = transcribeOutcome({ status, body: { detail: "d" } });
       return r.ok ? "ok" : r.kind;
     };
-    expect(kind(400)).toBe("unlesbar");
-    expect(kind(413)).toBe("zu_lang");
+    expect(kind(400)).toBe("ungueltige_anfrage");
+    expect(kind(413)).toBe("zu_gross");
     expect(kind(500)).toBe("dienst_fehler");
   });
   it("ein unbekannter Status fällt auf dienst_fehler zurück statt zu werfen", () => {
@@ -55,13 +55,31 @@ describe("transcribeOutcome — Fehlerarten", () => {
 
 describe("serviceStatus", () => {
   it("erreicht der Request den Dienst nicht, ist das der dritte Zustand — nicht ein Fehler des Diensts", () => {
-    expect(serviceStatus({ reachable: false })).toEqual({ state: "nicht_erreichbar", canTranscribe: false });
+    expect(serviceStatus({ reachable: false })).toEqual({ state: "nicht_erreichbar", canTranscribe: false, detail: "" });
   });
   it("antwortet der Dienst, kommt der Zustand aus seiner Meldung — Transkription bleibt davon unabhaengig", () => {
-    const body = { zustand: "wartet_auf_consent", engines_geladen: ["parakeet"] };
+    const body = { zustand: "wartet_auf_consent", detail: "lädt Modell (parakeet)", engines_geladen: ["parakeet"] };
     expect(serviceStatus({ reachable: true, body })).toEqual({
       state: "wartet_auf_consent",
       canTranscribe: true,
+      detail: "lädt Modell (parakeet)",
     });
+  });
+});
+
+describe("serviceStatus — detail", () => {
+  it("reicht detail woertlich durch: der Zustandsname allein traegt die Auskunft nicht", () => {
+    // `wartet_auf_consent` ist drueben ein Sammelbecken fuer fuenf Ursachen —
+    // hier die, bei der Warten gerade NICHT hilft.
+    const body = {
+      zustand: "wartet_auf_consent",
+      detail: "Der Mikrofonzugriff wurde abgelehnt. In den Systemeinstellungen unter Datenschutz → Mikrofon freigeben; Warten hilft hier nicht.",
+      engines_geladen: ["parakeet"],
+    };
+    const s = serviceStatus({ reachable: true, body });
+    expect(s.detail).toBe(body.detail);
+  });
+  it("ohne Antwort gibt es kein detail — der Zustand entsteht bei uns, nicht drueben", () => {
+    expect(serviceStatus({ reachable: false }).detail).toBe("");
   });
 });

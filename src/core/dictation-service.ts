@@ -15,6 +15,18 @@ export type ServiceHealth = {
    */
   canTranscribe: boolean;
   mic: MicState;
+  /**
+   * Die Klartext-Auskunft des Diensts, wörtlich.
+   *
+   * ⚠️ **Nie eine Nutzermeldung aus `mic` allein bilden.** `wartet_auf_consent`
+   * ist drüben ein Sammelbecken für fünf Ursachen (am Code gemessen,
+   * `audio_ui/service/zustand.py`): Consent nicht erteilt · **abgelehnt, wo
+   * Warten gerade nicht hilft** · durch Richtlinie gesperrt · Consent-Abfrage
+   * selbst defekt · Modell lädt noch bzw. Ladefehler. Bei den letzten beiden hat
+   * der Consent mit der Sache nichts zu tun. Nur `detail` sagt, welcher Fall
+   * vorliegt.
+   */
+  detail: string;
 };
 
 /** Antwort auf `POST /transcribe`, so wie der Transport sie durchreicht. */
@@ -22,10 +34,16 @@ export type TranscribeResponse = { status: number; body: unknown };
 
 /**
  * Fehlerarten von `POST /transcribe`. Getrennt, weil sie verschiedene Hinweise
- * verdienen: `zu_lang` und `unlesbar` liegen beim Aufrufer, `nicht_bereit` ist
- * vorübergehend (Modell lädt noch), `dienst_fehler` gehört ins Log des Diensts.
+ * verdienen: `ungueltige_anfrage` und `zu_gross` liegen beim Aufrufer,
+ * `nicht_bereit` ist vorübergehend (Modell lädt noch), `dienst_fehler` gehört
+ * ins Log des Diensts.
+ *
+ * ⚠️ Die Vokabel wählt den Hinweis, sie ERSETZT ihn nicht: hinter `400` stehen
+ * drüben zwei Ursachen (unlesbares Audio · unbekannte Engine), hinter `413`
+ * ebenfalls zwei (Body > 100 MB · Audio > 600 s). Welche es war, sagt nur
+ * `detail`.
  */
-export type TranscribeFailure = "unlesbar" | "zu_lang" | "nicht_bereit" | "dienst_fehler";
+export type TranscribeFailure = "ungueltige_anfrage" | "zu_gross" | "nicht_bereit" | "dienst_fehler";
 
 export type TranscribeOutcome =
   | { ok: true; text: string; audioS: number; dauerS: number; rtf: number }
@@ -45,8 +63,8 @@ export function transcribeOutcome(res: TranscribeResponse): TranscribeOutcome {
     };
   }
   if (res.status === 503) return { ok: false, kind: "nicht_bereit", detail };
-  if (res.status === 400) return { ok: false, kind: "unlesbar", detail };
-  if (res.status === 413) return { ok: false, kind: "zu_lang", detail };
+  if (res.status === 400) return { ok: false, kind: "ungueltige_anfrage", detail };
+  if (res.status === 413) return { ok: false, kind: "zu_gross", detail };
   return { ok: false, kind: "dienst_fehler", detail };
 }
 
@@ -72,6 +90,7 @@ export function readServiceHealth(body: unknown): ServiceHealth {
   return {
     canTranscribe: Array.isArray(geladen) && geladen.length > 0,
     mic: raw.zustand === "bereit" || raw.zustand === "wartet_auf_consent" ? raw.zustand : "unbekannt",
+    detail: detailOf(body),
   };
 }
 
@@ -94,10 +113,11 @@ export type ServiceProbe = { reachable: false } | { reachable: true; body: unkno
  */
 export type ServiceState = MicState | "nicht_erreichbar";
 
-export type ServiceStatus = { state: ServiceState; canTranscribe: boolean };
+export type ServiceStatus = { state: ServiceState; canTranscribe: boolean; detail: string };
 
 export function serviceStatus(probe: ServiceProbe): ServiceStatus {
-  if (!probe.reachable) return { state: "nicht_erreichbar", canTranscribe: false };
+  // Ohne Antwort gibt es kein `detail`: dieser Zustand entsteht hier, nicht drüben.
+  if (!probe.reachable) return { state: "nicht_erreichbar", canTranscribe: false, detail: "" };
   const health = readServiceHealth(probe.body);
-  return { state: health.mic, canTranscribe: health.canTranscribe };
+  return { state: health.mic, canTranscribe: health.canTranscribe, detail: health.detail };
 }
