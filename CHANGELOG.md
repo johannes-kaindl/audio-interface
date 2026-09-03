@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Turn audio files into text.** Right-click any audio file in your vault and choose *Transcribe
+  audio*: the transcript is saved as a note next to the recording, with the audio embedded above it
+  so you can listen back. Off by default. It needs a transcription program running on your own
+  computer — the plugin never starts it, and only local addresses (`127.0.0.1`, `localhost`,
+  `[::1]`) are accepted, so a typo cannot send recordings to a stranger's server.
+  - Formats: everything Obsidian treats as audio, **including `webm` and `m4a`** — the ones its own
+    audio recorder produces. Those are decoded inside Obsidian and sent as 16 kHz mono WAV, because
+    the receiving program reads audio through libsndfile and does not understand them.
+
+### Fixed
+
+- **The downloadable voices could not be downloaded any more.** Runtime and voice models were
+  fetched from a GitHub account that has been flagged; anonymous requests returned 404, so WAV
+  export, the second voice and *read aloud with the downloaded voice* silently stopped working for
+  anyone who had not already cached them. They now come from the Forgejo release instead.
+- **Install instructions pointed nowhere:** the README offered the Community Store ("once listed")
+  and BRAT via the unavailable GitHub mirror. It now leads with AnySource Sideloader and the
+  Forgejo release.
+
 ### Changed
 
 - Shared logic (run state, cached downloads, settings validation, vault paths) now comes from

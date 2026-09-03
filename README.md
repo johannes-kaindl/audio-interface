@@ -52,10 +52,10 @@ Source: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/
 > browser**. The GitHub account that hosted the mirror is unavailable, which also removed the
 > store listing. The plugin itself is maintained and releases are published on Forgejo.
 >
-> ⚠️ One consequence is not cosmetic: the **downloadable voices** (used by WAV export and by
-> "read aloud with the downloaded voice") are fetched from that unavailable account, so **the
-> download currently fails**. Reading aloud with your system voices is unaffected and needs no
-> download. Moving those files to Forgejo is tracked and pending.
+> The **downloadable voices** were affected too — they used to be fetched from that account and
+> failed with 404. Since 0.4.0 they come from the Forgejo release instead, so downloading works
+> again. If a voice was already downloaded, it kept working throughout: the cache lives outside
+> your vault.
 
 ### With AnySource Sideloader (recommended)
 
@@ -73,6 +73,9 @@ plugins from any git forge, independent of the Community Store.
 Download `main.js`, `manifest.json` and `styles.css` from the
 [latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy
 them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
+
+Releases from 0.4.0 also ship `checksums.sha256`, so you can verify what you downloaded:
+`shasum -a 256 -c checksums.sha256`.
 
 ### From Obsidian's Community plugins browser
 

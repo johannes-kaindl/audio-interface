@@ -7,6 +7,7 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs --production",
     "assets": "node scripts/build-assets.mjs",
+    "assets:upload": "node scripts/upload-assets.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "typecheck:scripts": "if test -d ../tools/obsidian-cdp; then tsc -p tsconfig.scripts.json --noEmit; else echo 'typecheck:scripts uebersprungen: ../tools/obsidian-cdp fehlt (die Treiber importieren die zentrale CDP-Bruecke aus dem Dach-Checkout; in CI/fremden Checkouts nicht vorhanden)'; fi",

@@ -43,7 +43,21 @@ export interface EngineDescriptor {
 export const BUILTIN_ENGINE_ID = "system-voices";
 export const PIPER_DE_ENGINE_ID = "piper-de-thorsten-medium";
 export const PIPER_EN_ENGINE_ID = "piper-en-ljspeech-medium";
-export const RELEASE_BASE_URL = "https://github.com/johannes-kaindl/audio-interface/releases/download";
+/**
+ * Woher Laufzeit und Stimm-Modelle nach dem Klick geladen werden.
+ *
+ * ⚠️ **Forgejo, nicht GitHub — und das ist kein Geschmack.** Bis 2026-09-03 zeigte
+ * diese Zeile auf `github.com/johannes-kaindl/…`; nachdem das Konto geflaggt wurde,
+ * antwortete es anonym mit 404, während dieselben Dateien mit Token noch da waren.
+ * Für jeden Nutzer hiess das: kein Download, also keine ladbare Stimme und kein
+ * WAV-Export — lautlos, weil ein bereits gefüllter Cache weiterlief.
+ *
+ * Forgejo ist ohnehin `origin`. Gemessen (2026-09-03): Release-API anonym 200,
+ * Range-Requests 206, Attachment-Limit 2048 MB, und `.onnx` wird als Release-Asset
+ * angenommen (die `allowed_types` der Instanz gelten für Releases nicht).
+ * Der Cache-Schlüssel ist basisunabhängig, ein Umzug wirft also nichts weg.
+ */
+export const RELEASE_BASE_URL = "https://git.jkaindl.de/jkaindl/audio-interface/releases/download";
 
 interface PiperVoiceMeta {
   id: string;

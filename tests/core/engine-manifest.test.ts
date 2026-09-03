@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assetUrl,
+  RELEASE_BASE_URL,
   defaultExportEngineId,
   engineById,
   ENGINES,
@@ -87,5 +88,19 @@ describe("engines", () => {
     expect(speakEngineFor({ ...DEFAULT_SETTINGS, speakWithLoadable: true, exportEnabled: true }, ready)).toBe(PIPER_DE_ENGINE_ID);
     expect(speakEngineFor({ ...DEFAULT_SETTINGS, speakWithLoadable: true, exportEnabled: true }, {})).toBe("system-voices");
     expect(speakEngineFor({ ...DEFAULT_SETTINGS, speakWithLoadable: true, exportEnabled: true, exportEngineId: PIPER_EN_ENGINE_ID }, { [PIPER_EN_ENGINE_ID]: "ready" })).toBe(PIPER_EN_ENGINE_ID);
+  });
+});
+
+describe("RELEASE_BASE_URL", () => {
+  it("zeigt NICHT auf github.com — das Konto ist geflaggt und die Assets waren dort fuer Nutzer tot", () => {
+    // Gemessen 2026-09-03: das Repo antwortete anonym mit 404, die Modelle mit 404,
+    // waehrend dieselben Dateien MIT Token vorhanden waren. Ergebnis: die ladbaren
+    // Stimmen und der WAV-Export waren fuer jeden Nutzer funktionslos. Dieser Test
+    // haelt fest, dass die Abhaengigkeit nicht zurueckkommt.
+    expect(RELEASE_BASE_URL).not.toContain("github.com");
+  });
+  it("zeigt auf die Forgejo-Instanz, ueber https und ohne Schraegstrich am Ende", () => {
+    expect(RELEASE_BASE_URL.startsWith("https://git.jkaindl.de/")).toBe(true);
+    expect(RELEASE_BASE_URL.endsWith("/")).toBe(false);
   });
 });
