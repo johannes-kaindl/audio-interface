@@ -153,3 +153,40 @@ export function serviceStatus(probe: ServiceProbe): ServiceStatus {
     retryUseful: typeof raw.retry_sinnvoll === "boolean" ? raw.retry_sinnvoll : true,
   };
 }
+
+/**
+ * Audio-Endungen, die das Plugin zum Transkribieren anbietet — dieselbe Menge,
+ * die Obsidian selbst als Audio führt.
+ *
+ * ⚠️ `webm` und `m4a` stehen bewusst drin, obwohl der Dienst sie **nicht** lesen
+ * kann (gemessen 2026-09-03, beide HTTP 400): genau die erzeugt Obsidians
+ * Audio-Recorder. Das Plugin dekodiert sie im Renderer und schickt WAV — sie hier
+ * wegzulassen hiesse, den häufigsten Fall auszuschliessen.
+ */
+export const AUDIO_EXTENSIONS: readonly string[] = [
+  "3gp",
+  "flac",
+  "m4a",
+  "mp3",
+  "oga",
+  "ogg",
+  "opus",
+  "wav",
+  "webm",
+];
+
+export function isTranscribableAudio(path: string): boolean {
+  const dot = path.lastIndexOf(".");
+  if (dot < 0) return false;
+  return AUDIO_EXTENSIONS.includes(path.slice(dot + 1).toLowerCase());
+}
+
+/**
+ * Baut die Notiz zum Transkript: erst die Quelle als Embed, dann der Text.
+ *
+ * Der Embed steht oben, damit die Notiz auch dann nützlich bleibt, wenn die
+ * Erkennung schlecht war — man kann sofort nachhören, ohne die Datei zu suchen.
+ */
+export function transcriptNote(text: string, audioName: string): string {
+  return `![[${audioName}]]\n\n${text}`;
+}

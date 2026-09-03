@@ -1,6 +1,8 @@
-import { getLanguage, MarkdownView, Notice, Plugin, TFile, TFolder, type Editor } from "obsidian";
+import { getLanguage, MarkdownView, Notice, Plugin, requestUrl, TFile, TFolder, type Editor } from "obsidian";
 import { defaultExportEngineId, engineById, loadableEngines, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
 import { exportEngineFor, speakEngineFor, type EngineReadiness } from "./core/engines";
+import { isTranscribableAudio, transcriptNote } from "./core/dictation-service";
+import { joinVaultPath, withSuffix } from "./core/file-naming";
 import { abort, begin, fail, finish, IDLE, isBusy, progress, type RunState } from "./core/run-state";
 import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-types";
 import { initI18n, t } from "./i18n/strings";
@@ -12,6 +14,7 @@ import { AudioContextPlayer } from "./obsidian/pcm-player";
 import { AudioInterfaceSettingTab, type SettingsHost } from "./obsidian/settings-tab";
 import { Speaker, SpeakerError } from "./obsidian/speaker";
 import { StatusBar } from "./obsidian/status-bar";
+import { Transcriber } from "./obsidian/transcriber";
 import { realClock } from "./vendor/kit-obsidian/clock";
 
 /** Für den GUI-Smoke überschreibbar (lokaler Asset-Server): app.saveLocalStorage("audio-interface-asset-base", url). */
@@ -33,6 +36,7 @@ export default class AudioInterfacePlugin extends Plugin {
   private engines = new Map<string, PiperEngine>();
   private statusBar!: StatusBar;
   private player!: AudioContextPlayer;
+  private transcriber!: Transcriber;
   private settingTab!: AudioInterfaceSettingTab;
   private assetBaseUrl = RELEASE_BASE_URL;
   private readiness: EngineReadiness = "off";
@@ -65,6 +69,8 @@ export default class AudioInterfacePlugin extends Plugin {
     this.settingTab = new AudioInterfaceSettingTab(this.app, this, this.settingsHost());
     this.addSettingTab(this.settingTab);
     this.registerCommands();
+    this.transcriber = this.makeTranscriber();
+    this.registerTranscribeMenu();
     this.addRibbonIcon("audio-lines", t("cmd.speakNote"), () => void this.speakActive("note"));
     void this.system.waitForVoices();
     // Der native Settings-Renderer (≥1.13) cacht die Definitionen beim addSettingTab — sobald die
@@ -196,6 +202,80 @@ export default class AudioInterfacePlugin extends Plugin {
       await this.refreshReadiness();
       this.statusBar.setRun(IDLE);
       this.settingTab.refresh();
+    }
+  }
+
+  // ── Umschrift (Audiodatei → Text) ────────────────────────────────────────
+  /**
+   * Der Dienst wird **vorgefunden, nie gestartet** — ein `child_process` kostet
+   * die Store-Bestnote. Läuft er nicht, sagt das die Meldung; mehr passiert nicht.
+   */
+  private makeTranscriber(): Transcriber {
+    return new Transcriber({
+      baseUrl: () => this.settings.transcribeServiceUrl,
+      request: async (req) => {
+        // `throw: false` ist Pflicht: sonst wirft Obsidian bei 4xx/5xx, und genau
+        // dort steht das `detail`, das dem Nutzer sagt, was los ist.
+        const res = await requestUrl({ url: req.url, method: req.method, body: req.body, contentType: req.contentType, throw: false });
+        let json: unknown = null;
+        try {
+          json = res.json;
+        } catch {
+          json = null; // fremde Software auf dem Port antwortet kein JSON
+        }
+        return { status: res.status, json };
+      },
+      decode: async (bytes) => {
+        // Der Renderer kann webm/opus und m4a/aac, der Dienst nicht (gemessen).
+        const ctx = new AudioContext();
+        try {
+          const buffer = await ctx.decodeAudioData(bytes);
+          const channels: Float32Array[] = [];
+          for (let i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
+          return { channels, sampleRate: buffer.sampleRate };
+        } finally {
+          void ctx.close();
+        }
+      },
+    });
+  }
+
+  private registerTranscribeMenu(): void {
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (!this.settings.transcribeEnabled) return;
+        if (!(file instanceof TFile) || !isTranscribableAudio(file.path)) return;
+        menu.addItem((item) => item.setTitle(t("menu.transcribe")).setIcon("captions").onClick(() => void this.transcribeAudio(file)));
+      }),
+    );
+  }
+
+  private async transcribeAudio(file: TFile): Promise<void> {
+    const health = await this.transcriber.health();
+    if (health.state === "nicht_erreichbar") {
+      new Notice(t("notice.transcribeNoService"));
+      return;
+    }
+    // `zustand` ist KEIN Gate — massgeblich ist, ob eine Engine geladen ist.
+    if (!health.canTranscribe) {
+      new Notice(t("notice.transcribeNotReady", health.detail));
+      return;
+    }
+
+    new Notice(t("notice.transcribeRunning", file.name));
+    try {
+      const outcome = await this.transcriber.transcribeFile(await this.app.vault.readBinary(file));
+      if (!outcome.ok) {
+        new Notice(t("notice.transcribeFailed", outcome.detail !== "" ? outcome.detail : outcome.kind));
+        return;
+      }
+      const base = joinVaultPath(file.parent?.path ?? "", file.basename);
+      const path = withSuffix(base, "md", (candidate) => this.app.vault.getAbstractFileByPath(candidate) !== null);
+      const note = await this.app.vault.create(path, transcriptNote(outcome.text, file.name));
+      await this.app.workspace.getLeaf(true).openFile(note);
+      new Notice(t("notice.transcribed", note.name));
+    } catch (error) {
+      new Notice(t("notice.transcribeFailed", error instanceof Error ? error.message : String(error)));
     }
   }
 

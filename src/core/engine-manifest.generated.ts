@@ -9,7 +9,7 @@ export const PIPER_SHARED_ASSETS: AssetFile[] = [
     "key": "worker",
     "fileName": "piper-worker.js",
     "bytes": 2833512,
-    "sha256": "273eabb5ce9b9a8871eef786fd388a59127795ed0c11b752cb6fd4fc7d33e0ba",
+    "sha256": "1d7a62da7f9dcfe38a0a31efff330d7c669085afe0a7aba82b5a7bfaa5ec46a5",
     "license": "AGPL-3.0-or-later (enthält ephone/eSpeak-NG GPL-3.0-or-later, onnxruntime-web MIT)"
   },
   {

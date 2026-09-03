@@ -114,12 +114,12 @@ export function normalizePeak(samples: Float32Array, target = 0.9): Float32Array
  */
 export function mixToMono(channels: Float32Array[]): Float32Array {
   if (channels.length === 0) return new Float32Array(0);
-  if (channels.length === 1) return channels[0]!;
+  if (channels.length === 1) return channels[0];
   const length = channels.reduce((n, c) => Math.max(n, c.length), 0);
   const out = new Float32Array(length);
   for (const channel of channels) {
-    for (let i = 0; i < channel.length; i++) out[i]! += channel[i]!;
+    for (let i = 0; i < channel.length; i++) out[i] += channel[i];
   }
-  for (let i = 0; i < length; i++) out[i]! /= channels.length;
+  for (let i = 0; i < length; i++) out[i] /= channels.length;
   return out;
 }

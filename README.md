@@ -27,8 +27,13 @@ on your disk.
 - **Read aloud with the downloaded voice** instead of the system voice, once it is there.
 - **Speech-ready text:** frontmatter, code blocks, images/embeds and comments are skipped; links
   speak their display text; headings, lists, tables and callouts are read with natural pauses.
+- **Turn audio files into text** — right-click any audio file in your vault and choose
+  *Transcribe audio*. The transcript is saved as a note next to the recording, with the audio
+  embedded so you can listen back. Off by default; needs a companion program running on your own
+  computer (see [How it works](#how-it-works)).
 - **Honest network use:** one download, from this repository's release, only after your click,
-  verified against checksums, removable again — see [How it works](#how-it-works).
+  verified against checksums, removable again. Transcription talks **only** to an address on your
+  own machine, and only when you turn it on — see [How it works](#how-it-works).
 
 ## Requirements
 
@@ -122,12 +127,33 @@ just its model.
 
 Synthesis then runs in a Web Worker inside Obsidian (ONNX Runtime, CPU), the result is resampled
 to the chosen profile, encoded as 16-bit WAV and written through Obsidian's vault API. There is no
-telemetry and no other network access. Architecture and measurements: [`AGENTS.md`](AGENTS.md).
+telemetry. Architecture and measurements: [`AGENTS.md`](AGENTS.md).
+
+### Transcription and what leaves your vault
+
+**Nothing leaves your computer.** Turning *Turn audio files into text* on lets the plugin talk to
+one more address — a transcription program that **you** run on your own machine, by default
+`http://127.0.0.1:8765`. The settings accept **only** local addresses (`127.0.0.1`, `localhost`,
+`[::1]`); anything else falls back to the default, so a typo cannot send your recordings to a
+stranger's server. The plugin never starts that program, and never installs it: if it is not
+running, you get a message and nothing else happens.
+
+When you transcribe a file, the plugin decodes it inside Obsidian, mixes it down to mono,
+resamples it to 16 kHz and sends that as WAV. Decoding locally is not a detail — the program reads
+audio through libsndfile, which does **not** understand `webm` or `m4a`, and those are exactly what
+Obsidian's own audio recorder produces. The transcript is written as a new note next to the
+recording; nothing is overwritten.
+
+The companion program is [`audio-ui`](https://git.jkaindl.de/jkaindl/audio-ui) — speech
+recognition (Parakeet) running locally on Apple Silicon. It is optional: without it, the plugin
+does everything else exactly as before.
 
 ## Roadmap
 
-Dictation (speech-to-text) and connecting to a local speech service for higher-quality voices are
-planned for later releases; the settings already reserve a place for it.
+Transcribing audio files is available now (see above). **Live dictation** — speaking and having
+the text appear as you go — needs the companion program to listen to the microphone itself, which
+is being built there; the plugin will stay a thin client that receives text. Higher-quality voices
+through the same local program are planned for a later release.
 
 ## Contributing
 

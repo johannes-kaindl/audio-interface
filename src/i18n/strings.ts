@@ -9,6 +9,8 @@ export const EN: Record<string, string> = {
   "cmd.stop": "Stop reading / cancel export",
   "cmd.togglePause": "Pause / resume reading",
 
+  "menu.transcribe": "Transcribe audio",
+
   "notice.empty": "Nothing to read — the note has no spoken text.",
   "notice.engineUnavailable": "The downloadable voice is not ready — check the plugin settings.",
   "notice.exportAborted": "Export cancelled.",
@@ -17,6 +19,11 @@ export const EN: Record<string, string> = {
   "notice.noMarkdownView": "Open a Markdown note first.",
   "notice.noSelection": "Select some text first.",
   "notice.speakFailed": "Reading aloud failed: {0}",
+  "notice.transcribed": "Transcript saved: {0}",
+  "notice.transcribeFailed": "Transcription failed: {0}",
+  "notice.transcribeNoService": "The transcription program on this computer is not answering. Start it, or check its address in the plugin settings.",
+  "notice.transcribeNotReady": "The transcription program is running but not ready yet: {0}",
+  "notice.transcribeRunning": "Transcribing {0} …",
 
   "status.downloading": "Downloading {0}/{1} MB",
   "status.rendering": "Rendering {0}/{1}",
@@ -25,9 +32,6 @@ export const EN: Record<string, string> = {
   "status.writing": "Saving WAV…",
   "status.tooltip": "Audio Interface — click to stop",
 
-  "settings.dienst.desc": "Connecting to a local speech service (higher-quality voices, dictation) will follow in a later release.",
-  "settings.dienst.heading": "Local service",
-  "settings.dienst.name": "Local speech service",
   "settings.engine.abort": "Cancel",
   "settings.engine.desc": "{0} download from {1}. Stored in the browser cache outside your vault, never synced. Licenses: {2}.",
   "settings.engine.download": "Download ({0})",
@@ -63,6 +67,11 @@ export const EN: Record<string, string> = {
   "settings.speakVoiceUri.none": "No system voices found — install one in your operating system.",
   "settings.speakWithLoadable.desc": "Use the downloaded voice for reading aloud instead of the system voice.",
   "settings.speakWithLoadable.name": "Read aloud with the downloaded voice",
+  "settings.transcribe.heading": "Transcribe (speech to text)",
+  "settings.transcribeEnabled.desc": "Adds “Transcribe audio” to the context menu of audio files. The recording is sent to a program running on this computer only — nothing is uploaded to the internet. The plugin never starts that program itself; you start it yourself.",
+  "settings.transcribeEnabled.name": "Turn audio files into text",
+  "settings.transcribeServiceUrl.desc": "Where that program listens. Only addresses on this computer are accepted (127.0.0.1, localhost, [::1]); anything else falls back to the default.",
+  "settings.transcribeServiceUrl.name": "Address of the program",
 };
 
 export const DE: Record<string, string> = {
@@ -73,6 +82,8 @@ export const DE: Record<string, string> = {
   "cmd.stop": "Vorlesen stoppen / Export abbrechen",
   "cmd.togglePause": "Vorlesen pausieren / fortsetzen",
 
+  "menu.transcribe": "Audio in Text umwandeln",
+
   "notice.empty": "Nichts zu sprechen — die Notiz enthält keinen Sprechtext.",
   "notice.engineUnavailable": "Die ladbare Stimme ist nicht bereit — bitte die Plugin-Einstellungen prüfen.",
   "notice.exportAborted": "Export abgebrochen.",
@@ -81,6 +92,11 @@ export const DE: Record<string, string> = {
   "notice.noMarkdownView": "Bitte zuerst eine Markdown-Notiz öffnen.",
   "notice.noSelection": "Bitte zuerst Text markieren.",
   "notice.speakFailed": "Vorlesen fehlgeschlagen: {0}",
+  "notice.transcribed": "Umschrift gespeichert: {0}",
+  "notice.transcribeFailed": "Umschrift fehlgeschlagen: {0}",
+  "notice.transcribeNoService": "Das Umschrift-Programm auf diesem Rechner antwortet nicht. Starte es, oder prüfe seine Adresse in den Plugin-Einstellungen.",
+  "notice.transcribeNotReady": "Das Umschrift-Programm läuft, ist aber noch nicht bereit: {0}",
+  "notice.transcribeRunning": "Wandle {0} um …",
 
   "status.downloading": "Lade {0}/{1} MB",
   "status.rendering": "Rendern {0}/{1}",
@@ -89,9 +105,6 @@ export const DE: Record<string, string> = {
   "status.writing": "WAV wird gespeichert…",
   "status.tooltip": "Audio Interface — Klick zum Stoppen",
 
-  "settings.dienst.desc": "Die Anbindung an einen lokalen Sprachdienst (bessere Stimmen, Diktat) folgt in einem späteren Release.",
-  "settings.dienst.heading": "Lokaler Dienst",
-  "settings.dienst.name": "Lokaler Sprachdienst",
   "settings.engine.abort": "Abbrechen",
   "settings.engine.desc": "{0} Download von {1}. Ablage im Browser-Cache außerhalb des Vaults, wird nie synchronisiert. Lizenzen: {2}.",
   "settings.engine.download": "Herunterladen ({0})",
@@ -127,6 +140,11 @@ export const DE: Record<string, string> = {
   "settings.speakVoiceUri.none": "Keine Systemstimmen gefunden — bitte im Betriebssystem eine installieren.",
   "settings.speakWithLoadable.desc": "Die geladene Stimme zum Vorlesen nutzen statt der Systemstimme.",
   "settings.speakWithLoadable.name": "Mit der geladenen Stimme vorlesen",
+  "settings.transcribe.heading": "Umschrift (Sprache zu Text)",
+  "settings.transcribeEnabled.desc": "Ergänzt „Audio in Text umwandeln“ im Kontextmenü von Audiodateien. Die Aufnahme geht an ein Programm, das auf diesem Rechner läuft — nichts wird ins Internet geladen. Das Plugin startet dieses Programm nie selbst; das machst du.",
+  "settings.transcribeEnabled.name": "Audiodateien in Text umwandeln",
+  "settings.transcribeServiceUrl.desc": "Wo dieses Programm lauscht. Angenommen werden nur Adressen auf diesem Rechner (127.0.0.1, localhost, [::1]); alles andere fällt auf die Voreinstellung zurück.",
+  "settings.transcribeServiceUrl.name": "Adresse des Programms",
 };
 
 export function initI18n(rawLang: string | null | undefined): void {

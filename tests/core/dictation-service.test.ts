@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { readServiceHealth, serviceStatus, transcribeOutcome } from "../../src/core/dictation-service";
+import {
+  AUDIO_EXTENSIONS,
+  isTranscribableAudio,
+  readServiceHealth,
+  serviceStatus,
+  transcribeOutcome,
+  transcriptNote,
+} from "../../src/core/dictation-service";
 
 describe("readServiceHealth", () => {
   it("wartet_auf_consent sperrt die Transkription nicht — maßgeblich ist engines_geladen", () => {
@@ -169,5 +176,36 @@ describe("gemessen gegen den echten Dienst 0.2.0", () => {
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.kind).toBe("ungueltige_anfrage");
     expect(r.ok === false && r.detail).toContain("parakeet, whisper");
+  });
+});
+
+describe("isTranscribableAudio", () => {
+  it("erkennt die Formate, die Obsidian als Audio fuehrt — webm und m4a eingeschlossen", () => {
+    // webm/m4a kann der Dienst NICHT lesen (gemessen, HTTP 400); wir dekodieren
+    // sie vorher selbst. Sie hier auszuschliessen hiesse, genau die Sprachnotizen
+    // abzuweisen, die Obsidians Recorder erzeugt.
+    for (const ext of ["webm", "m4a", "mp3", "wav", "ogg", "flac", "opus"]) {
+      expect(isTranscribableAudio(`Sprachnotiz.${ext}`)).toBe(true);
+    }
+    expect(AUDIO_EXTENSIONS).toContain("webm");
+  });
+  it("weist alles andere ab, auch Endungen als Namensbestandteil", () => {
+    for (const name of ["Notiz.md", "bild.png", "kein-suffix", "tricky.mp3.txt"]) {
+      expect(isTranscribableAudio(name)).toBe(false);
+    }
+  });
+  it("ist unabhaengig von Gross-/Kleinschreibung", () => {
+    expect(isTranscribableAudio("AUFNAHME.M4A")).toBe(true);
+  });
+});
+
+describe("transcriptNote", () => {
+  it("verlinkt die Quelle und traegt den Text darunter", () => {
+    const md = transcriptNote("Guten Morgen.", "Sprachnotiz.webm");
+    expect(md).toContain("![[Sprachnotiz.webm]]");
+    expect(md.trimEnd().endsWith("Guten Morgen.")).toBe(true);
+  });
+  it("leerer Text ist kein Fehler, sondern eine leere Transkription", () => {
+    expect(transcriptNote("", "Stille.wav")).toContain("![[Stille.wav]]");
   });
 });

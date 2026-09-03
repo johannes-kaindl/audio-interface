@@ -44,10 +44,10 @@ type FakeEl = { children: FakeEl[]; className: string; textContent?: string; __c
 const rowsIn = (tab: AudioInterfaceSettingTab) => el(tab).children.filter((c) => c.className.includes("setting-item")).length;
 
 describe("AudioInterfaceSettingTab", () => {
-  it("Export aus: nur Stimme, Tempo, Export-Toggle, Dienst-Hinweis; deutsche Stimme zuerst im Dropdown", () => {
+  it("Export aus: nur Stimme, Tempo, Export-Toggle, Umschrift-Opt-in; deutsche Stimme zuerst im Dropdown", () => {
     const { host } = makeHost(); const tab = makeTab(host);
     const items = flat(tab);
-    expect(items.map((i) => i.control?.key ?? i.name)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "Lokaler Sprachdienst"]);
+    expect(items.map((i) => i.control?.key ?? i.name)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "transcribeEnabled"]);
     expect(Object.keys(items[0].control!.options!)).toEqual(["", "de1", "en1"]);
   });
   it("Export an + missing: Engine-Zeile (Hatch) mit „Herunterladen“ und Größe, Export-Felder sichtbar", async () => {
@@ -56,7 +56,7 @@ describe("AudioInterfaceSettingTab", () => {
     const tab = makeTab(host); tab.display(); await flush();
     const items = flat(tab);
     expect(items.some((i) => typeof i.render === "function" && i.name?.includes("Piper"))).toBe(true);
-    expect(items.map((i) => i.control?.key).filter(Boolean)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "exportEngineId", "exportProfile", "exportFilePattern", "exportInsertLink"]);
+    expect(items.map((i) => i.control?.key).filter(Boolean)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "exportEngineId", "exportProfile", "exportFilePattern", "exportInsertLink", "transcribeEnabled"]);
     const texts = allText(tab);
     expect(texts).toContain("Herunterladen (");
     expect(texts).toContain("MB");

@@ -112,10 +112,24 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       );
     }
 
+    // Opt-in wie beim Export: ohne Haken erscheint kein Kontextmenue-Eintrag und
+    // es wird nichts angesprochen. Die Adresszeile kommt erst mit dem Haken —
+    // bedingte Zeilen weglassen statt `visible:false` (AGENTS.md).
+    const transcribeItems: Def[] = [
+      { name: t("settings.transcribeEnabled.name"), desc: t("settings.transcribeEnabled.desc"), control: { type: "toggle", key: "transcribeEnabled" } },
+    ];
+    if (s.transcribeEnabled) {
+      transcribeItems.push({
+        name: t("settings.transcribeServiceUrl.name"),
+        desc: t("settings.transcribeServiceUrl.desc"),
+        control: { type: "text", key: "transcribeServiceUrl" },
+      });
+    }
+
     return [
       { type: "group", heading: t("settings.speak.heading"), items: speakItems },
       { type: "group", heading: t("settings.export.heading"), items: exportItems },
-      { type: "group", heading: t("settings.dienst.heading"), items: [{ name: t("settings.dienst.name"), desc: t("settings.dienst.desc") }] },
+      { type: "group", heading: t("settings.transcribe.heading"), items: transcribeItems },
     ];
   }
 
