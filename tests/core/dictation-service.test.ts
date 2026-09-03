@@ -55,7 +55,13 @@ describe("transcribeOutcome — Fehlerarten", () => {
 
 describe("serviceStatus", () => {
   it("erreicht der Request den Dienst nicht, ist das der dritte Zustand — nicht ein Fehler des Diensts", () => {
-    expect(serviceStatus({ reachable: false })).toEqual({ state: "nicht_erreichbar", canTranscribe: false, detail: "" });
+    expect(serviceStatus({ reachable: false })).toEqual({
+      state: "nicht_erreichbar",
+      canTranscribe: false,
+      detail: "",
+      cause: null,
+      retryUseful: true,
+    });
   });
   it("antwortet der Dienst, kommt der Zustand aus seiner Meldung — Transkription bleibt davon unabhaengig", () => {
     const body = { zustand: "wartet_auf_consent", detail: "lädt Modell (parakeet)", engines_geladen: ["parakeet"] };
@@ -63,6 +69,8 @@ describe("serviceStatus", () => {
       state: "wartet_auf_consent",
       canTranscribe: true,
       detail: "lädt Modell (parakeet)",
+      cause: null,
+      retryUseful: true,
     });
   });
 });
@@ -81,5 +89,33 @@ describe("serviceStatus — detail", () => {
   });
   it("ohne Antwort gibt es kein detail — der Zustand entsteht bei uns, nicht drueben", () => {
     expect(serviceStatus({ reachable: false }).detail).toBe("");
+  });
+});
+
+describe("serviceStatus — ursache und retry_sinnvoll (Dienst ab 0.2.0)", () => {
+  it("ein 0.1.0-Dienst kennt das Feld nicht: keine Ursache, und Nachfragen bleibt erlaubt", () => {
+    const body = { zustand: "wartet_auf_consent", detail: "lädt Modell (parakeet)", engines_geladen: [], version: "0.1.0" };
+    const s = serviceStatus({ reachable: true, body });
+    expect(s.cause).toBe(null);
+    expect(s.retryUseful).toBe(true);
+  });
+  it("modell_fehler ist dauerhaft — Nachfragen hilft nicht", () => {
+    const body = {
+      zustand: "wartet_auf_consent", ursache: "modell_fehler", retry_sinnvoll: false,
+      detail: "Modell konnte nicht geladen werden: …", engines_geladen: [], version: "0.2.0",
+    };
+    const s = serviceStatus({ reachable: true, body });
+    expect(s.cause).toBe("modell_fehler");
+    expect(s.retryUseful).toBe(false);
+  });
+  it("eine unbekannte Ursache wird NICHT geraten — retry_sinnvoll entscheidet", () => {
+    // Waechst das Enum drueben, darf ein aelterer Client nicht falsch entscheiden.
+    const body = {
+      zustand: "wartet_auf_consent", ursache: "netzwerk_gesperrt_2027", retry_sinnvoll: false,
+      detail: "…", engines_geladen: [], version: "0.4.0",
+    };
+    const s = serviceStatus({ reachable: true, body });
+    expect(s.cause).toBe("netzwerk_gesperrt_2027");
+    expect(s.retryUseful).toBe(false);
   });
 });

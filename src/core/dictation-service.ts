@@ -113,11 +113,43 @@ export type ServiceProbe = { reachable: false } | { reachable: true; body: unkno
  */
 export type ServiceState = MicState | "nicht_erreichbar";
 
-export type ServiceStatus = { state: ServiceState; canTranscribe: boolean; detail: string };
+export type ServiceStatus = {
+  state: ServiceState;
+  canTranscribe: boolean;
+  detail: string;
+  /**
+   * Maschinenlesbare Ursache hinter `wartet_auf_consent` — ab Dienst 0.2.0.
+   * `null` heißt entweder „alles gut" oder „der Dienst ist älter und kennt das
+   * Feld nicht"; unterscheidbar an `state`.
+   *
+   * Bewusst ein roher `string`, kein Union-Typ: das Enum wächst drüben, und ein
+   * Wert, den diese Fassung nicht kennt, darf hier nicht durchs Raster fallen.
+   */
+  cause: string | null;
+  /**
+   * Lohnt sich eine erneute Abfrage?
+   *
+   * ⚠️ **Nie aus `cause` ableiten.** Genau dafür gibt es dieses Feld: kommt
+   * drüben ein neuer `cause`-Wert dazu, entscheidet ein Client, der ihn an einer
+   * eigenen Tabelle nachschlägt, falsch — dieser hier fragt das Feld.
+   * Fehlt es (Dienst 0.1.0), bleibt Nachfragen erlaubt: die Fälle, die es
+   * verbieten würden, sind dort ohnehin nicht unterscheidbar.
+   */
+  retryUseful: boolean;
+};
 
 export function serviceStatus(probe: ServiceProbe): ServiceStatus {
   // Ohne Antwort gibt es kein `detail`: dieser Zustand entsteht hier, nicht drüben.
-  if (!probe.reachable) return { state: "nicht_erreichbar", canTranscribe: false, detail: "" };
+  if (!probe.reachable) {
+    return { state: "nicht_erreichbar", canTranscribe: false, detail: "", cause: null, retryUseful: true };
+  }
   const health = readServiceHealth(probe.body);
-  return { state: health.mic, canTranscribe: health.canTranscribe, detail: health.detail };
+  const raw = probe.body as { ursache?: unknown; retry_sinnvoll?: unknown };
+  return {
+    state: health.mic,
+    canTranscribe: health.canTranscribe,
+    detail: health.detail,
+    cause: typeof raw.ursache === "string" ? raw.ursache : null,
+    retryUseful: typeof raw.retry_sinnvoll === "boolean" ? raw.retry_sinnvoll : true,
+  };
 }
