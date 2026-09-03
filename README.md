@@ -46,18 +46,38 @@ on your disk.
 
 ## Install
 
-### Community Plugins
-The plugin has been submitted to the Obsidian community directory; once listed:
-Settings → Community plugins → Browse → search “Audio Interface”.
+Source: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
+
+> **Note (2026-09-03):** Audio Interface is currently **not listed in the Community plugins
+> browser**. The GitHub account that hosted the mirror is unavailable, which also removed the
+> store listing. The plugin itself is maintained and releases are published on Forgejo.
+>
+> ⚠️ One consequence is not cosmetic: the **downloadable voices** (used by WAV export and by
+> "read aloud with the downloaded voice") are fetched from that unavailable account, so **the
+> download currently fails**. Reading aloud with your system voices is unaffected and needs no
+> download. Moving those files to Forgejo is tracked and pending.
+
+### With AnySource Sideloader (recommended)
+
+[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installs and updates
+plugins from any git forge, independent of the Community Store.
+
+1. Install and enable AnySource Sideloader. (Its own first install is manual — being independent
+   of the store is the point — but it only has to be done once.)
+2. Add this repository as a source:
+   `https://git.jkaindl.de/jkaindl/audio-interface`
+3. Install Audio Interface and enable it.
 
 ### Manual
-Copy `main.js`, `manifest.json` and `styles.css` from the
-[latest release](https://git.jkaindl.de/jkaindl/audio-interface/releases) into
-`<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
 
-### BRAT (beta)
-Add the GitHub mirror `johannes-kaindl/audio-interface` in
-[BRAT](https://github.com/TfTHacker/obsidian42-brat).
+Download `main.js`, `manifest.json` and `styles.css` from the
+[latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy
+them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
+
+### From Obsidian's Community plugins browser
+
+Available again once the store listing returns: Settings → Community plugins → Browse → search
+"Audio Interface".
 
 ### From source
 ```bash
