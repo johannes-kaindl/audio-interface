@@ -119,3 +119,55 @@ describe("serviceStatus — ursache und retry_sinnvoll (Dienst ab 0.2.0)", () =>
     expect(s.retryUseful).toBe(false);
   });
 });
+
+/**
+ * Echte Antworten, am 2026-09-03 gegen einen laufenden `audio-ui serve` 0.2.0
+ * gemessen (eigener Port 8799, danach beendet) — nicht aus der Spec abgeschrieben.
+ * Sie halten die Feldnamen fest: ein Tippfehler in `engines_geladen` oder
+ * `retry_sinnvoll` faellt hier auf, in erfundenen Koerpern nicht.
+ */
+describe("gemessen gegen den echten Dienst 0.2.0", () => {
+  it("beim Start laedt das Modell: nicht transkribierbar, aber gleich nochmal fragen", () => {
+    const body = JSON.parse(
+      '{"zustand":"wartet_auf_consent","detail":"lädt Modell (parakeet)","ursache":"modell_laedt",' +
+        '"retry_sinnvoll":true,"engine":"parakeet","engines_geladen":[],"version":"0.2.0"}',
+    );
+    expect(serviceStatus({ reachable: true, body })).toEqual({
+      state: "wartet_auf_consent",
+      canTranscribe: false,
+      detail: "lädt Modell (parakeet)",
+      cause: "modell_laedt",
+      retryUseful: true,
+    });
+  });
+  it("nach dem Laden: bereit, ohne Ursache", () => {
+    const body = JSON.parse(
+      '{"zustand":"bereit","detail":"","ursache":null,"retry_sinnvoll":true,' +
+        '"engine":"parakeet","engines_geladen":["parakeet"],"version":"0.2.0"}',
+    );
+    expect(serviceStatus({ reachable: true, body })).toEqual({
+      state: "bereit",
+      canTranscribe: true,
+      detail: "",
+      cause: null,
+      retryUseful: true,
+    });
+  });
+  it("eine echte Transkription (1 s Stille) wird als Erfolg gelesen", () => {
+    const body = JSON.parse('{"text":"","engine":"parakeet","audio_s":1.0,"dauer_s":0.22,"rtf":0.2198}');
+    expect(transcribeOutcome({ status: 200, body })).toEqual({
+      ok: true,
+      text: "",
+      audioS: 1.0,
+      dauerS: 0.22,
+      rtf: 0.2198,
+    });
+  });
+  it("eine unbekannte Engine ist eine ungueltige Anfrage, und detail nennt die bekannten", () => {
+    const body = JSON.parse('{"detail":"Engine \'quatsch\' gibt es nicht. Bekannt: parakeet, whisper."}');
+    const r = transcribeOutcome({ status: 400, body });
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.kind).toBe("ungueltige_anfrage");
+    expect(r.ok === false && r.detail).toContain("parakeet, whisper");
+  });
+});
