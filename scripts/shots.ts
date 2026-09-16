@@ -306,7 +306,9 @@ async function main(): Promise<void> {
   await cdp.send("Page.bringToFront");
   await wait(3000);
 
-  const lang = await cdp.evaluate<string>(`return window.localStorage.getItem("language") ?? "en";`);
+  const lang = await cdp.evaluate<string>(
+    `return document.documentElement.lang || (window.localStorage && localStorage.getItem("language")) || "en";`,
+  );
   if (lang !== "en") throw new Error(`Obsidian laeuft auf "${lang}" — Aufnahmesprache ist Englisch (Settings → General → Language, dann Neustart).`);
 
   // Sicherstellen, dass keine Asset-Basis eines frueheren Laufs haengt: die Zeilen zeigen die Quelle.
