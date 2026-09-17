@@ -92,9 +92,67 @@ async function main(): Promise<void> {
   const keep = process.argv.includes("--keep");
   const cdp = await Cdp.attach(port, vault);
   let previousBase: unknown = null;
+
+  // Dieselbe Aufraeumarbeit wie im `finally` unten — als eigene Funktion, damit der
+  // SIGINT/SIGTERM-Handler sie aufrufen kann, ohne Code zu duplizieren. Ein Ctrl-C mitten
+  // im Lauf ueberspringt das `finally` NICHT (try/catch-Semantik), sondern beendet den
+  // Node-Prozess sofort — ohne eigenen Handler blieben Smoke-Notizen/-Dateien, der
+  // Engine-Cache, die Asset-Basis in localStorage und exportEnabled/transcribeEnabled
+  // unwiederhergestellt stehen.
+  const cleanupState = async (): Promise<void> => {
+    if (!keep) {
+      await cdp.evaluate(`
+        for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav", "_audio-interface-probe.webm", "_audio-interface-probe.md"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
+        const cache = await caches.open("audio-interface-engines"); for (const k of await cache.keys()) await cache.delete(k);
+        app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(previousBase ?? null)});
+        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; p.settings.transcribeEnabled = false; p.settings.transcribeServiceUrl = "http://127.0.0.1:8765"; await p.saveSettings(); }
+        return true;`).catch(() => undefined);
+      await reloadPlugin(cdp).catch(() => undefined);
+    }
+  };
+
+  let signalCleanupRunning = false;
+  const onAbortSignal = (signal: NodeJS.Signals) => {
+    if (signalCleanupRunning) return;
+    signalCleanupRunning = true;
+    void (async () => {
+      console.log(`\n\nAbbruch durch ${signal} — raeume Smoke-Zustand auf...`);
+      await cleanupState();
+      cdp.close();
+      process.exit(130);
+    })();
+  };
+  process.on("SIGINT", onAbortSignal);
+  process.on("SIGTERM", onAbortSignal);
+
   try {
     // Vorbereitung: Asset-Basis setzen (nur wenn übergeben), Plugin frisch laden.
     previousBase = await cdp.evaluate<unknown>(`return app.loadLocalStorage(${JSON.stringify(ASSET_KEY)});`);
+
+    // Alle Smoke-Dateien tragen das Praefix `_audio-interface-` (SMOKE_NOTE, PROBE_AUDIO,
+    // PROBE_NOTE, die beiden Export-WAVs oben) — das macht liegen gebliebene Dateien aus
+    // einem per SIGINT/SIGTERM abgebrochenen frueheren Lauf erkennbar, BEVOR dieser Lauf
+    // selbst welche anlegt.
+    const leftover = await cdp.evaluate<string[]>(`
+      return app.vault.getFiles().map((f) => f.path).filter((p) => p.startsWith("_audio-interface-"));
+    `);
+    record(
+      "Keine liegen gebliebenen Smoke-Dateien aus einem abgebrochenen frueheren Lauf",
+      leftover.length === 0,
+      leftover.length === 0
+        ? "kein Rest im Vault"
+        : `${leftover.length} Datei(en) gefunden und entfernt: ${leftover.join(", ")} — vermutlich Ctrl-C/Crash im vorigen Lauf vor dessen Aufraeumen; dieser Lauf faehrt normal weiter`,
+    );
+    if (leftover.length > 0) {
+      await cdp.evaluate(`
+        for (const path of ${JSON.stringify(leftover)}) {
+          const file = app.vault.getAbstractFileByPath(path);
+          if (file) await app.vault.delete(file);
+        }
+        return true;
+      `);
+    }
+
     if (assets) await cdp.evaluate(`app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(assets)}); return true;`);
     // Ausgangslage „nichts geladen": der Engine-Cache ist origin-weit (alle Vaults) — der Smoke leert ihn,
     // die Assets sind jederzeit neu ladbar (docs/SMOKE.md nennt das ausdrücklich).
@@ -313,16 +371,11 @@ async function main(): Promise<void> {
     }
 
   } finally {
-    // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück.
-    if (!keep) {
-      await cdp.evaluate(`
-        for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav", "_audio-interface-probe.webm", "_audio-interface-probe.md"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
-        const cache = await caches.open("audio-interface-engines"); for (const k of await cache.keys()) await cache.delete(k);
-        app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(previousBase ?? null)});
-        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; p.settings.transcribeEnabled = false; p.settings.transcribeServiceUrl = "http://127.0.0.1:8765"; await p.saveSettings(); }
-        return true;`).catch(() => undefined);
-      await reloadPlugin(cdp).catch(() => undefined);
-    }
+    // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück. Dieselbe
+    // Funktion wie der SIGINT/SIGTERM-Handler oben — kein Doppelcode.
+    process.off("SIGINT", onAbortSignal);
+    process.off("SIGTERM", onAbortSignal);
+    await cleanupState();
     cdp.close();
   }
   const failed = checks.filter((c) => !c.passed);
