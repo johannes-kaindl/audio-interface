@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App, Plugin } from "obsidian";
 import { engineById, loadableEngines, PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import type { EngineReadiness } from "../../src/core/engines";
@@ -38,7 +38,8 @@ function makeHost(over: Partial<SettingsHost> & { status?: AssetStatus; statuses
   return { host, calls };
 }
 const makeTab = (host: SettingsHost) => new AudioInterfaceSettingTab(new App() as never, new (Plugin as unknown as new () => never)(), host);
-const flat = (tab: AudioInterfaceSettingTab) => tab.getSettingDefinitions().flatMap((g) => ("items" in g ? g.items ?? [] : [g])) as { name?: string; control?: { key: string; options?: Record<string, string> }; render?: unknown }[];
+// Ohne die Hilfe-Zeile (erstes Element, eigener Test unten): die uebrigen Tests messen die Einstellungen.
+const flat = (tab: AudioInterfaceSettingTab) => tab.getSettingDefinitions().slice(1).flatMap((g) => ("items" in g ? g.items ?? [] : [g])) as { name?: string; control?: { key: string; options?: Record<string, string> }; render?: unknown }[];
 const el = (tab: AudioInterfaceSettingTab) => tab.containerEl as unknown as FakeEl;
 type FakeEl = { children: FakeEl[]; className: string; textContent?: string; __component?: { textValue?: string; clickCB?: () => void } };
 const rowsIn = (tab: AudioInterfaceSettingTab) => el(tab).children.filter((c) => c.className.includes("setting-item")).length;
@@ -142,3 +143,35 @@ function findButton(tab: AudioInterfaceSettingTab, text: string): { clickCB: () 
   if (!found[0]) throw new Error(`button "${text}" not found`);
   return found[0];
 }
+
+describe("AudioInterfaceSettingTab Hilfe-Zeile (UI-STANDARD §8)", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+  type Rec = { name: string; docsLabel: string; icon: string; docs: () => void; issue: () => void };
+  const fake = () => {
+    const rec: Rec = { name: "", docsLabel: "", icon: "", docs: () => {}, issue: () => {} };
+    const s = {
+      setName(n: string) { rec.name = n; return s; },
+      setDesc() { return s; },
+      addButton(cb: (b: unknown) => unknown) { const b = { setButtonText(x: string) { rec.docsLabel = x; return b; }, onClick(f: () => void) { rec.docs = f; return b; } }; cb(b); return s; },
+      addExtraButton(cb: (b: unknown) => unknown) { const b = { setIcon(x: string) { rec.icon = x; return b; }, setTooltip() { return b; }, onClick(f: () => void) { rec.issue = f; return b; } }; cb(b); return s; },
+    };
+    return { s, rec };
+  };
+  it("ist das erste Element, vor allen Gruppen", () => {
+    const { host } = makeHost(); const first = makeTab(host).getSettingDefinitions()[0] as unknown as { render?: unknown; name?: string; type?: string };
+    expect(typeof first.render).toBe("function");
+    expect(first.type).not.toBe("group");
+    expect(first.name).toBe("Hilfe");
+  });
+  it("öffnet Doku-Index und Issues dieses Repos", () => {
+    const open = vi.fn(); vi.stubGlobal("window", { open });
+    const { host } = makeHost(); const first = makeTab(host).getSettingDefinitions()[0] as unknown as { render: (s: unknown) => void };
+    const { s, rec } = fake(); first.render(s);
+    expect(rec.docsLabel).toBe("Dokumentation öffnen"); expect(rec.icon).toBe("bug");
+    rec.docs(); rec.issue();
+    expect(open.mock.calls.map((c) => c[0])).toEqual([
+      "https://github.com/johannes-kaindl/audio-interface/blob/main/docs/README.md",
+      "https://github.com/johannes-kaindl/audio-interface/issues",
+    ]);
+  });
+});

@@ -11,6 +11,7 @@ import { t } from "../i18n/strings";
 import { getLang } from "../vendor/kit/i18n";
 import { confirmAction } from "../vendor/kit-obsidian/confirm";
 import { FolderSuggest } from "../vendor/kit-obsidian/folder-suggest";
+import { githubHelpUrls, helpSettingDefinition } from "../vendor/kit-obsidian/help-setting";
 import { refreshSettingsTab, renderSettingDefinitions } from "../vendor/kit-obsidian/settings_walker";
 import type { AssetStatus } from "./asset-store";
 import type { VoiceInfo } from "./engines/system-speech";
@@ -127,6 +128,16 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     }
 
     return [
+      // UI-STANDARD §8 help row: always the first element, before every group.
+      helpSettingDefinition({
+        ...githubHelpUrls("audio-interface"),
+        texts: {
+          name: t("settings.help.name"),
+          desc: t("settings.help.desc"),
+          openDocs: t("settings.help.openDocs"),
+          reportIssue: t("settings.help.reportIssue"),
+        },
+      }),
       { type: "group", heading: t("settings.speak.heading"), items: speakItems },
       { type: "group", heading: t("settings.export.heading"), items: exportItems },
       { type: "group", heading: t("settings.transcribe.heading"), items: transcribeItems },
