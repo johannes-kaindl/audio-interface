@@ -1,11 +1,12 @@
 # Audio Interface
 
-> [🇬🇧 English](README.md) · 🇩🇪 Deutsch
+> [🇬🇧 English](https://github.com/johannes-kaindl/audio-interface/blob/main/README.md) · 🇩🇪 Deutsch
 
 **Notizen vorlesen lassen und als WAV-Datei vertonen — lokal, ohne Cloud, ohne Konto, ohne Python.**
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/gitea/v/release/jkaindl/audio-interface?gitea_url=https%3A%2F%2Fgit.jkaindl.de&label=release)](https://git.jkaindl.de/jkaindl/audio-interface/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)
+[![Doku: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)
+[![Release](https://img.shields.io/github/v/release/johannes-kaindl/audio-interface?label=release)](https://github.com/johannes-kaindl/audio-interface/releases)
 [![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop-7c3aed)](https://obsidian.md)
 
 Vorlesen funktioniert sofort nach der Installation, mit den Stimmen, die auf deinem Rechner schon
@@ -13,7 +14,7 @@ da sind. Eine Notiz als WAV zu vertonen — etwa eine Mailbox-Ansage für die Te
 bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann kommt eine Stimme
 (deutsch oder englisch) auf die Platte.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="Eine Notiz mit dem Titel Mailbox greeting in der Leseansicht: drei kurze Absätze einer generischen Telefonansage (englisch), darunter der eingebettete Audio-Player der exportierten WAV-Datei"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/hero.png" width="820" alt="Eine Notiz mit dem Titel Mailbox greeting in der Leseansicht: drei kurze Absätze einer generischen Telefonansage (englisch), darunter der eingebettete Audio-Player der exportierten WAV-Datei"></p>
 
 ## Features
 
@@ -43,20 +44,32 @@ bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann k
 
 ## Installation
 
-### Community Plugins
-Das Plugin ist bei der Obsidian-Community eingereicht; sobald es gelistet ist:
-Einstellungen → Community-Plugins → Durchsuchen → „Audio Interface“.
+Quelle: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
+
+> **Hinweis (2026-09-03):** Audio Interface ist derzeit **nicht im Community-Plugins-Browser gelistet**. Das GitHub-Konto, das den Mirror gehostet hat, war nicht verfügbar, wodurch auch der Store-Eintrag verschwunden ist. Das Plugin selbst wird gepflegt, Releases erscheinen auf Forgejo.
+>
+> Betroffen waren auch die **ladbaren Stimmen** — sie wurden von diesem Konto geholt und scheiterten mit 404. Seit 0.4.0 kommen sie aus dem Forgejo-Release, das Herunterladen funktioniert also wieder. Eine schon geladene Stimme lief die ganze Zeit weiter: der Cache liegt außerhalb deines Vaults.
+
+### Mit AnySource Sideloader (empfohlen)
+
+[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installiert und aktualisiert Plugins von jeder Git-Forge, unabhängig vom Community Store.
+
+1. AnySource Sideloader installieren und aktivieren. (Seine eigene Erstinstallation ist manuell — die Unabhängigkeit vom Store ist ja der Punkt —, muss aber nur einmal geschehen.)
+2. Dieses Repository als Quelle eintragen: `https://git.jkaindl.de/jkaindl/audio-interface`
+3. Audio Interface installieren und aktivieren.
 
 ### Manuell
-`main.js`, `manifest.json` und `styles.css` aus dem
-[letzten Release](https://git.jkaindl.de/jkaindl/audio-interface/releases) nach
-`<vault>/.obsidian/plugins/audio-interface/` legen, dann aktivieren.
 
-### BRAT (Beta)
-GitHub-Mirror `johannes-kaindl/audio-interface` in
-[BRAT](https://github.com/TfTHacker/obsidian42-brat) eintragen.
+`main.js`, `manifest.json` und `styles.css` aus dem [letzten Forgejo-Release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) nach `<vault>/.obsidian/plugins/audio-interface/` legen, dann das Plugin aktivieren.
+
+Releases ab 0.4.0 enthalten auch `checksums.sha256`, damit du das Heruntergeladene prüfen kannst: `shasum -a 256 -c checksums.sha256`.
+
+### Über den Community-Plugins-Browser
+
+Wieder möglich, sobald der Store-Eintrag zurückkehrt: Einstellungen → Community-Plugins → Durchsuchen → „Audio Interface“.
 
 ### Aus dem Quellcode
+
 ```bash
 git clone https://git.jkaindl.de/jkaindl/audio-interface
 cd audio-interface && npm install && npm run build
@@ -74,11 +87,11 @@ cd audio-interface && npm install && npm run build
    sobald die Stimme bereit ist. Die Datei landet neben der Notiz (oder im Zielordner); ein Hinweis
    nennt den Pfad.
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/command-palette.png" width="820" alt="Die Befehlspalette gefiltert auf Audio Interface mit allen sechs Befehlen (englische Oberfläche): Notiz vorlesen, Notiz als WAV vertonen, Auswahl vorlesen, Pause/Weiter, Auswahl als WAV vertonen, Stoppen">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/command-palette.png" width="820" alt="Die Befehlspalette gefiltert auf Audio Interface mit allen sechs Befehlen (englische Oberfläche): Notiz vorlesen, Notiz als WAV vertonen, Auswahl vorlesen, Pause/Weiter, Auswahl als WAV vertonen, Stoppen">
 
 | | |
 |---|---|
-| <a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/status-bar.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/status-bar.png" width="380" alt="Die Obsidian-Statusleiste unten rechts mit dem Eintrag Reading 1/5, während eine Notiz vorgelesen wird"></a> | Der Statusleisten-Eintrag zeigt, was gerade passiert — *Vorlesen 1/5*, *Rendern 2/9*, *Lade 12/78 MB* — und ein Klick stoppt es. |
+| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="Die Obsidian-Statusleiste unten rechts mit dem Eintrag Reading 1/5, während eine Notiz vorgelesen wird"></a> | Der Statusleisten-Eintrag zeigt, was gerade passiert — *Vorlesen 1/5*, *Rendern 2/9*, *Lade 12/78 MB* — und ein Klick stoppt es. |
 
 ### Konfiguration
 
@@ -95,7 +108,7 @@ cd audio-interface && npm install && npm run build
 | Dateinamen-Muster | `{{note}}` und `{{date}}` werden ersetzt; vorhandene Dateien bekommen `-2`, `-3`, … | `{{note}}` |
 | Link in die Notiz einfügen | Nach erfolgreichem Export `![[datei.wav]]` am Cursor einfügen | aus |
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="Der Einstellungen-Tab (englische Oberfläche) mit drei Gruppen: Vorlesen, Vertonen und Export mit der Auswahl Stimme für den Export (Piper LJSpeech, als geladen markiert), darunter die Stimmen-Zeile im Zustand Bereit mit dem Knopf Entfernen, sowie Lokaler Dienst">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/settings.png" width="820" alt="Der Einstellungen-Tab (englische Oberfläche) mit drei Gruppen: Vorlesen, Vertonen und Export mit der Auswahl Stimme für den Export (Piper LJSpeech, als geladen markiert), darunter die Stimmen-Zeile im Zustand Bereit mit dem Knopf Entfernen, sowie Lokaler Dienst">
 
 ## Funktionsweise
 
@@ -104,8 +117,8 @@ satzweise, mit Pausen aus der Struktur der Notiz. Dabei entstehen keine Audiodat
 Systemstimmen auch keine Datei exportieren.
 
 **Der WAV-Export ist ein Opt-in.** Nach der Installation lädt das Plugin **nichts**. Schaltest du
-den Export ein und drückst **Herunterladen**, holt es diese Dateien **einmalig vom GitHub-Release
-dieses Repos** (`https://github.com/johannes-kaindl/audio-interface/releases`); kein anderer
+den Export ein und drückst **Herunterladen**, holt es diese Dateien **einmalig vom Forgejo-Release
+dieses Repos** (`https://git.jkaindl.de/jkaindl/audio-interface/releases`); kein anderer
 Server wird angesprochen:
 
 | Datei | Größe | Was das ist | Lizenz |
@@ -119,7 +132,7 @@ Geladen wird nur die gewählte Stimme — die ersten beiden Dateien sind geteilt
 kostet deshalb nur noch ihr Modell.
 
 <table><tr>
-<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="Die Stimmen-Zeile in den Einstellungen vor dem Download: Name Piper LJSpeech (en_US, medium), Beschreibung mit Größe, Quelle und Lizenzen, Knopf Download 76.2 MB"></a></td>
+<td><a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/download.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/download.png" width="380" alt="Die Stimmen-Zeile in den Einstellungen vor dem Download: Name Piper LJSpeech (en_US, medium), Beschreibung mit Größe, Quelle und Lizenzen, Knopf Download 76.2 MB"></a></td>
 <td>Jede Datei wird vor der Nutzung gegen eine <b>im Plugin eingebettete SHA-256-Prüfsumme</b> geprüft; bei Abweichung bleibt die Stimme aus, und die Meldung nennt die Datei. Die Dateien liegen im Browser-Cache der Obsidian-App, <b>außerhalb deines Vaults</b> — nie synchronisiert, nie in deinen Dateien — und <b>Entfernen</b> löscht sie wieder. Der Download lässt sich abbrechen; Teilstände werden fortgesetzt.</td>
 </tr></table>
 
@@ -139,9 +152,16 @@ Issues und Pull Requests auf [git.jkaindl.de](https://git.jkaindl.de/jkaindl/aud
 Testgetrieben (`npm run gate`); größere Features über brainstorm → spec → plan → TDD
 (`docs/superpowers/`). Siehe [`AGENTS.md`](AGENTS.md).
 
+## Dokumentation
+
+- [Dokumentations-Index](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/README.md) (Englisch)
+- [Getting started](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/getting-started.md) — vom Vorlesen zur WAV-Datei
+- [Troubleshooting](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/troubleshooting.md) — die Meldungen, die auftreten können, was sie bedeuten und was zu tun ist
+
 ## Lizenz
 
-- **Code:** AGPL-3.0-or-later ([`LICENSE`](LICENSE)).
+- **Code:** AGPL-3.0-or-later ([`LICENSE`](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)).
+- **Dokumentation:** CC BY-SA 4.0 ([`LICENSE-DOCS`](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)).
 - **Fremdkomponenten:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper-Stimmen
   *Thorsten* (Datensatz CC0) und *LJSpeech* (Datensatz gemeinfrei) — als Release-Assets
   ausgeliefert, siehe Tabelle oben.

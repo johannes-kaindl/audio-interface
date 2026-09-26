@@ -1,11 +1,12 @@
 # Audio Interface
 
-> 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
+> 🇬🇧 English · [🇩🇪 Deutsch](https://github.com/johannes-kaindl/audio-interface/blob/main/README.de.md)
 
 **Read your notes aloud and turn them into WAV files — locally, with no cloud, no account, no Python.**
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/gitea/v/release/jkaindl/audio-interface?gitea_url=https%3A%2F%2Fgit.jkaindl.de&label=release)](https://git.jkaindl.de/jkaindl/audio-interface/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)
+[![Docs: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)
+[![Release](https://img.shields.io/github/v/release/johannes-kaindl/audio-interface?label=release)](https://github.com/johannes-kaindl/audio-interface/releases)
 [![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop-7c3aed)](https://obsidian.md)
 
 Reading aloud works the moment you install the plugin, with the voices already on your computer.
@@ -13,7 +14,7 @@ Exporting a note as a WAV file — say, a mailbox greeting for your phone system
 opt-in: you enable it, you press *Download*, and only then does a voice (English or German) arrive
 on your disk.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/hero.png" width="820" alt="A note titled Mailbox greeting in reading view: three short paragraphs of a generic phone greeting and, below them, the embedded audio player of the exported WAV file"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/hero.png" width="820" alt="A note titled Mailbox greeting in reading view: three short paragraphs of a generic phone greeting and, below them, the embedded audio player of the exported WAV file"></p>
 
 ## Features
 
@@ -100,11 +101,11 @@ cd audio-interface && npm install && npm run build
    is ready. The file is written next to the note (or into your target folder), and a notice tells
    you where.
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/command-palette.png" width="820" alt="The command palette filtered to Audio Interface, listing all six commands: read note aloud, export note as WAV, read selection aloud, pause / resume reading, export selection as WAV, stop reading / cancel export">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/command-palette.png" width="820" alt="The command palette filtered to Audio Interface, listing all six commands: read note aloud, export note as WAV, read selection aloud, pause / resume reading, export selection as WAV, stop reading / cancel export">
 
 | | |
 |---|---|
-| <a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/status-bar.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/status-bar.png" width="380" alt="The Obsidian status bar in the lower right corner showing the entry Reading 1/5 while a note is read aloud"></a> | The status bar item shows what is happening — *Reading 1/5*, *Rendering 2/9*, *Downloading 12/78 MB* — and a click stops it. |
+| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="The Obsidian status bar in the lower right corner showing the entry Reading 1/5 while a note is read aloud"></a> | The status bar item shows what is happening — *Reading 1/5*, *Rendering 2/9*, *Downloading 12/78 MB* — and a click stops it. |
 
 ### Configuration
 
@@ -121,7 +122,7 @@ cd audio-interface && npm install && npm run build
 | File name pattern | `{{note}}` and `{{date}}` are replaced; existing files get `-2`, `-3`, … | `{{note}}` |
 | Insert link into note | Append `![[file.wav]]` at the cursor after a successful export | off |
 
-<img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/settings.png" width="820" alt="The plugin settings tab with three groups: Read aloud (voice, rate, read aloud with the downloaded voice), Voice-over and export (enable WAV export, the selector Voice for export showing Piper LJSpeech marked downloaded, below it the LJSpeech voice row marked Ready with a Remove button, output profile, target folder, file name pattern, insert link into note) and Local service">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/settings.png" width="820" alt="The plugin settings tab with three groups: Read aloud (voice, rate, read aloud with the downloaded voice), Voice-over and export (enable WAV export, the selector Voice for export showing Piper LJSpeech marked downloaded, below it the LJSpeech voice row marked Ready with a Remove button, output profile, target folder, file name pattern, insert link into note) and Local service">
 
 ## How it works
 
@@ -130,8 +131,8 @@ voices, sentence by sentence, with pauses derived from the note's structure. No 
 produced, which is also why system voices cannot export a file.
 
 **WAV export is an opt-in.** Out of the box the plugin downloads **nothing**. When you enable export
-and press **Download**, it fetches these files **once, from this repository's GitHub release**
-(`https://github.com/johannes-kaindl/audio-interface/releases`); no other server is contacted:
+and press **Download**, it fetches these files **once, from this repository's Forgejo release**
+(`https://git.jkaindl.de/jkaindl/audio-interface/releases`); no other server is contacted:
 
 | File | Size | What it is | License |
 |---|---|---|---|
@@ -144,7 +145,7 @@ Only the voice you selected is fetched — the first two files are shared, so a 
 just its model.
 
 <table><tr>
-<td><a href="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/download.png"><img src="https://git.jkaindl.de/jkaindl/audio-interface/raw/branch/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper LJSpeech (en_US, medium), a description with size, source and licenses, and a Download button showing 76.2 MB"></a></td>
+<td><a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/download.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper LJSpeech (en_US, medium), a description with size, source and licenses, and a Download button showing 76.2 MB"></a></td>
 <td>Every file is checked against a <b>SHA-256 checksum embedded in the plugin</b> before it is used; a mismatch disables the voice and names the file. The files live in the browser cache of the Obsidian app, <b>outside your vault</b> — never synced, never in your files — and <b>Remove</b> deletes them again. The download can be cancelled; partial downloads resume.</td>
 </tr></table>
 
@@ -184,9 +185,16 @@ Issues and pull requests on [git.jkaindl.de](https://git.jkaindl.de/jkaindl/audi
 Test-driven (`npm run gate`); larger features via brainstorm → spec → plan → TDD
 (`docs/superpowers/`). See [`AGENTS.md`](AGENTS.md).
 
+## Documentation
+
+- [Documentation index](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/README.md)
+- [Getting started](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/getting-started.md) — from reading a note aloud to a WAV file
+- [Troubleshooting](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/troubleshooting.md) — the messages you may see, what they mean and what to do
+
 ## License
 
-- **Code:** AGPL-3.0-or-later ([`LICENSE`](LICENSE)).
+- **Code:** AGPL-3.0-or-later ([`LICENSE`](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)).
+- **Documentation:** CC BY-SA 4.0 ([`LICENSE-DOCS`](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)).
 - **Third-party:** onnxruntime-web (MIT), ephone/eSpeak-NG (GPL-3.0-or-later), Piper voices
   *LJSpeech* (dataset public domain) and *Thorsten* (dataset CC0) — shipped as release assets, see
   the table above.
