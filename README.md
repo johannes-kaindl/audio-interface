@@ -47,48 +47,32 @@ on your disk.
 
 ## Install
 
-Source: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
+### From Obsidian's Community plugins browser (recommended)
 
-> **Note (2026-09-03):** Audio Interface is currently **not listed in the Community plugins
-> browser**. The GitHub account that hosted the mirror is unavailable, which also removed the
-> store listing. The plugin itself is maintained and releases are published on Forgejo.
->
-> The **downloadable voices** were affected too — they used to be fetched from that account and
-> failed with 404. Since 0.4.0 they come from the Forgejo release instead, so downloading works
-> again. If a voice was already downloaded, it kept working throughout: the cache lives outside
-> your vault.
+1. **Settings → Community plugins → Browse**, search for **"Audio Interface"**, select **Install**.
+2. **Enable** it.
 
-### With AnySource Sideloader (recommended)
+Updates then arrive like any other community plugin update.
 
-[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installs and updates
-plugins from any git forge, independent of the Community Store.
+### With AnySource Sideloader
 
-1. Install and enable AnySource Sideloader. (Its own first install is manual — being independent
-   of the store is the point — but it only has to be done once.)
-2. Add this repository as a source:
-   `https://git.jkaindl.de/jkaindl/audio-interface`
-3. Install Audio Interface and enable it.
+[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installs and updates plugins from any git forge, independent of the Community Store. Add this repository as a source: `https://git.jkaindl.de/jkaindl/audio-interface`, then install Audio Interface and enable it.
 
 ### Manual
 
-Download `main.js`, `manifest.json` and `styles.css` from the
-[latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy
-them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
+Download `main.js`, `manifest.json` and `styles.css` from the [latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
 
-Releases from 0.4.0 also ship `checksums.sha256`, so you can verify what you downloaded:
-`shasum -a 256 -c checksums.sha256`.
-
-### From Obsidian's Community plugins browser
-
-Available again once the store listing returns: Settings → Community plugins → Browse → search
-"Audio Interface".
+Releases from 0.4.0 also ship `checksums.sha256`, so you can verify what you downloaded: `shasum -a 256 -c checksums.sha256`.
 
 ### From source
+
 ```bash
 git clone https://git.jkaindl.de/jkaindl/audio-interface
 cd audio-interface && npm install && npm run build
 # main.js manifest.json styles.css → <vault>/.obsidian/plugins/audio-interface/
 ```
+
+Source: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
 
 ## Usage
 

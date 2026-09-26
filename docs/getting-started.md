@@ -4,7 +4,7 @@ This walks you from the install to your first note read aloud, and then to a WAV
 
 ## 1. Install
 
-Follow the [Install section of the README](https://github.com/johannes-kaindl/audio-interface/blob/main/README.md#install) and enable the plugin under *Settings* → *Community plugins*.
+*Settings* → *Community plugins* → *Browse* → search for **Audio Interface** → *Install* → *Enable*. For the other ways see the [Install section of the README](https://github.com/johannes-kaindl/audio-interface/blob/main/README.md#install).
 
 ## 2. Read a note aloud
 

@@ -44,29 +44,22 @@ bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann k
 
 ## Installation
 
-Quelle: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
+### Über den Community-Plugins-Browser (empfohlen)
 
-> **Hinweis (2026-09-03):** Audio Interface ist derzeit **nicht im Community-Plugins-Browser gelistet**. Das GitHub-Konto, das den Mirror gehostet hat, war nicht verfügbar, wodurch auch der Store-Eintrag verschwunden ist. Das Plugin selbst wird gepflegt, Releases erscheinen auf Forgejo.
->
-> Betroffen waren auch die **ladbaren Stimmen** — sie wurden von diesem Konto geholt und scheiterten mit 404. Seit 0.4.0 kommen sie aus dem Forgejo-Release, das Herunterladen funktioniert also wieder. Eine schon geladene Stimme lief die ganze Zeit weiter: der Cache liegt außerhalb deines Vaults.
+1. **Einstellungen → Community-Plugins → Durchsuchen**, nach **„Audio Interface“** suchen, **Installieren** wählen.
+2. **Aktivieren.**
 
-### Mit AnySource Sideloader (empfohlen)
+Updates kommen dann wie bei jedem Community-Plugin.
 
-[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installiert und aktualisiert Plugins von jeder Git-Forge, unabhängig vom Community Store.
+### Mit AnySource Sideloader
 
-1. AnySource Sideloader installieren und aktivieren. (Seine eigene Erstinstallation ist manuell — die Unabhängigkeit vom Store ist ja der Punkt —, muss aber nur einmal geschehen.)
-2. Dieses Repository als Quelle eintragen: `https://git.jkaindl.de/jkaindl/audio-interface`
-3. Audio Interface installieren und aktivieren.
+[AnySource Sideloader](https://git.jkaindl.de/jkaindl/anysource-sideloader) installiert und aktualisiert Plugins von jeder Git-Forge, unabhängig vom Community Store. Dieses Repository als Quelle eintragen: `https://git.jkaindl.de/jkaindl/audio-interface`, dann Audio Interface installieren und aktivieren.
 
 ### Manuell
 
 `main.js`, `manifest.json` und `styles.css` aus dem [letzten Forgejo-Release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) nach `<vault>/.obsidian/plugins/audio-interface/` legen, dann das Plugin aktivieren.
 
 Releases ab 0.4.0 enthalten auch `checksums.sha256`, damit du das Heruntergeladene prüfen kannst: `shasum -a 256 -c checksums.sha256`.
-
-### Über den Community-Plugins-Browser
-
-Wieder möglich, sobald der Store-Eintrag zurückkehrt: Einstellungen → Community-Plugins → Durchsuchen → „Audio Interface“.
 
 ### Aus dem Quellcode
 
@@ -75,6 +68,8 @@ git clone https://git.jkaindl.de/jkaindl/audio-interface
 cd audio-interface && npm install && npm run build
 # main.js manifest.json styles.css → <vault>/.obsidian/plugins/audio-interface/
 ```
+
+Quelle: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/audio-interface)
 
 ## Verwendung
 
