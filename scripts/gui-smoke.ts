@@ -159,9 +159,9 @@ async function main(): Promise<void> {
     await cdp.evaluate(`const c = await caches.open("audio-interface-engines"); for (const k of await c.keys()) await c.delete(k); return true;`);
     await reloadPlugin(cdp);
 
-    // 1 Plugin geladen, sechs Kommandos
+    // 1 Plugin geladen, acht Kommandos (Welle 13: +2 TTS-als-Datei-Kommandos)
     const cmds = await cdp.evaluate<string[]>(`return Object.keys(app.commands.commands).filter((k) => k.startsWith("${PLUGIN_ID}:")).sort();`);
-    record("Plugin geladen, 6 Kommandos", cmds.length === 6, cmds.join(", "));
+    record("Plugin geladen, 8 Kommandos", cmds.length === 8, cmds.join(", "));
 
     // 2 Systemstimmen: mindestens eine deutsche
     const de = await cdp.evaluate<number>(`
@@ -184,6 +184,59 @@ async function main(): Promise<void> {
     await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
     const before = await cdp.evaluate<boolean>(`const c = app.commands.commands["${PLUGIN_ID}:export-note-wav"]; return c.checkCallback(true) === true;`);
     record("Export-Kommando vor Download ausgeblendet", before === false, `checkCallback=${before}`);
+
+    // NEU (Welle 13) 4a/4b Settings: Backend-Wahl fuer die Umschrift + TTS-als-Datei-Zeilen —
+    // EIN Tab-Aufenthalt, ausschliesslich ueber setControlValue (wie Checkpunkt 5 unten): ein
+    // direktes p.settings.x=… VOR dem ersten Oeffnen traefe die 1.13-Cache-Falle aus der
+    // settings-tab.ts-Kopfzeile (die gecachten settingItems vom addSettingTab-Zeitpunkt wuerden
+    // gerendert, nicht der frische Zustand).
+    const settingsRows = await cdp.evaluate<{ ttsBefore: boolean; backendOptions: string; ttsAfter: boolean }>(`
+      app.setting.open(); app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+      await new Promise((r) => setTimeout(r, 600));
+      const tab = app.setting.activeTab;
+      const root = () => tab?.containerEl ?? document;
+      const rowNames = () => [...root().querySelectorAll(".setting-item-name")].map((el) => el.textContent);
+      const ttsBefore = rowNames().some((t) => /Shortcut name|Kurzbefehl-Name/i.test(t));
+
+      await tab.setControlValue("transcribeEnabled", true);
+      await new Promise((r) => setTimeout(r, 900));
+      const backendSelect = [...root().querySelectorAll("select")].find((s) =>
+        [...s.options].some((o) => /Shortcut|Kurzbefehl/i.test(o.textContent)) &&
+        [...s.options].some((o) => /local|service|Dienst/i.test(o.textContent)));
+      const backendOptions = backendSelect ? [...backendSelect.options].map((o) => o.textContent.trim()).join(" | ") : "(kein Backend-Dropdown gefunden)";
+
+      await tab.setControlValue("ttsShortcutEnabled", true);
+      await new Promise((r) => setTimeout(r, 900));
+      const ttsAfter = rowNames().some((t) => /Shortcut name|Kurzbefehl-Name/i.test(t));
+
+      app.setting.close();
+      return { ttsBefore, backendOptions, ttsAfter };`);
+    record(
+      "NEU: Settings: Backend-Wahl fuer die Umschrift sichtbar (localhost + Kurzbefehl)",
+      /Shortcut|Kurzbefehl/i.test(settingsRows.backendOptions) && /local|service|Dienst/i.test(settingsRows.backendOptions),
+      settingsRows.backendOptions.slice(0, 160),
+    );
+    record(
+      "NEU: Settings: TTS-als-Datei-Zeilen (Kurzbefehl-Name) nur nach Opt-in sichtbar",
+      settingsRows.ttsBefore === false && settingsRows.ttsAfter === true,
+      `vorher=${settingsRows.ttsBefore}, nachher=${settingsRows.ttsAfter}`,
+    );
+
+    // NEU (Welle 13) 4c Anbieter-API v1: Form-Guard genau wie ein fremdes Plugin ihn saehe.
+    const apiForm = await cdp.evaluate<{ version: unknown; transcribe: string; speak: string }>(`
+      const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+      return { version: p.api?.version, transcribe: typeof p.api?.transcribe, speak: typeof p.api?.speak };`);
+    record(
+      "NEU: Anbieter-API v1 (app.plugins.plugins[id].api) hat die vertragliche Form",
+      apiForm.version === 1 && apiForm.transcribe === "function" && apiForm.speak === "function",
+      `version=${String(apiForm.version)}, transcribe=${apiForm.transcribe}, speak=${apiForm.speak}`,
+    );
+
+    // Aufraeumen: die beiden Opt-ins wieder auf den Ausgangszustand, bevor die Baseline-Punkte
+    // weiterlaufen (sie erwarten transcribeEnabled/ttsShortcutEnabled aus, s. Punkt 11 unten).
+    await cdp.evaluate(`
+      const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
+      p.settings.transcribeEnabled = false; p.settings.ttsShortcutEnabled = false; await p.saveSettings(); return true;`);
 
     if (!assets) {
       record("Download/Export (übersprungen — kein --assets)", true, "Prüfpunkte 5–10 brauchen einen Asset-Server");
