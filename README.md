@@ -7,7 +7,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)
 [![Docs: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)
 [![Release](https://img.shields.io/github/v/release/johannes-kaindl/audio-interface?label=release)](https://github.com/johannes-kaindl/audio-interface/releases)
-[![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop-7c3aed)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop%20%26%20mobile-7c3aed)](https://obsidian.md)
 
 Reading aloud works the moment you install the plugin, with the voices already on your computer.
 Exporting a note as a WAV file — say, a mailbox greeting for your phone system — is a deliberate
@@ -30,16 +30,21 @@ on your disk.
   speak their display text; headings, lists, tables and callouts are read with natural pauses.
 - **Turn audio files into text** — right-click any audio file in your vault and choose
   *Transcribe audio*. The transcript is saved as a note next to the recording, with the audio
-  embedded so you can listen back. Off by default; needs a companion program running on your own
-  computer (see [How it works](#how-it-works)).
+  embedded so you can listen back. Off by default; two backends: a companion program running on
+  your own computer, or an Apple Shortcut (see [How it works](#how-it-works)).
+- **Works on mobile, too:** on iOS/iPadOS, an Apple Shortcut transcribes audio files and turns
+  text into a spoken-word file — the two capabilities that need a downloadable voice or a local
+  program on the desktop. See [Set up the Apple Shortcut](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md).
 - **Honest network use:** one download, from this repository's release, only after your click,
   verified against checksums, removable again. Transcription talks **only** to an address on your
-  own machine, and only when you turn it on — see [How it works](#how-it-works).
+  own machine (or to the Shortcuts app, entirely on-device), and only when you turn it on — see
+  [How it works](#how-it-works).
 
 ## Requirements
 
-- **Obsidian 1.8.7 or newer, desktop** (macOS, Windows, Linux). `isDesktopOnly` is set — the
-  synthesis worker and the browser cache the voice lives in are not reliable on mobile.
+- **Obsidian 1.8.7 or newer**, desktop (macOS, Windows, Linux) or mobile (iOS/iPadOS 26+ for the
+  Apple Shortcut path). The downloadable voice and WAV export are desktop-only; on mobile, use the
+  Apple Shortcut for transcription and spoken-word files.
 - **Reading aloud** uses the voices of your operating system. If no German voice is listed, install
   one in the OS (macOS: System Settings → Accessibility → Spoken Content → System voice).
 - **WAV export** needs about 80 MB of free disk space for the first voice and its runtime; a second
@@ -156,6 +161,15 @@ The companion program is [`audio-ui`](https://git.jkaindl.de/jkaindl/audio-ui) �
 recognition (Parakeet) running locally on Apple Silicon. It is optional: without it, the plugin
 does everything else exactly as before.
 
+### Spoken-word files and mobile (Apple Shortcut)
+
+On iOS/iPadOS there is no local companion program and no downloadable voice, so two features run
+through an Apple Shortcut instead: transcription (a second backend next to the local program,
+switchable in the settings) and a new **spoken-word file** — turn a note or selection into an
+audio file, saved into the vault. Both work on the desktop too, as a second option. See
+[Set up the Apple Shortcut](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md) for setup, limits (no streaming, the shortcut
+chooses the file extension) and troubleshooting.
+
 ## Roadmap
 
 Transcribing audio files is available now (see above). **Live dictation** — speaking and having
@@ -173,6 +187,7 @@ Test-driven (`npm run gate`); larger features via brainstorm → spec → plan �
 
 - [Documentation index](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/README.md)
 - [Getting started](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/getting-started.md) — from reading a note aloud to a WAV file
+- [Set up the Apple Shortcut](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md) — transcription and spoken-word files on mobile
 - [Troubleshooting](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/troubleshooting.md) — the messages you may see, what they mean and what to do
 
 ## License
