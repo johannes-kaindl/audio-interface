@@ -17,8 +17,10 @@ import { ShortcutsTranscriber } from "./obsidian/shortcuts-transcriber";
 import { Speaker, SpeakerError } from "./obsidian/speaker";
 import { StatusBar } from "./obsidian/status-bar";
 import { Transcriber } from "./obsidian/transcriber";
+import { createAudioProviderApi } from "./obsidian/plugin-api";
 import { realClock } from "./vendor/kit-obsidian/clock";
 import { createShortcutsBridge, type ShortcutsBridge } from "./vendor/kit-obsidian/shortcuts-bridge";
+import type { AudioProviderApi } from "./vendor/kit/audio-provider";
 
 /** Global im `obsidian://`-Namensraum (Kit-Konvention `<plugin-id>-shortcut`) — EIN Handler für
  *  beide Kurzbefehl-Fähigkeiten des Plugins (STT + TTS), nicht je Fähigkeit einer. */
@@ -53,6 +55,9 @@ const NULL_SYNTH: SynthLike = {
 
 export default class AudioInterfacePlugin extends Plugin {
   settings: AudioInterfaceSettings = normalizeSettings(null);
+  /** Anbieter-API v1 (REGISTRY-Muster) — direkt nach den Abhängigkeiten in onload() gesetzt,
+   *  damit ein Konsument sie nie halb initialisiert antrifft. */
+  api!: AudioProviderApi;
   system!: SystemSpeechEngine;
   store!: AssetStore;
   speaker!: Speaker;
@@ -106,6 +111,7 @@ export default class AudioInterfacePlugin extends Plugin {
       timeoutMs: () => this.settings.transcribeShortcutTimeoutMs,
     });
     this.registerTranscribeMenu();
+    this.api = this.makeAudioProviderApi();
     this.addRibbonIcon("audio-lines", t("cmd.speakNote"), () => void this.speakActive("note"));
     void this.system.waitForVoices();
     // Der native Settings-Renderer (≥1.13) cacht die Definitionen beim addSettingTab — sobald die
@@ -452,6 +458,50 @@ export default class AudioInterfacePlugin extends Plugin {
         await vault.createBinary(path, buf);
       },
     };
+  }
+
+  /** Anbieter-API v1 — abstrahiert über Backends (Piper/localhost auf dem Desktop, Kurzbefehl
+   *  mobil), nie über die Brücke; die Auswahllogik selbst lebt in plugin-api.ts, hier stehen nur
+   *  die konkreten Backend-Aufrufe. */
+  private makeAudioProviderApi(): AudioProviderApi {
+    return createAudioProviderApi({
+      transcribeBackend: () => this.settings.transcribeBackend,
+      transcribeLocalhostReady: async () => {
+        const health = await this.transcriber.health();
+        if (health.state === "nicht_erreichbar") return { ok: false, message: t("notice.transcribeNoService") };
+        if (!health.canTranscribe) return { ok: false, message: health.detail };
+        return { ok: true };
+      },
+      readVaultBytes: async (vaultPath) => {
+        const file = this.app.vault.getAbstractFileByPath(vaultPath);
+        if (!(file instanceof TFile)) return null;
+        return this.app.vault.readBinary(file);
+      },
+      transcribeLocalhost: (bytes) => this.transcriber.transcribeFile(bytes),
+      transcribeShortcut: (vaultPath) => this.shortcutsTranscriber.transcribePath(vaultPath),
+      piperReady: () => this.settings.exportEnabled && this.readiness === "ready",
+      speakPiper: async (text, targetFolder) => {
+        const result = await runExport(
+          { markdown: text, noteBasename: `audio-provider-${Date.now()}`, noteFolder: targetFolder, today: new Date().toISOString().slice(0, 10) },
+          { engine: this.piper, vault: this.vaultPort(), settings: this.settings, onState: () => {} },
+          new AbortController().signal,
+        );
+        return result.path;
+      },
+      ttsShortcutEnabled: () => this.settings.ttsShortcutEnabled,
+      speakShortcut: (text, targetFolder) =>
+        speakViaShortcut(
+          text,
+          {
+            bridge: this.shortcutsBridge,
+            shortcutName: () => this.settings.ttsShortcutName,
+            timeoutMs: () => this.settings.ttsShortcutTimeoutMs,
+            targetFolder: () => targetFolder,
+            now: () => Date.now(),
+          },
+          "audio-provider",
+        ),
+    });
   }
 
   private async exportActive(scope: "note" | "selection"): Promise<void> {

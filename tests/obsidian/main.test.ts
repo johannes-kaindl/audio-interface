@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MarkdownView, Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, requestUrl, TFile, WorkspaceLeaf } from "obsidian";
 import { PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import type { PiperEngine } from "../../src/obsidian/engines/piper-engine";
 import { makeFakeApp } from "../vendor/kit/obsidian-mock";
@@ -97,6 +97,21 @@ describe("AudioInterfacePlugin", () => {
 
     expect(notices.instances).toHaveLength(1);
     expect(String(notices.instances[0]!.message)).toContain("not ready");
+  });
+  it("stellt die Anbieter-API v1 direkt nach onload bereit", async () => {
+    const { plugin } = await load();
+    expect(plugin.api.version).toBe(1);
+    expect(typeof plugin.api.transcribe).toBe("function");
+    expect(typeof plugin.api.speak).toBe("function");
+  });
+  it("Anbieter-API: transcribe() meldet not-found, wenn die Datei fehlt — Verdrahtung von readVaultBytes", async () => {
+    (requestUrl as unknown as { mockResolvedValue(v: unknown): void }).mockResolvedValue({
+      status: 200,
+      json: { zustand: "bereit", detail: "", ursache: null, retry_sinnvoll: true, engines_geladen: ["parakeet"] },
+    });
+    const { plugin, app } = await load();
+    app.vault.getAbstractFileByPath.mockReturnValue(null);
+    expect(await plugin.api.transcribe("fehlt.m4a")).toEqual({ error: "not-found", message: "Datei nicht gefunden: fehlt.m4a" });
   });
   it("onunload stoppt und gibt die Engine frei", async () => {
     const { plugin } = await load();
