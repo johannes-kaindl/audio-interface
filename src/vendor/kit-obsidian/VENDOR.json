@@ -1,7 +1,7 @@
 {
   "source": "obsidian-kit",
   "version": "0.27.0",
-  "sha": "548041b8cc0f7da57fecbe5da22347992f8670e5",
-  "vendored": "2026-08-27",
-  "help-setting.ts": "Kit 0.43.0 (bcd1805), eigener Pin KIT_HELP_REF"
+  "sha": "548041b",
+  "vendored": "settings_walker.ts, folder-suggest.ts, clock.ts, confirm.ts, help-setting.ts (obsidian-kit@0.43.0, bcd1805)",
+  "help-setting.ts": "Kit 0.43.0 (bcd1805) — Pins in tools/kit-sync.json, re-vendor via tools/sync-kit.sh (zentrales kit-sync im Dach)."
 }

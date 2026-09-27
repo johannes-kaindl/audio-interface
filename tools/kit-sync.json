@@ -1,0 +1,8 @@
+{
+  "sources": { "obsidian-kit": { "ref": "0.27.0" } },
+  "targets": [
+    { "dir": "src/vendor/kit", "source": "obsidian-kit", "from": "src/pure", "modules": ["i18n", "timeout", "run-state", "cache-download", "settings_schema", "num", "vault-path"] },
+    { "dir": "src/vendor/kit-obsidian", "source": "obsidian-kit", "from": "src/obsidian", "modules": ["settings_walker", "folder-suggest", "clock", "confirm", { "name": "help-setting", "ref": "0.43.0" }] },
+    { "dir": "tests/vendor/kit", "source": "obsidian-kit", "from": "src/testing", "modules": ["obsidian-mock"] }
+  ]
+}
