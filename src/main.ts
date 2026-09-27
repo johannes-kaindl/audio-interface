@@ -8,7 +8,7 @@ import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-
 import { initI18n, t } from "./i18n/strings";
 import { AssetStore, realStoreDeps, type AssetStatus } from "./obsidian/asset-store";
 import { PiperEngine, type WorkerLike } from "./obsidian/engines/piper-engine";
-import { SystemSpeechEngine } from "./obsidian/engines/system-speech";
+import { SystemSpeechEngine, type SynthLike } from "./obsidian/engines/system-speech";
 import { ExportError, runExport, type VaultPort } from "./obsidian/exporter";
 import { AudioContextPlayer } from "./obsidian/pcm-player";
 import { AudioInterfaceSettingTab, type SettingsHost } from "./obsidian/settings-tab";
@@ -34,6 +34,23 @@ function realMakeWorker(source: string): WorkerLike {
   return worker as unknown as WorkerLike;
 }
 
+/** Mobile-Gate (Baustein D): `window.speechSynthesis` ist auf keiner bekannten Plattform
+ *  garantiert vorhanden — ob iOS/iPadOS es trägt, ist ungemessen. Ohne diese Attrappe würde
+ *  `SystemSpeechEngine.listVoices()` (synchron in der Settings-Tab-Rendering) sofort werfen und
+ *  den ganzen Tab mitreißen — eine STILLE Degradierung wäre ein Absturz, keine Meldung. Mit ihr
+ *  liefert `listVoices()` `[]`, und die vorhandene Meldung „keine Systemstimmen gefunden“ greift
+ *  unverändert. `speak()` wird nie aufgerufen, wenn kein Synth da ist — das verhindert
+ *  `speakActive()` separat (sonst würde ein Aufruf hier lautlos hängen, statt zu melden). */
+const NULL_SYNTH: SynthLike = {
+  getVoices: () => [],
+  speak: () => {},
+  cancel: () => {},
+  pause: () => {},
+  resume: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+};
+
 export default class AudioInterfacePlugin extends Plugin {
   settings: AudioInterfaceSettings = normalizeSettings(null);
   system!: SystemSpeechEngine;
@@ -53,6 +70,7 @@ export default class AudioInterfacePlugin extends Plugin {
   private exportController: AbortController | null = null;
   private exportState: RunState = IDLE;
   private ttsFileBusy = false;
+  private systemSpeechAvailable = false;
 
   async onload(): Promise<void> {
     initI18n(getLanguage());
@@ -63,7 +81,8 @@ export default class AudioInterfacePlugin extends Plugin {
     if (loadableEngines().length === 0) throw new Error("engine manifest broken");
     // Asset-Version = Plugin-Version: die Release-Assets liegen am Tag des Plugins.
     this.store = new AssetStore(realStoreDeps(this.manifest.version, this.assetBaseUrl));
-    this.system = new SystemSpeechEngine(window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), realClock);
+    this.systemSpeechAvailable = typeof window !== "undefined" && "speechSynthesis" in window && typeof window.speechSynthesis !== "undefined";
+    this.system = new SystemSpeechEngine(this.systemSpeechAvailable ? window.speechSynthesis : NULL_SYNTH, (text) => new SpeechSynthesisUtterance(text), realClock);
     for (const descriptor of loadableEngines()) {
       this.engines.set(descriptor.id, new PiperEngine({ store: this.store, descriptor, makeWorker: realMakeWorker, clock: realClock }));
     }
@@ -400,6 +419,13 @@ export default class AudioInterfacePlugin extends Plugin {
     const src = this.activeSource(scope);
     if (!src) return;
     const useLoadable = speakEngineFor(this.settings, { [this.settings.exportEngineId]: this.readiness }) === this.settings.exportEngineId;
+    // Ohne diesen Guard würde ein Versuch, mit der Systemstimme zu sprechen, auf einer Plattform
+    // ohne `speechSynthesis` lautlos hängen (NULL_SYNTH.speak() ist ein No-op, das nie `onend`
+    // ruft) — der bestehende SpeakerError("engine-unavailable")-Pfad meldet es stattdessen sofort.
+    if (!useLoadable && !this.systemSpeechAvailable) {
+      new Notice(t("notice.engineUnavailable"));
+      return;
+    }
     try {
       await this.speaker.speak(src.text, this.settings, useLoadable);
     } catch (err) {

@@ -57,13 +57,21 @@ function endsWithAbbreviation(piece: string): boolean {
   return ABBREVIATIONS.has(word) || /^\p{L}$/u.test(word); // Initialen wie „J."
 }
 
+// Kein Lookbehind (Mobile-Gate, Baustein D): `obsidianmd/regex-lookbehind` — Lookbehinds fehlen
+// vor iOS 16.4. Derselbe Split ohne Lookbehind: die Satzzeichen-Erkennung wandert von der
+// zero-width-Bedingung `(?<=[.!?…])` in eine erfasste Gruppe, ein Marker ersetzt den
+// verschluckten Leerraum (Lookahead bleibt erlaubt, nur Lookbehind ist betroffen).
+const SENTENCE_BOUNDARY = /([.!?…])\s+(?=[A-ZÄÖÜ0-9„"'“([])/gu;
+const SENTENCE_MARKER = "\u0000";
+
 /** Satzgrenzen: Satzzeichen, dann Leerraum, dann Großbuchstabe/Ziffer/Anführung. „8.30 Uhr" bleibt
  *  zusammen (kein Leerraum nach dem Punkt), „Dr. Müller" über die Abkürzungsliste. */
 export function splitSentences(paragraph: string): string[] {
   const trimmed = paragraph.trim();
   if (!trimmed) return [];
   const pieces = trimmed
-    .split(/(?<=[.!?…])\s+(?=[A-ZÄÖÜ0-9„"'“([])/u)
+    .replace(SENTENCE_BOUNDARY, `$1${SENTENCE_MARKER}`)
+    .split(SENTENCE_MARKER)
     .map((p) => p.trim())
     .filter(Boolean);
   const out: string[] = [];

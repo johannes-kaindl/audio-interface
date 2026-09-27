@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MarkdownView, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import type { PiperEngine } from "../../src/obsidian/engines/piper-engine";
 import { makeFakeApp } from "../vendor/kit/obsidian-mock";
@@ -79,6 +79,24 @@ describe("AudioInterfacePlugin", () => {
     expect(engines.get(PIPER_DE_ENGINE_ID)!.isEnabled()).toBe(false);
     expect(engines.get(PIPER_EN_ENGINE_ID)!.isEnabled()).toBe(true);
     expect(plugin.piper.id).toBe(PIPER_EN_ENGINE_ID);
+  });
+  it("Mobile-Gate: ohne speechSynthesis meldet Vorlesen mit der Systemstimme sofort, statt zu hängen", async () => {
+    // NULL_SYNTH.speak() ist ein No-op ohne onend-Callback — ohne den Guard in speakActive()
+    // bliebe der Statusbar auf "Reading" stehen, ohne dass je etwas passiert (kein Absturz, aber
+    // auch keine Meldung — genau die stille Degradierung, die Baustein D verbietet).
+    (globalThis as unknown as { window: unknown }).window = { setTimeout, clearTimeout }; // kein speechSynthesis
+    const { plugin, app } = await load({ exportEnabled: false });
+    const view = new MarkdownView(new WorkspaceLeaf());
+    (view as unknown as { file: TFile }).file = new TFile();
+    app.workspace.getActiveViewOfType.mockReturnValue(view);
+    const notices = Notice as unknown as { instances: { message: unknown }[] };
+    notices.instances.length = 0;
+
+    cmd(plugin, "speak-note").callback!();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(notices.instances).toHaveLength(1);
+    expect(String(notices.instances[0]!.message)).toContain("not ready");
   });
   it("onunload stoppt und gibt die Engine frei", async () => {
     const { plugin } = await load();
