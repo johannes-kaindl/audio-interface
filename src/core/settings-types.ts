@@ -5,9 +5,11 @@
 // Hier liegt seitdem nur noch das SCHEMA: welches Feld welche Sonderregel hat. Die Pruefung selbst
 // steht in src/vendor/kit/settings_schema.ts.
 import { isLoadableEngineId, PIPER_DE_ENGINE_ID } from "./engine-manifest";
-import { check, clampFloatField, nonEmptyString, oneOf, validateSettings } from "../vendor/kit/settings_schema";
+import { check, clampFloatField, clampIntField, nonEmptyString, oneOf, validateSettings } from "../vendor/kit/settings_schema";
 
 export type ExportProfile = "phone-8k" | "native";
+/** Zweites Backend für die Umschrift, neben dem localhost-Dienst (Welle 13, Baustein B). */
+export type TranscribeBackend = "localhost" | "shortcuts";
 
 export interface AudioInterfaceSettings {
   /** URI der Systemstimme; "" = automatisch (erste deutsche, sonst erste). */
@@ -35,6 +37,21 @@ export interface AudioInterfaceSettings {
    * dass ein Vertipper private Sprachnotizen an einen fremden Server schickt.
    */
   transcribeServiceUrl: string;
+  /** Welches Backend die Umschrift ausführt — localhost-Dienst (Default, Desktop) oder
+   *  Apple-Kurzbefehl (mobil nutzbar, s. shortcuts-transcriber.ts). */
+  transcribeBackend: TranscribeBackend;
+  /** Exakter Name des Kurzbefehls für die Umschrift. */
+  transcribeShortcutName: string;
+  /** Ein gelöschter Kurzbefehl antwortet nie — der Timeout ist die einzige Verteidigung. */
+  transcribeShortcutTimeoutMs: number;
+  /** Opt-in für TTS als Datei über den Kurzbefehl (schaltet die Zeile frei; spricht selbst nichts
+   *  an) — macht das Vorlesen erstmals mobil nutzbar, unabhängig vom WAV-Export (Piper). */
+  ttsShortcutEnabled: boolean;
+  /** Exakter Name des Kurzbefehls für TTS als Datei. */
+  ttsShortcutName: string;
+  /** Vault-relativer Zielordner; "" = neben der Notiz (wie exportFolder). */
+  ttsShortcutFolder: string;
+  ttsShortcutTimeoutMs: number;
 }
 
 /**
@@ -62,6 +79,9 @@ const LOCAL_HOSTS: readonly string[] = ["127.0.0.1", "localhost", "[::1]"];
 
 export const SPEAK_RATE = { min: 0.5, max: 2, step: 0.1 } as const;
 export const EXPORT_PROFILES: readonly ExportProfile[] = ["phone-8k", "native"];
+export const TRANSCRIBE_BACKENDS: readonly TranscribeBackend[] = ["localhost", "shortcuts"];
+/** Ein gelöschter Kurzbefehl antwortet nie — Grenzen, nicht Komfort. */
+export const SHORTCUT_TIMEOUT_MS = { min: 5_000, max: 600_000 } as const;
 
 export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   speakVoiceUri: "",
@@ -75,6 +95,13 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   exportInsertLink: false,
   transcribeEnabled: false,
   transcribeServiceUrl: "http://127.0.0.1:8765",
+  transcribeBackend: "localhost",
+  transcribeShortcutName: "Transcribe Audio (Obsidian)",
+  transcribeShortcutTimeoutMs: 120_000,
+  ttsShortcutEnabled: false,
+  ttsShortcutName: "Speak Text (Obsidian)",
+  ttsShortcutFolder: "",
+  ttsShortcutTimeoutMs: 120_000,
 };
 
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
@@ -90,9 +117,14 @@ export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
     // Faellt eine fremde Adresse auf den Default zurueck, statt sie zu uebernehmen:
     // die Einstellung ist eine Ziel-Erlaubnis, kein Freitext.
     transcribeServiceUrl: check<string>(isLocalServiceUrl),
+    transcribeBackend: oneOf(TRANSCRIBE_BACKENDS),
+    transcribeShortcutName: nonEmptyString({ trim: "check" }),
+    transcribeShortcutTimeoutMs: clampIntField(SHORTCUT_TIMEOUT_MS.min, SHORTCUT_TIMEOUT_MS.max),
+    ttsShortcutName: nonEmptyString({ trim: "check" }),
+    ttsShortcutTimeoutMs: clampIntField(SHORTCUT_TIMEOUT_MS.min, SHORTCUT_TIMEOUT_MS.max),
   });
 }
 
-// exportFolder bekommt bewusst KEINEN Schema-Eintrag: "" heisst dort „neben der Notiz"
-// (s. Feld-Doku oben, ausgewertet in obsidian/exporter.ts) — ein nonEmptyString wuerde den Fall
-// unerreichbar machen. Die generische Bauform-Pruefung des Kits reicht.
+// exportFolder und ttsShortcutFolder bekommen bewusst KEINEN Schema-Eintrag: "" heisst dort
+// „neben der Notiz" (s. Feld-Doku oben) — ein nonEmptyString wuerde den Fall unerreichbar machen.
+// Die generische Bauform-Pruefung des Kits reicht.
