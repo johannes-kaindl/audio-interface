@@ -2,5 +2,5 @@
   "source": "obsidian-kit",
   "version": "0.27.0",
   "sha": "548041b",
-  "vendored": "i18n.ts, timeout.ts, run-state.ts, cache-download.ts, settings_schema.ts, num.ts, vault-path.ts"
+  "vendored": "i18n.ts, timeout.ts, run-state.ts, cache-download.ts, settings_schema.ts, num.ts, vault-path.ts, audio-provider.ts (obsidian-kit@0.45.0, 93c2dea)"
 }
