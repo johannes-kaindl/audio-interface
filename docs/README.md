@@ -9,7 +9,8 @@ Organised after [Diátaxis](https://diataxis.fr/): learning something and fixing
 | | |
 |---|---|
 | **[Getting started](getting-started.md)** | Learning-oriented. Read a note aloud, then export it as a WAV file with a downloaded voice. |
-| **[Troubleshooting](troubleshooting.md)** | Task-oriented. "Nothing to read", "The downloadable voice is not ready", a failed download, "The transcription program on this computer is not answering". |
+| **[Set up the Apple Shortcut](apple-shortcuts.md)** | Task-oriented. Transcription and spoken-word files on mobile (and as a second desktop option), without the local companion program. |
+| **[Troubleshooting](troubleshooting.md)** | Task-oriented. "Nothing to read", "The downloadable voice is not ready", a failed download, "The transcription program on this computer is not answering", a shortcut that does not answer. |
 
 The [README](https://github.com/johannes-kaindl/audio-interface/blob/main/README.md) covers what the plugin does, every setting, what is downloaded and where it comes from, and what leaves your computer.
 

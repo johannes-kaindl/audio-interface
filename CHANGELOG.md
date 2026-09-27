@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The plugin now works on mobile (iOS/iPadOS): a second backend for transcription and a new "spoken-word file" feature both run through an Apple Shortcut instead of the desktop-only local service and downloaded voice. See [Set up the Apple Shortcut](docs/apple-shortcuts.md).
+- New commands **Save note as spoken-word file (Shortcut)** and **Save selection as spoken-word file (Shortcut)**, with their own settings group.
+- New setting **Backend** for transcription: the existing local service, or an Apple Shortcut.
+- A plugin API (`app.plugins.plugins["audio-interface"].api`, version 1) for other plugins to transcribe an audio file or generate a spoken-word file, without knowing which backend is used.
+
+### Changed
+
+- `isDesktopOnly` is now `false`.
+
 ## [0.6.0] — 2026-09-26
 
 ### Added

@@ -106,6 +106,30 @@ Each entry starts with what you see — the wording is the plugin's own English 
 
 **Fix:** *Settings* → *Audio Interface* → **Transcribe (speech to text)** → switch it on, then right-click the audio file.
 
+## The shortcut does not answer
+
+> Transcription failed: keine Antwort innerhalb von … ms / no response within … ms
+
+> Could not generate the spoken-word file: no response within … ms
+
+**Cause:** the shortcut was deleted, renamed, or is stuck — a broken shortcut never reports an error back to Obsidian (Apple limitation), so the plugin can only wait and give up after the timeout.
+
+**Fix:** open the Shortcuts app and confirm the shortcut still exists under the exact name configured in the plugin settings. See [Set up the Apple Shortcut](apple-shortcuts.md) to reinstall it.
+
+## Could not generate the spoken-word file
+
+> Could not generate the spoken-word file: …
+
+**Cause:** the shortcut ran but reported an error, was cancelled, or Obsidian could not find the resulting audio file in the vault after the shortcut finished.
+
+**Fix:** try again; if it persists, run the shortcut manually in the Shortcuts app with the same text to see what it reports.
+
+## Save note/selection as spoken-word file is missing
+
+**Cause:** the commands appear only when **Enable spoken-word file via Shortcut** is switched on; it is off by default.
+
+**Fix:** *Settings* → *Audio Interface* → **Spoken-word file (Apple Shortcut)** → switch it on. See [Set up the Apple Shortcut](apple-shortcuts.md).
+
 ## Getting help
 
 Still stuck? [Open an issue](https://github.com/johannes-kaindl/audio-interface/issues) with your Obsidian version, the plugin version (*Settings* → *Community plugins*), your operating system and what you expected to happen.
