@@ -12,10 +12,17 @@ import { SystemSpeechEngine } from "./obsidian/engines/system-speech";
 import { ExportError, runExport, type VaultPort } from "./obsidian/exporter";
 import { AudioContextPlayer } from "./obsidian/pcm-player";
 import { AudioInterfaceSettingTab, type SettingsHost } from "./obsidian/settings-tab";
+import { ShortcutTtsError, speakViaShortcut } from "./obsidian/shortcut-tts";
+import { ShortcutsTranscriber } from "./obsidian/shortcuts-transcriber";
 import { Speaker, SpeakerError } from "./obsidian/speaker";
 import { StatusBar } from "./obsidian/status-bar";
 import { Transcriber } from "./obsidian/transcriber";
 import { realClock } from "./vendor/kit-obsidian/clock";
+import { createShortcutsBridge, type ShortcutsBridge } from "./vendor/kit-obsidian/shortcuts-bridge";
+
+/** Global im `obsidian://`-Namensraum (Kit-Konvention `<plugin-id>-shortcut`) — EIN Handler für
+ *  beide Kurzbefehl-Fähigkeiten des Plugins (STT + TTS), nicht je Fähigkeit einer. */
+const PROTOCOL_ACTION = "audio-interface-shortcut";
 
 /** Für den GUI-Smoke überschreibbar (lokaler Asset-Server): app.saveLocalStorage("audio-interface-asset-base", url). */
 const ASSET_BASE_KEY = "audio-interface-asset-base";
@@ -37,12 +44,15 @@ export default class AudioInterfacePlugin extends Plugin {
   private statusBar!: StatusBar;
   private player!: AudioContextPlayer;
   private transcriber!: Transcriber;
+  private shortcutsTranscriber!: ShortcutsTranscriber;
+  private shortcutsBridge!: ShortcutsBridge;
   private settingTab!: AudioInterfaceSettingTab;
   private assetBaseUrl = RELEASE_BASE_URL;
   private readiness: EngineReadiness = "off";
   private download: { state: RunState; controller: AbortController | null } = { state: IDLE, controller: null };
   private exportController: AbortController | null = null;
   private exportState: RunState = IDLE;
+  private ttsFileBusy = false;
 
   async onload(): Promise<void> {
     initI18n(getLanguage());
@@ -68,8 +78,14 @@ export default class AudioInterfacePlugin extends Plugin {
     });
     this.settingTab = new AudioInterfaceSettingTab(this.app, this, this.settingsHost());
     this.addSettingTab(this.settingTab);
+    this.shortcutsBridge = createShortcutsBridge(this, { protocolAction: PROTOCOL_ACTION });
     this.registerCommands();
     this.transcriber = this.makeTranscriber();
+    this.shortcutsTranscriber = new ShortcutsTranscriber({
+      bridge: this.shortcutsBridge,
+      shortcutName: () => this.settings.transcribeShortcutName,
+      timeoutMs: () => this.settings.transcribeShortcutTimeoutMs,
+    });
     this.registerTranscribeMenu();
     this.addRibbonIcon("audio-lines", t("cmd.speakNote"), () => void this.speakActive("note"));
     void this.system.waitForVoices();
@@ -251,20 +267,27 @@ export default class AudioInterfacePlugin extends Plugin {
   }
 
   private async transcribeAudio(file: TFile): Promise<void> {
-    const health = await this.transcriber.health();
-    if (health.state === "nicht_erreichbar") {
-      new Notice(t("notice.transcribeNoService"));
-      return;
-    }
-    // `zustand` ist KEIN Gate — massgeblich ist, ob eine Engine geladen ist.
-    if (!health.canTranscribe) {
-      new Notice(t("notice.transcribeNotReady", health.detail));
-      return;
+    // Der Kurzbefehl-Weg hat keine persistente Bereitschaftsabfrage wie der Dienst
+    // (kein `health`) — er läuft one-shot und meldet Nichterreichbarkeit erst im Ergebnis.
+    if (this.settings.transcribeBackend === "localhost") {
+      const health = await this.transcriber.health();
+      if (health.state === "nicht_erreichbar") {
+        new Notice(t("notice.transcribeNoService"));
+        return;
+      }
+      // `zustand` ist KEIN Gate — massgeblich ist, ob eine Engine geladen ist.
+      if (!health.canTranscribe) {
+        new Notice(t("notice.transcribeNotReady", health.detail));
+        return;
+      }
     }
 
     new Notice(t("notice.transcribeRunning", file.name));
     try {
-      const outcome = await this.transcriber.transcribeFile(await this.app.vault.readBinary(file));
+      const outcome =
+        this.settings.transcribeBackend === "shortcuts"
+          ? await this.shortcutsTranscriber.transcribePath(file.path)
+          : await this.transcriber.transcribeFile(await this.app.vault.readBinary(file));
       if (!outcome.ok) {
         new Notice(t("notice.transcribeFailed", outcome.detail !== "" ? outcome.detail : outcome.kind));
         return;
@@ -295,6 +318,50 @@ export default class AudioInterfacePlugin extends Plugin {
       name: t("cmd.exportSelection"),
       checkCallback: (checking) => this.exportCommand(checking, "selection"),
     });
+    this.addCommand({
+      id: "tts-file-note",
+      name: t("cmd.ttsFileNote"),
+      checkCallback: (checking) => this.ttsFileCommand(checking, "note"),
+    });
+    this.addCommand({
+      id: "tts-file-selection",
+      name: t("cmd.ttsFileSelection"),
+      checkCallback: (checking) => this.ttsFileCommand(checking, "selection"),
+    });
+  }
+
+  private ttsFileCommand(checking: boolean, scope: "note" | "selection"): boolean {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const can = this.settings.ttsShortcutEnabled && view !== null && !this.ttsFileBusy;
+    if (!checking && can) void this.ttsFileActive(scope);
+    return can;
+  }
+
+  private async ttsFileActive(scope: "note" | "selection"): Promise<void> {
+    const src = this.activeSource(scope);
+    if (!src) return;
+    this.ttsFileBusy = true;
+    new Notice(t("notice.ttsFileRunning"));
+    try {
+      const noteFolder = src.file.parent?.path === "/" ? "" : (src.file.parent?.path ?? "");
+      const path = await speakViaShortcut(
+        src.text,
+        {
+          bridge: this.shortcutsBridge,
+          shortcutName: () => this.settings.ttsShortcutName,
+          timeoutMs: () => this.settings.ttsShortcutTimeoutMs,
+          targetFolder: () => (this.settings.ttsShortcutFolder.trim() !== "" ? this.settings.ttsShortcutFolder.trim() : noteFolder),
+          now: () => Date.now(),
+        },
+        src.file.basename,
+      );
+      new Notice(t("notice.ttsFileSaved", path));
+    } catch (err) {
+      if (err instanceof ShortcutTtsError && err.code === "empty") new Notice(t("notice.empty"));
+      else new Notice(t("notice.ttsFileFailed", err instanceof Error ? err.message : String(err)));
+    } finally {
+      this.ttsFileBusy = false;
+    }
   }
 
   private exportCommand(checking: boolean, scope: "note" | "selection"): boolean {

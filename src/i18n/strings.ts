@@ -8,6 +8,8 @@ export const EN: Record<string, string> = {
   "cmd.speakSelection": "Read selection aloud",
   "cmd.stop": "Stop reading / cancel export",
   "cmd.togglePause": "Pause / resume reading",
+  "cmd.ttsFileNote": "Save note as spoken-word file (Shortcut)",
+  "cmd.ttsFileSelection": "Save selection as spoken-word file (Shortcut)",
 
   "menu.transcribe": "Transcribe audio",
 
@@ -24,6 +26,9 @@ export const EN: Record<string, string> = {
   "notice.transcribeNoService": "The transcription program on this computer is not answering. Start it, or check its address in the plugin settings.",
   "notice.transcribeNotReady": "The transcription program is running but not ready yet: {0}",
   "notice.transcribeRunning": "Transcribing {0} …",
+  "notice.ttsFileRunning": "Generating spoken-word file via shortcut …",
+  "notice.ttsFileSaved": "Spoken-word file saved: {0}",
+  "notice.ttsFileFailed": "Could not generate the spoken-word file: {0}",
 
   "status.downloading": "Downloading {0}/{1} MB",
   "status.rendering": "Rendering {0}/{1}",
@@ -76,6 +81,23 @@ export const EN: Record<string, string> = {
   "settings.transcribeEnabled.name": "Turn audio files into text",
   "settings.transcribeServiceUrl.desc": "Where that program listens. Only addresses on this computer are accepted (127.0.0.1, localhost, [::1]); anything else falls back to the default.",
   "settings.transcribeServiceUrl.name": "Address of the program",
+  "settings.transcribeBackend.desc": "The local service only runs on the desktop. The Apple Shortcut also works on iOS/iPadOS and needs no computer running — see the setup guide.",
+  "settings.transcribeBackend.localhost": "Local service (desktop only)",
+  "settings.transcribeBackend.name": "Backend",
+  "settings.transcribeBackend.shortcuts": "Apple Shortcut (works on mobile)",
+  "settings.transcribeShortcutName.desc": "The exact name of the shortcut, as it appears in the Shortcuts app.",
+  "settings.transcribeShortcutName.name": "Shortcut name",
+  "settings.transcribeShortcutTimeoutMs.desc": "A deleted shortcut never answers — after this time (in milliseconds) the plugin gives up.",
+  "settings.transcribeShortcutTimeoutMs.name": "Shortcut timeout (ms)",
+  "settings.tts.heading": "Spoken-word file (Apple Shortcut)",
+  "settings.ttsShortcutEnabled.desc": "Adds a command that turns a note or selection into an audio file via an Apple Shortcut — the only way to read text aloud on mobile. Runs only when you use the command.",
+  "settings.ttsShortcutEnabled.name": "Enable spoken-word file via Shortcut",
+  "settings.ttsShortcutFolder.desc": "Leave empty to save next to the note. The shortcut itself chooses the file extension.",
+  "settings.ttsShortcutFolder.name": "Target folder",
+  "settings.ttsShortcutName.desc": "The exact name of the shortcut, as it appears in the Shortcuts app.",
+  "settings.ttsShortcutName.name": "Shortcut name",
+  "settings.ttsShortcutTimeoutMs.desc": "A deleted shortcut never answers — after this time (in milliseconds) the plugin gives up.",
+  "settings.ttsShortcutTimeoutMs.name": "Shortcut timeout (ms)",
 };
 
 export const DE: Record<string, string> = {
@@ -85,6 +107,8 @@ export const DE: Record<string, string> = {
   "cmd.speakSelection": "Auswahl vorlesen",
   "cmd.stop": "Vorlesen stoppen / Export abbrechen",
   "cmd.togglePause": "Vorlesen pausieren / fortsetzen",
+  "cmd.ttsFileNote": "Notiz als Sprachdatei sichern (Kurzbefehl)",
+  "cmd.ttsFileSelection": "Auswahl als Sprachdatei sichern (Kurzbefehl)",
 
   "menu.transcribe": "Audio in Text umwandeln",
 
@@ -101,6 +125,9 @@ export const DE: Record<string, string> = {
   "notice.transcribeNoService": "Das Umschrift-Programm auf diesem Rechner antwortet nicht. Starte es, oder prüfe seine Adresse in den Plugin-Einstellungen.",
   "notice.transcribeNotReady": "Das Umschrift-Programm läuft, ist aber noch nicht bereit: {0}",
   "notice.transcribeRunning": "Wandle {0} um …",
+  "notice.ttsFileRunning": "Sprachdatei wird per Kurzbefehl erzeugt …",
+  "notice.ttsFileSaved": "Sprachdatei gespeichert: {0}",
+  "notice.ttsFileFailed": "Sprachdatei konnte nicht erzeugt werden: {0}",
 
   "status.downloading": "Lade {0}/{1} MB",
   "status.rendering": "Rendern {0}/{1}",
@@ -153,6 +180,23 @@ export const DE: Record<string, string> = {
   "settings.transcribeEnabled.name": "Audiodateien in Text umwandeln",
   "settings.transcribeServiceUrl.desc": "Wo dieses Programm lauscht. Angenommen werden nur Adressen auf diesem Rechner (127.0.0.1, localhost, [::1]); alles andere fällt auf die Voreinstellung zurück.",
   "settings.transcribeServiceUrl.name": "Adresse des Programms",
+  "settings.transcribeBackend.desc": "Der lokale Dienst läuft nur auf dem Desktop. Der Apple-Kurzbefehl funktioniert auch auf iOS/iPadOS und braucht keinen laufenden Rechner — siehe die Einrichtungsanleitung.",
+  "settings.transcribeBackend.localhost": "Lokaler Dienst (nur Desktop)",
+  "settings.transcribeBackend.name": "Backend",
+  "settings.transcribeBackend.shortcuts": "Apple-Kurzbefehl (auch mobil)",
+  "settings.transcribeShortcutName.desc": "Der exakte Name des Kurzbefehls, wie er in der Kurzbefehle-App steht.",
+  "settings.transcribeShortcutName.name": "Kurzbefehl-Name",
+  "settings.transcribeShortcutTimeoutMs.desc": "Ein gelöschter Kurzbefehl antwortet nie — nach dieser Zeit (in Millisekunden) gibt das Plugin auf.",
+  "settings.transcribeShortcutTimeoutMs.name": "Kurzbefehl-Timeout (ms)",
+  "settings.tts.heading": "Sprachdatei (Apple-Kurzbefehl)",
+  "settings.ttsShortcutEnabled.desc": "Ergänzt einen Befehl, der eine Notiz oder Auswahl per Apple-Kurzbefehl in eine Audiodatei verwandelt — der einzige Weg, mobil vorzulesen. Läuft nur, wenn du den Befehl benutzt.",
+  "settings.ttsShortcutEnabled.name": "Sprachdatei per Kurzbefehl aktivieren",
+  "settings.ttsShortcutFolder.desc": "Leer lassen, um neben der Notiz zu speichern. Die Dateiendung wählt der Kurzbefehl selbst.",
+  "settings.ttsShortcutFolder.name": "Zielordner",
+  "settings.ttsShortcutName.desc": "Der exakte Name des Kurzbefehls, wie er in der Kurzbefehle-App steht.",
+  "settings.ttsShortcutName.name": "Kurzbefehl-Name",
+  "settings.ttsShortcutTimeoutMs.desc": "Ein gelöschter Kurzbefehl antwortet nie — nach dieser Zeit (in Millisekunden) gibt das Plugin auf.",
+  "settings.ttsShortcutTimeoutMs.name": "Kurzbefehl-Timeout (ms)",
 };
 
 export function initI18n(rawLang: string | null | undefined): void {

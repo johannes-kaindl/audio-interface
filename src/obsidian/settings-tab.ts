@@ -121,10 +121,43 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     ];
     if (s.transcribeEnabled) {
       transcribeItems.push({
-        name: t("settings.transcribeServiceUrl.name"),
-        desc: t("settings.transcribeServiceUrl.desc"),
-        control: { type: "text", key: "transcribeServiceUrl" },
+        name: t("settings.transcribeBackend.name"),
+        desc: t("settings.transcribeBackend.desc"),
+        control: {
+          type: "dropdown",
+          key: "transcribeBackend",
+          options: { localhost: t("settings.transcribeBackend.localhost"), shortcuts: t("settings.transcribeBackend.shortcuts") },
+        },
       });
+      if (s.transcribeBackend === "localhost") {
+        transcribeItems.push({
+          name: t("settings.transcribeServiceUrl.name"),
+          desc: t("settings.transcribeServiceUrl.desc"),
+          control: { type: "text", key: "transcribeServiceUrl" },
+        });
+      } else {
+        transcribeItems.push(
+          { name: t("settings.transcribeShortcutName.name"), desc: t("settings.transcribeShortcutName.desc"), control: { type: "text", key: "transcribeShortcutName" } },
+          {
+            name: t("settings.transcribeShortcutTimeoutMs.name"),
+            desc: t("settings.transcribeShortcutTimeoutMs.desc"),
+            control: { type: "number", key: "transcribeShortcutTimeoutMs" },
+          },
+        );
+      }
+    }
+
+    // Drittes Opt-in, unabhängig von Export und Umschrift: TTS als Datei über den Kurzbefehl —
+    // macht das Vorlesen erstmals mobil nutzbar (bedingte Zeilen weglassen, nicht `visible:false`).
+    const ttsItems: Def[] = [
+      { name: t("settings.ttsShortcutEnabled.name"), desc: t("settings.ttsShortcutEnabled.desc"), control: { type: "toggle", key: "ttsShortcutEnabled" } },
+    ];
+    if (s.ttsShortcutEnabled) {
+      ttsItems.push(
+        { name: t("settings.ttsShortcutName.name"), desc: t("settings.ttsShortcutName.desc"), control: { type: "text", key: "ttsShortcutName" } },
+        { name: t("settings.ttsShortcutFolder.name"), desc: t("settings.ttsShortcutFolder.desc"), control: { type: "folder", key: "ttsShortcutFolder" } },
+        { name: t("settings.ttsShortcutTimeoutMs.name"), desc: t("settings.ttsShortcutTimeoutMs.desc"), control: { type: "number", key: "ttsShortcutTimeoutMs" } },
+      );
     }
 
     return [
@@ -141,6 +174,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
       { type: "group", heading: t("settings.speak.heading"), items: speakItems },
       { type: "group", heading: t("settings.export.heading"), items: exportItems },
       { type: "group", heading: t("settings.transcribe.heading"), items: transcribeItems },
+      { type: "group", heading: t("settings.tts.heading"), items: ttsItems },
     ];
   }
 
@@ -222,9 +256,10 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     this.host.settings = normalizeSettings({ ...this.host.settings, [key]: value });
     await this.host.saveSettings();
     this.host.onSettingsChanged(key as keyof AudioInterfaceSettings);
-    // Beide Schlüssel ändern, WELCHE Zeilen der Tab zeigt (Engine-Zeile, Vorlese-Toggle) — der
-    // deklarative Host zeichnet von sich aus nur den geänderten Regler neu.
-    if (key === "exportEnabled" || key === "exportEngineId") this.refresh();
+    // Diese Schlüssel ändern, WELCHE Zeilen der Tab zeigt (Engine-Zeile, Vorlese-Toggle, bedingte
+    // Umschrift-/TTS-Zeilen) — der deklarative Host zeichnet von sich aus nur den geänderten
+    // Regler neu.
+    if (key === "exportEnabled" || key === "exportEngineId" || key === "transcribeEnabled" || key === "transcribeBackend" || key === "ttsShortcutEnabled") this.refresh();
   }
 
   /** Zustände frisch lesen (Cache API, Engine) und den Tab neu zeichnen — nie aus gespeicherten Werten. */

@@ -4,6 +4,7 @@
 // die fertige Datei direkt (`expectFile`), keine PCM-Stufe, keine Wiedergabe. Deshalb eigenständiges
 // Geschwistermodul statt Erweiterung von exporter.ts (Spec Welle 13, Baustein 3).
 import { prepareSpeech } from "../core/speech-text";
+import { joinVaultPath } from "../vendor/kit/vault-path";
 import type { ShortcutResult, ShortcutsBridge } from "../vendor/kit-obsidian/shortcuts-bridge";
 
 export interface ShortcutTtsDeps {
@@ -43,7 +44,7 @@ export async function speakViaShortcut(markdown: string, deps: ShortcutTtsDeps, 
   const text = plainText(markdown);
   if (text === "") throw new ShortcutTtsError("empty");
 
-  const prefix = `${deps.targetFolder()}/${filePrefix}-${deps.now()}`;
+  const prefix = joinVaultPath(deps.targetFolder(), `${filePrefix}-${deps.now()}`);
   const res = await deps.bridge.run({
     shortcut: deps.shortcutName(),
     input: text,

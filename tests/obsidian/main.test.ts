@@ -26,10 +26,19 @@ async function load(data: unknown = null) {
 const cmd = (plugin: AudioInterfacePlugin, id: string) => (plugin as unknown as { commands: { id: string; checkCallback?: (c: boolean) => boolean; callback?: () => void }[] }).commands.find((c) => c.id === id)!;
 
 describe("AudioInterfacePlugin", () => {
-  it("registriert sechs Kommandos und einen Settings-Tab", async () => {
+  it("registriert acht Kommandos und einen Settings-Tab", async () => {
     const { plugin } = await load();
     const ids = (plugin as unknown as { commands: { id: string }[] }).commands.map((c) => c.id).sort();
-    expect(ids).toEqual(["export-note-wav", "export-selection-wav", "speak-note", "speak-selection", "speak-stop", "speak-toggle-pause"]);
+    expect(ids).toEqual([
+      "export-note-wav",
+      "export-selection-wav",
+      "speak-note",
+      "speak-selection",
+      "speak-stop",
+      "speak-toggle-pause",
+      "tts-file-note",
+      "tts-file-selection",
+    ]);
     expect((plugin as unknown as { settingTabs: unknown[] }).settingTabs.length).toBe(1);
   });
   it("Export-Kommandos sind ohne bereite Engine ausgeblendet", async () => {
