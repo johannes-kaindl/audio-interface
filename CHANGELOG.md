@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-30
+
 ### Added
 
 - The plugin now works on mobile (iOS/iPadOS): a second backend for transcription and a new "spoken-word file" feature both run through an Apple Shortcut instead of the desktop-only local service and downloaded voice. See [Set up the Apple Shortcut](docs/apple-shortcuts.md).
