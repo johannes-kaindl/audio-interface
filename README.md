@@ -65,9 +65,7 @@ Updates then arrive like any other community plugin update.
 
 ### Manual
 
-Download `main.js`, `manifest.json` and `styles.css` from the [latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin.
-
-Releases from 0.4.0 also ship `checksums.sha256`, so you can verify what you downloaded: `shasum -a 256 -c checksums.sha256`.
+Download `main.js`, `manifest.json` and `styles.css` from the [latest Forgejo release](https://git.jkaindl.de/jkaindl/audio-interface/releases/latest) and copy them into `<vault>/.obsidian/plugins/audio-interface/`, then enable the plugin. Or download `audio-interface.zip` from the release — it contains exactly these files — and unpack it into `.obsidian/plugins/`; `checksums.sha256` lets you verify the download: `shasum -a 256 -c checksums.sha256`.
 
 ### From source
 
