@@ -16,4 +16,4 @@ The [README](https://github.com/johannes-kaindl/audio-interface/blob/main/README
 
 ---
 
-`SMOKE.md`, `spikes/` and `superpowers/` hold maintainer material (the GUI smoke checklist, measurements from the design phase and early design notes) and are not user documentation.
+`SMOKE.md` and `spikes/` hold maintainer material (the GUI smoke checklist and measurements from the design phase) and are not user documentation.

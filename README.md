@@ -179,7 +179,7 @@ through the same local program are planned for a later release.
 
 Issues and pull requests on [git.jkaindl.de](https://git.jkaindl.de/jkaindl/audio-interface).
 Test-driven (`npm run gate`); larger features via brainstorm → spec → plan → TDD
-(`docs/superpowers/`). See [`AGENTS.md`](AGENTS.md).
+(specs and plans live in the maintainer's vault cockpit). See [`AGENTS.md`](AGENTS.md).
 
 ## Documentation
 

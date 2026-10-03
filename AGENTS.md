@@ -1,7 +1,7 @@
 # AGENTS — audio-interface
 
 Obsidian-Plugin: Vorlesen (Systemstimmen) + WAV-Export (ladbare Piper-Stimme). Dach: `../AGENTS.md`
-(Kit-first, UI-STANDARD, Store-Regeln) gilt. Spec: `docs/superpowers/specs/2026-08-15-audio-interface-release-1-design.md`,
+(Kit-first, UI-STANDARD, Store-Regeln) gilt. Specs und Pläne liegen im Vault-Cockpit unter `_SDD/` (CORE-META-14), die Release-1-Spec ist `2026-08-15-audio-interface-release-1-design.md`.
 Spikes: `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md` (Piper, gruen) und
 `docs/spikes/2026-08-19-qwen3-tts-im-obsidian-renderer.md` (Qwen3-TTS, **rot** — RTF 4,8 statt < 1),
 Smoke: `docs/SMOKE.md`.

@@ -143,7 +143,7 @@ sind für spätere Releases vorgesehen; die Einstellungen halten den Platz schon
 
 Issues und Pull Requests auf [git.jkaindl.de](https://git.jkaindl.de/jkaindl/audio-interface).
 Testgetrieben (`npm run gate`); größere Features über brainstorm → spec → plan → TDD
-(`docs/superpowers/`). Siehe [`AGENTS.md`](AGENTS.md).
+(Specs und Pläne liegen im Vault-Cockpit des Maintainers). Siehe [`AGENTS.md`](AGENTS.md).
 
 ## Dokumentation
 
