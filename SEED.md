@@ -1,7 +1,7 @@
 # SEED — audio-interface (Obsidian-Plugin für Sprachein- und -ausgabe)
 
 > **Stand überholt (2026-08-15, gleiche Tag-Session):** Die offene Frage unten ist entschieden und
-> Release 1 gebaut — verbindlich sind jetzt `docs/superpowers/specs/2026-08-15-audio-interface-release-1-design.md`
+> Release 1 gebaut — verbindlich sind jetzt Vault-Cockpit `_SDD/2026-08-15-audio-interface-release-1-design.md`
 > (Entscheidungen § 0), `docs/spikes/2026-08-15-piper-im-obsidian-renderer.md` (Messwerte) und
 > `AGENTS.md`. Zwei Korrekturen an den Belegen unten: (1) WASM im Renderer kostet **nicht** die
 > Note — `local-voiceover` verliert Passed über Lizenz/`getSettingDefinitions`, nicht über WASM;
