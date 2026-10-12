@@ -5,24 +5,23 @@
  * (`obsidian-plugins/tools/obsidian-cdp/`, seit 2026-08-16 — vorher vendored unter
  * `scripts/lib/`); die Bruecke teilt sich dieser Treiber mit dem GUI-Smoke.
  *
- * ⚠️ **Vor dem Quit koordinieren — Obsidian ist geteilte Infrastruktur.** Dieses Rezept
- * braucht den frischen Start (ein Bild pro Start, jeder Lauf hinterlaesst Zustand); Mitnutzen
- * ist hier keine Alternative. Aber Obsidian ist Single-Instance: der Quit trifft die Instanz,
- * an der moeglicherweise eine andere Session arbeitet, und zerstoert deren Zustand. Der eigene
- * Lauf ist danach sauber gruen; der Schaden faellt nicht auf.
+ * ## Ablauf (Zweitinstanz, eigener Port — die reguläre Instanz auf 9222 bleibt tabu)
+ *
+ * Dieses Rezept braucht je Lauf eine frische Instanz. Gefahren wird sie als Zweitinstanz mit eigenem Profil und eigenem
+ * Port (Dach-AGENTS § Staging-Vaults); ein Quit der regulären Instanz träfe fremde Sessions. Der Treiber hat keinen
+ * Standardport.
  *
  * ```bash
- * lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "belegt — erst fragen, wem"
- * ```
- *
- * Hoert der Port, haengt jemand dran: **erst fragen, dann quitten.**
- *
- * ```bash
- * export STAGING_VAULTS_DIR="…"                     # Ort der Aufnahme-Vaults
- * npm run build && npm run shots -- --setup         # Vault aus dem Fixture bauen, dann Obsidian neu starten
- * npm run shots -- --assets http://127.0.0.1:8765/assets   # alle Bilder (Assets fuer settings.png vom lokalen Server)
- * npm run shots -- --only hero.png                  # ein Bild nachziehen
- * npm run shots:check                               # Vertrag ↔ Dateien ↔ README
+ * UD=/tmp/obs-test-audio-interface; PORT=<freier Port>               # lsof -nP -iTCP:$PORT -sTCP:LISTEN muss leer sein
+ * npm run build && npm run shots -- --setup                           # Vault aus docs/images/fixture bauen
+ * # $UD/obsidian.json: Vault unter $STAGING_VAULTS_DIR + "language":"en"; localStorage "language" = "en";
+ * # .asar der regulären Instanz ins Profil; Obsidian mit --user-data-dir=$UD --remote-debugging-port=$PORT starten,
+ * # Vertrauensdialog bestätigen, Restricted Mode aufheben
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label audio-interface \
+ *   --intent "shots.ts" --exclusive focus --port $PORT --ttl 600
+ * npm run shots -- --port $PORT --assets http://127.0.0.1:8765/assets   # alle Bilder (Assets für settings.png vom lokalen Server)
+ * npm run shots -- --port $PORT --only hero.png                         # ein Bild nachziehen
+ * npm run shots:check                                                   # Vertrag ↔ Dateien ↔ README
  * ```
  *
  * Aufnahmesprache ist **Englisch** (README.md ist kanonisch): der Treiber setzt Obsidians
@@ -281,20 +280,17 @@ async function main(): Promise<void> {
     console.log(`Aufnahme-Vault: ${vaultDir}`);
     for (const zeile of buildVault({ repoRoot, vaultDir, fixtureDir: join(repoRoot, "docs/images/fixture"), generator: "make-audio.mjs", pluginId: PLUGIN_ID })) console.log(`  ${zeile}`);
     console.log(
-      "\n⚠️  Erst prüfen, ob schon ein Obsidian läuft — ein Quit zerstört den Zustand\n" +
-      "    einer fremden Session, und der eigene Lauf ist danach trotzdem grün:\n" +
-      "      lsof -nP -iTCP:9222 -sTCP:LISTEN\n" +
-      "    Hört der Port, hängt jemand dran: erst fragen, dann quitten.\n" +
-      "\n⚠️  Obsidian jetzt neu starten und diesen Vault oeffnen (Debug-Port offen):\n" +
-      "  osascript -e 'quit app \"Obsidian\"'\n" +
-      "  open -a Obsidian --args --remote-debugging-port=9222\n" +
-      "Aufnahmesprache Englisch: Settings → General → Language = English (App-weit, braucht Neustart).\n" +
-      "Beim ersten Oeffnen fragt Obsidian nach Vertrauen fuer Community-Plugins — bestaetigen.",
+      "\nZweitinstanz mit eigenem Profil und eigenem Port starten, diesen Vault in ihrer obsidian.json eintragen (Rezept im Kopf dieser Datei).\n" +
+      "Aufnahmesprache Englisch: obsidian.json \"language\":\"en\" UND localStorage language = en. Vertrauensdialog bestätigen, Restricted Mode aufheben.",
     );
     return;
   }
 
-  const port = Number(flag("--port") ?? env.SHOTS_PORT ?? 9222);
+  const portArg = flag("--port") ?? env.SHOTS_PORT;
+  if (!portArg || !Number.isInteger(Number(portArg))) {
+    throw new Error("--port <Port> ist Pflicht (Zweitinstanz, Rezept im Kopf dieser Datei). Es gibt keinen Standardport: 9222 ist die reguläre Instanz.");
+  }
+  const port = Number(portArg);
   const nur = flag("--only");
   const assets = flag("--assets");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });

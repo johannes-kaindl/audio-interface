@@ -4,30 +4,24 @@ Was gegen einen Mock geprüft ist, ist spezifiziert, nicht getestet (CORE-TEST-0
 `scripts/gui-smoke.ts` fährt die Punkte unten gegen ein **laufendes** Obsidian: echte
 Systemstimmen, echter Blob-Worker mit ORT-WASM, echte Cache API, echte Vault-Datei.
 
-## Handgriffe (bleiben Handarbeit)
+## Handgriffe: eine Zweitinstanz, nie die reguläre
 
-⚠️ **Zuerst prüfen, wer sonst an Obsidian hängt.** Obsidian ist Single-Instance — ein
-`quit` trifft die Instanz, an der möglicherweise eine andere Session arbeitet, und zerstört
-deren Zustand. Der eigene Lauf ist danach sauber grün; der Schaden entsteht woanders und
-fällt nicht auf.
+Der Treiber läuft gegen eine **Zweitinstanz** mit eigenem Profil und eigenem Port, nie gegen die reguläre Instanz (9222): Ein Quit oder Reload dort zerstört den Zustand fremder Sessions. Er hat keinen Standardport, ohne `--port` bricht er mit Exit 2 ab.
 
 ```bash
-lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "läuft bereits — NICHT beenden"
+UD=/tmp/obs-test-audio-interface; PORT=<freier Port>
+lsof -nP -iTCP:$PORT -sTCP:LISTEN; pgrep -f "user-data-dir=$UD"      # beides leer, sonst ausweichen
+npm run build && npm run smoke:gui -- --setup                        # Staging-Vault aus docs/images/fixture/
+mkdir -p $UD && cp ~/Library/Application\ Support/obsidian/obsidian-*.asar $UD/
+# $UD/obsidian.json: den Vault unter $STAGING_VAULTS_DIR eintragen, "language":"en"
+/Applications/Obsidian.app/Contents/MacOS/Obsidian --user-data-dir=$UD --remote-debugging-port=$PORT &
+python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label audio-interface \
+  --intent "GUI-Smoke" --exclusive focus --port $PORT --ttl 900
 ```
 
-Hört der Port schon, dann **mitnutzen statt neu starten**: ein eigenes Fenster per
-`vault-open` über IPC öffnen, dann `attachTo("workspace", port, vault)` — der Vault-Name
-wählt, nicht die Reihenfolge. ⚠️ Die Port-Prüfung ersetzt die Frage nicht: sie zeigt aktive
-CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den Port wartet.
+Vertrauensdialog und Restricted Mode des frischen Profils bestätigt der Treiber selbst (`bereiteInstanzVor`). Der erste Lauf nach der Profilanlage ist ein Aufwärmlauf und zählt nicht; je Messlauf startet ein frischer Prozess.
 
-Erst wenn nichts läuft — oder nach Absprache mit dem, der es benutzt — gilt das Rezept unten.
-
-```bash
-osascript -e 'quit app "Obsidian"'
-open -a Obsidian --args --remote-debugging-port=9222
-open "obsidian://open?vault=audio-interface"                   # Staging-Vault
-OBSIDIAN_PLUGIN_DIR="$STAGING_VAULTS_DIR/audio-interface/.obsidian/plugins/audio-interface" npm run deploy
-```
+Die Bilanz hat vier Zustände (CORE-TEST-19): grün, rot, übersprungen, nichts gemessen. Nenner ist die Soll-Liste `PUNKTE` im Treiber (19 Punkte). Bewusst abgewählt (übersprungen) sind nur die sieben Download-/Export-Punkte ohne `--assets` und die echte Umschrift ohne `--service`. Fehlt der Gegenstand (kein Herunterladen-Knopf), ist der Punkt „nichts gemessen“ und der Treiber läuft weiter. Exit 1 bei rot oder nichts gemessen, Exit 2 bei Abbruch. Notices werden in `document` und `activeDocument` gelesen (nach `app.setting.open()` liegen sie im Fenster der Einstellungen).
 
 Plugin im Test-Vault einmal aktivieren (Community-Plugins). Assets kommen im Smoke von einem
 lokalen Server statt von GitHub — so braucht der Smoke kein Release:
@@ -46,7 +40,8 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*"); super().end_headers()
 http.server.ThreadingHTTPServer(("127.0.0.1", 8765), H).serve_forever()
 PY
-npm run smoke:gui -- --assets http://127.0.0.1:8765/assets
+npm run smoke:gui -- --port $PORT --assets http://127.0.0.1:8765/assets
+python3 ~/.claude/hooks/obsidian-cdp-lock.py release --port $PORT
 ```
 
 Der Treiber setzt `app.saveLocalStorage("audio-interface-asset-base", <url>)` (das Plugin liest
@@ -79,7 +74,7 @@ einmal neu.
 
 Punkt 8 meldet zwei Zeilen (Wechsel, dann „Bereit"), der Lauf zählt deshalb 11 Prüfungen.
 Welche Stimme die „andere" ist, hängt an der Oberflächensprache — der Treiber liest die geladene und
-wechselt auf die verbleibende. Ohne `--assets` laufen nur 1–4; 5–10 werden als übersprungen gemeldet. Punkt 8 ist der Prüfpunkt für
+wechselt auf die verbleibende. Ohne `--assets` laufen nur 1–4; 5–10 werden als übersprungen gemeldet (ausdrücklicher Zustand „übersprungen“, nicht grün). Punkt 8 ist der Prüfpunkt für
 die geteilte Laufzeit: er fällt rot aus, sobald die zweite Stimme wieder alles herunterladen will.
 
 ## Durchläufe
