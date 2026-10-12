@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A voice download from a server that compresses its response no longer aborts with "incomplete", and the progress bar can no longer run past 100 %. The download code now ignores the size header when the response is encoded, and checks the size against the voice manifest instead. The release files on GitHub and Forgejo are not compressed, so you are unlikely to have seen this; it matters for a custom asset address.
+
+### Changed
+
+- Internal: the shared building blocks the plugin copies from the kit are updated (obsidian-kit 0.57.0, code-kit 0.24.0); six of them (text strings, time limit, run state, settings check, number parsing, cache download) now come from code-kit. Everything else in those releases (the settings tab refresh helper, the longer test double) is not used by this plugin and changes nothing you can see.
+
 ## [0.7.1] — 2026-10-03
 
 ### Changed
