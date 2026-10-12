@@ -3,36 +3,59 @@
  * `docs/SMOKE.md` gegen ein LAUFENDES Obsidian — echte Systemstimmen, echter Blob-Worker mit
  * ORT-WASM, echte Cache API, echte Vault-Datei. Das ist die Naht, die kein Unit-Test sieht.
  *
- * ⚠️ **Zuerst prüfen, wer sonst an Obsidian hängt.** Obsidian ist Single-Instance — ein
- * `quit` trifft die Instanz, an der möglicherweise eine andere Session arbeitet, und zerstört
- * deren Zustand. Der eigene Lauf ist danach sauber grün; der Schaden entsteht woanders und
- * fällt nicht auf.
+ * ## Voraussetzung: eine Zweitinstanz, nie die reguläre
+ *
+ * Der Treiber hat keinen Standardport. Die reguläre Instanz (9222) gehört den Sessions, die an ihr hängen;
+ * ein `quit` oder `Page.reload` dort zerstört deren Zustand (Dach-AGENTS § Staging-Vaults). Gefahren wird gegen
+ * eine Zweitinstanz mit eigenem Profil und eigenem Port:
  *
  * ```bash
- * lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "läuft bereits — NICHT beenden"
+ * UD=/tmp/obs-test-audio-interface; PORT=<freier Port>
+ * lsof -nP -iTCP:$PORT -sTCP:LISTEN; pgrep -f "user-data-dir=$UD"      # beides leer, sonst ausweichen
+ * npm run build && npm run smoke:gui -- --setup                        # Staging-Vault aus docs/images/fixture
+ * mkdir -p $UD && cp ~/Library/Application\ Support/obsidian/obsidian-*.asar $UD/
+ * # $UD/obsidian.json: den Vault unter $STAGING_VAULTS_DIR eintragen, "language":"en"
+ * /Applications/Obsidian.app/Contents/MacOS/Obsidian --user-data-dir=$UD --remote-debugging-port=$PORT &
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label audio-interface \
+ *   --intent "GUI-Smoke" --exclusive focus --port $PORT --ttl 900
+ * npm run smoke:gui -- --port $PORT --assets http://127.0.0.1:8765/assets
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py release --port $PORT
  * ```
  *
- * Hört der Port schon, dann **mitnutzen statt neu starten**: ein eigenes Fenster per
- * `vault-open` über IPC öffnen, dann `attachTo("workspace", port, vault)` — der Vault-Name
- * wählt, nicht die Reihenfolge. ⚠️ Die Port-Prüfung ersetzt die Frage nicht: sie zeigt aktive
- * CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den Port wartet.
+ * Vertrauensdialog und Restricted Mode des frischen Profils bestätigt der Treiber selbst (`bereiteInstanzVor`).
+ * Der erste Lauf nach der Profilanlage ist ein Aufwärmlauf und zählt nicht; je Messlauf startet ein frischer Prozess.
  *
- * Erst wenn nichts läuft — oder nach Absprache mit dem, der es benutzt — gilt das Rezept unten.
+ * ## Bilanz
  *
- * Voraussetzung (der eine Handgriff, der Handarbeit bleibt):
- *   osascript -e 'quit app "Obsidian"'; open -a Obsidian --args --remote-debugging-port=9222
- *   OBSIDIAN_PLUGIN_DIR="$STAGING_VAULTS_DIR/audio-interface/.obsidian/plugins/audio-interface" npm run deploy
+ * Vier Zustände nach CORE-TEST-19: grün · rot · übersprungen · nichts gemessen. Nenner ist `PUNKTE` (19 Punkte).
+ * Exit 1 bei rot oder nichts gemessen, Exit 2 bei Abbruch. Bewusst abgewählt (übersprungen) sind nur:
+ * die sieben Download-/Export-Punkte ohne `--assets` und die echte Umschrift ohne `--service`. Fehlt dem Treiber
+ * in einem Punkt der Gegenstand (kein Herunterladen-Knopf, Download bleibt aus), ist der Punkt „nichts gemessen“
+ * oder rot, nie still grün.
  *
  * Seit 0.3.0 prüft er beide ladbaren Stimmen: deutsch laden → exportieren, auf englisch wechseln
  * (dann fehlt nur noch das Modell, Worker + WASM sind geteilt) → laden → exportieren.
  *
  * Assets kommen im Smoke von einem lokalen Server statt von GitHub (kein Release nötig):
- *   npm run assets && python3 -m http.server -d dist-assets 8765   # + CORS, s. docs/SMOKE.md
- *   npm run smoke:gui -- --assets http://127.0.0.1:8765   # --vault nur, wenn der Vault anders heisst
+ *   npm run assets && Server mit CORS laut docs/SMOKE.md
+ *   npm run smoke:gui -- --port $PORT --assets http://127.0.0.1:8765/assets   # --vault nur, wenn der Vault anders heisst
  * Der Treiber setzt dafür app.saveLocalStorage("audio-interface-asset-base", <url>) und lädt das
  * Plugin neu; am Ende räumt er den Schlüssel, die Cache-Einträge und die Smoke-Notiz wieder weg.
  */
-import { Cdp, notices, openNote, pollUntil } from "../../tools/obsidian-cdp/cdp.js";
+import { join } from "node:path";
+
+import { createBilanz, parseArgs, runDriver } from "../../tools/obsidian-cdp/bilanz.js";
+import {
+  type Cdp,
+  attachTo,
+  bereiteInstanzVor,
+  clearNotices,
+  notices,
+  openNote,
+  pollUntil,
+  requireVisible,
+} from "../../tools/obsidian-cdp/cdp.js";
+import { buildVault, requireEigenerBuild, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
 const PLUGIN_ID = "audio-interface";
 // Der Staging-Vault heisst wie das Repo (Dach-Konvention) — nicht wie die Plugin-Id,
@@ -69,28 +92,91 @@ const PROBE_WEBM_B64 =
 const DE_ENGINE_ID = "piper-de-thorsten-medium";
 const EN_ENGINE_ID = "piper-en-ljspeech-medium";
 
-interface Check { name: string; passed: boolean; detail: string }
-const checks: Check[] = [];
-function record(name: string, passed: boolean, detail: string): void {
-  checks.push({ name, passed, detail });
-  console.log(`${passed ? "✅" : "❌"} ${name}${detail ? ` — ${detail}` : ""}`);
-}
+/** Soll-Liste aller Prüfpunkte — der Nenner der Bilanz (CORE-TEST-19). Ein Punkt, der nie aufgezeichnet wird,
+ *  zählt als „nichts gemessen“, nie als grün. */
+const P = {
+  leftover: "Keine liegen gebliebenen Smoke-Dateien aus einem abgebrochenen frueheren Lauf",
+  geladen: "Plugin geladen, 8 Kommandos",
+  stimme: "Deutsche Systemstimme vorhanden",
+  vorlesen: "Vorlesen startet (Statusleiste) und stoppt",
+  exportAus: "Export-Kommando vor Download ausgeblendet",
+  backend: "NEU: Settings: Backend-Wahl fuer die Umschrift sichtbar (localhost + Kurzbefehl)",
+  ttsZeilen: "NEU: Settings: TTS-als-Datei-Zeilen (Kurzbefehl-Name) nur nach Opt-in sichtbar",
+  api: "NEU: Anbieter-API v1 (app.plugins.plugins[id].api) hat die vertragliche Form",
+  engineZeile: "Settings: Engine-Zeile mit Herunterladen-Knopf",
+  download: "Download über Knopf → Bereit",
+  exportWav: "Export erzeugt WAV 8 kHz > 1 s",
+  stimmenwechsel: "Stimmenwechsel auf die andere Stimme: nur das Modell fehlt",
+  zweiteBereit: "Zweite Stimme geladen → Bereit",
+  exportWav2: "Export mit der zweiten Stimme erzeugt WAV 8 kHz > 1 s",
+  entfernen: "Nach Entfernen wieder Herunterladen-Knopf",
+  menueAus: "Umschrift aus: kein Kontextmenue-Eintrag",
+  menueAn: "Umschrift an: Eintrag an der Audiodatei, nicht an der Notiz",
+  ohneDienst: "Ohne Dienst: benannte Meldung, keine Notiz",
+  umschrift: "Echte Umschrift einer WebM-Datei legt eine Notiz mit Embed an",
+} as const;
+/** Die sieben Punkte, die einen Asset-Server brauchen (`--assets`). */
+const ASSET_PUNKTE = [P.engineZeile, P.download, P.exportWav, P.stimmenwechsel, P.zweiteBereit, P.exportWav2, P.entfernen] as const;
+const PUNKTE = Object.values(P);
+
+const bilanz = createBilanz({ punkte: PUNKTE });
+const record = bilanz.record;
+
+/** Alle sichtbaren Notice-Texte als Renderer-Ausdruck — `document` UND `activeDocument`: nach `app.setting.open()` liegt
+ *  eine Notice im Dokument des Einstellungs-Fensters, und `document.querySelectorAll(".notice")` bliebe leer
+ *  (CORE-TEST-15: eine Suche nach Fehler-Notices wäre dann immer grün). Dieselben zwei Dokumente wie `notices()`. */
+const NOTICE_TEXTE = `(() => {
+  const docs = new Set([document]);
+  if (typeof activeDocument !== "undefined" && activeDocument) docs.add(activeDocument);
+  return [...docs].flatMap((d) => [...d.querySelectorAll(".notice")].map((n) => n.textContent.trim()));
+})()`;
 
 function arg(name: string, def: string): string {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def;
+  return parseArgs(process.argv.slice(2)).value(name) ?? def;
 }
 
 async function reloadPlugin(cdp: Cdp): Promise<void> {
   await cdp.evaluate(`await app.plugins.disablePlugin(${JSON.stringify(PLUGIN_ID)}); await app.plugins.enablePlugin(${JSON.stringify(PLUGIN_ID)}); await new Promise((r) => setTimeout(r, 800)); return true;`);
 }
 
+/** Staging-Vault aus dem getrackten Fixture herstellen (`docs/images/fixture`, wie `shots.ts`). Eigener Modus, weil Obsidian
+ *  den Vault danach neu öffnen muss: `buildVault` setzt `workspace.json` und `data.json` zurück. */
+function setupVault(): void {
+  const repoRoot = process.cwd();
+  const vaultDir = stagingVaultDir(REPO_NAME);
+  const log = buildVault({
+    repoRoot,
+    vaultDir,
+    fixtureDir: join(repoRoot, "docs/images/fixture"),
+    generator: "make-audio.mjs",
+    pluginId: PLUGIN_ID,
+  });
+  for (const zeile of log) console.log(`  ${zeile}`);
+  console.log(`\nVault: ${vaultDir}\nZweitinstanz mit diesem Vault in ihrer obsidian.json starten (Kopf dieser Datei), dann \`npm run smoke:gui -- --port <Port>\`.`);
+}
+
 async function main(): Promise<void> {
-  const port = Number(arg("port", "9222"));
-  const vault = arg("vault", REPO_NAME);
-  const assets = arg("assets", "");
-  const keep = process.argv.includes("--keep");
-  const cdp = await Cdp.attach(port, vault);
+  const args = parseArgs(process.argv.slice(2));
+  if (args.has("setup")) {
+    setupVault();
+    return;
+  }
+  const portArg = args.value("port");
+  if (!portArg || !Number.isInteger(Number(portArg))) {
+    throw new Error(
+      "--port <Port> ist Pflicht (Zweitinstanz, Rezept im Kopf dieser Datei). Es gibt keinen Standardport: 9222 ist die reguläre Instanz, an der andere Sessions hängen.",
+    );
+  }
+  const port = Number(portArg);
+  const vault = args.value("vault") ?? REPO_NAME;
+  const assets = args.value("assets") ?? "";
+  const keep = args.has("keep");
+  const cdp = await attachTo("workspace", port, vault);
+  if (!cdp) {
+    throw new Error(
+      `Kein Obsidian-Workspace-Fenster auf Port ${port} für Vault „${vault}“. Läuft die Zweitinstanz mit --remote-debugging-port=${port} und ist der Vault in ihrer obsidian.json eingetragen (Rezept im Kopf dieser Datei)?`,
+    );
+  }
   let previousBase: unknown = null;
 
   // Dieselbe Aufraeumarbeit wie im `finally` unten — als eigene Funktion, damit der
@@ -126,6 +212,27 @@ async function main(): Promise<void> {
   process.on("SIGTERM", onAbortSignal);
 
   try {
+    // Ohne Fokus drosselt Chromium den Renderer (leerer DOM bei korrektem App-Zustand).
+    await requireVisible(cdp);
+    const vaultName = await cdp.evaluate<string>(`return window.app ? app.vault.getName() : "";`);
+    if (vaultName !== vault) {
+      throw new Error(
+        `Verbunden mit Vault „${vaultName}“, erwartet war „${vault}“. Der Smoke läuft nur gegen seinen Staging-Vault: gegen einen Arbeitsvault gemessen wäre das Ergebnis unbelegt (Dach-AGENTS § Staging-Vaults).`,
+      );
+    }
+    // Läuft der Lauf gegen den eigenen Stand? `manifest.version` ist dafür blind (Store- und Repo-Build tragen dieselbe Nummer).
+    const ort = await cdp.evaluate<{ basePath: string; configDir: string }>(
+      `return { basePath: app.vault.adapter.basePath, configDir: app.vault.configDir };`,
+    );
+    requireEigenerBuild(
+      join(ort.basePath, ort.configDir, "plugins", PLUGIN_ID, "main.js"),
+      join(process.cwd(), "main.js"),
+      (meldung) => { console.log(meldung); },
+    );
+    // Frisches Profil: Vertrauensdialog bestätigen, Restricted Mode aufheben, Plugin laden. Der Hinweis gehört in den Punkt „Plugin geladen“.
+    const vorbereitet = await bereiteInstanzVor(cdp, { pluginIds: [PLUGIN_ID], nurVault: REPO_NAME, sprache: "en" });
+    console.log(`Instanz: ${vorbereitet.hinweis}`);
+
     // Vorbereitung: Asset-Basis setzen (nur wenn übergeben), Plugin frisch laden.
     previousBase = await cdp.evaluate<unknown>(`return app.loadLocalStorage(${JSON.stringify(ASSET_KEY)});`);
 
@@ -137,7 +244,7 @@ async function main(): Promise<void> {
       return app.vault.getFiles().map((f) => f.path).filter((p) => p.startsWith("_audio-interface-"));
     `);
     record(
-      "Keine liegen gebliebenen Smoke-Dateien aus einem abgebrochenen frueheren Lauf",
+      P.leftover,
       leftover.length === 0,
       leftover.length === 0
         ? "kein Rest im Vault"
@@ -161,14 +268,14 @@ async function main(): Promise<void> {
 
     // 1 Plugin geladen, acht Kommandos (Welle 13: +2 TTS-als-Datei-Kommandos)
     const cmds = await cdp.evaluate<string[]>(`return Object.keys(app.commands.commands).filter((k) => k.startsWith("${PLUGIN_ID}:")).sort();`);
-    record("Plugin geladen, 8 Kommandos", cmds.length === 8, cmds.join(", "));
+    record(P.geladen, cmds.length === 8, cmds.length === 8 ? cmds.join(", ") : `${cmds.join(", ") || "(keine)"} — ${vorbereitet.hinweis}`);
 
     // 2 Systemstimmen: mindestens eine deutsche
     const de = await cdp.evaluate<number>(`
       const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
       await p.system.waitForVoices(3000);
       return p.system.listVoices("de").length;`);
-    record("Deutsche Systemstimme vorhanden", de > 0, `${de} de-Stimmen`);
+    record(P.stimme, de > 0, `${de} de-Stimmen`);
 
     // 3 Vorlesen startet und stoppt (Statusleiste)
     await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
@@ -176,14 +283,14 @@ async function main(): Promise<void> {
     const speaking = await pollUntil<string>(cdp, `const el = document.querySelector(".audio-interface-status"); return el && !el.classList.contains("is-hidden") ? el.textContent : null;`, 5000, 200);
     await cdp.evaluate(`app.commands.executeCommandById("${PLUGIN_ID}:speak-stop"); return true;`);
     const stopped = await pollUntil<boolean>(cdp, `const el = document.querySelector(".audio-interface-status"); return el && el.classList.contains("is-hidden") ? true : null;`, 3000, 100);
-    record("Vorlesen startet (Statusleiste) und stoppt", !!speaking && !!stopped, `Status war „${speaking ?? "-"}“`);
+    record(P.vorlesen, !!speaking && !!stopped, `Status war „${speaking ?? "-"}“`);
 
     // 4 Export-Kommando vor Download NICHT in der Palette
     await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; p.settings.exportEnabled = false; await p.saveSettings(); p.piper.setEnabled(false); return true;`);
     await reloadPlugin(cdp);
     await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
     const before = await cdp.evaluate<boolean>(`const c = app.commands.commands["${PLUGIN_ID}:export-note-wav"]; return c.checkCallback(true) === true;`);
-    record("Export-Kommando vor Download ausgeblendet", before === false, `checkCallback=${before}`);
+    record(P.exportAus, before === false, `checkCallback=${before}`);
 
     // NEU (Welle 13) 4a/4b Settings: Backend-Wahl fuer die Umschrift + TTS-als-Datei-Zeilen —
     // EIN Tab-Aufenthalt, ausschliesslich ueber setControlValue (wie Checkpunkt 5 unten): ein
@@ -212,12 +319,12 @@ async function main(): Promise<void> {
       app.setting.close();
       return { ttsBefore, backendOptions, ttsAfter };`);
     record(
-      "NEU: Settings: Backend-Wahl fuer die Umschrift sichtbar (localhost + Kurzbefehl)",
+      P.backend,
       /Shortcut|Kurzbefehl/i.test(settingsRows.backendOptions) && /local|service|Dienst/i.test(settingsRows.backendOptions),
       settingsRows.backendOptions.slice(0, 160),
     );
     record(
-      "NEU: Settings: TTS-als-Datei-Zeilen (Kurzbefehl-Name) nur nach Opt-in sichtbar",
+      P.ttsZeilen,
       settingsRows.ttsBefore === false && settingsRows.ttsAfter === true,
       `vorher=${settingsRows.ttsBefore}, nachher=${settingsRows.ttsAfter}`,
     );
@@ -227,7 +334,7 @@ async function main(): Promise<void> {
       const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
       return { version: p.api?.version, transcribe: typeof p.api?.transcribe, speak: typeof p.api?.speak };`);
     record(
-      "NEU: Anbieter-API v1 (app.plugins.plugins[id].api) hat die vertragliche Form",
+      P.api,
       apiForm.version === 1 && apiForm.transcribe === "function" && apiForm.speak === "function",
       `version=${String(apiForm.version)}, transcribe=${apiForm.transcribe}, speak=${apiForm.speak}`,
     );
@@ -239,7 +346,7 @@ async function main(): Promise<void> {
       p.settings.transcribeEnabled = false; p.settings.ttsShortcutEnabled = false; await p.saveSettings(); return true;`);
 
     if (!assets) {
-      record("Download/Export (übersprungen — kein --assets)", true, "Prüfpunkte 5–10 brauchen einen Asset-Server");
+      for (const name of ASSET_PUNKTE) bilanz.skipped(name, "kein --assets (die Prüfpunkte 5–10 brauchen einen Asset-Server)");
     } else {
       // 5 Settings: Export einschalten → Engine-Zeile mit „Herunterladen“
       const rowText = await cdp.evaluate<string>(`
@@ -251,34 +358,41 @@ async function main(): Promise<void> {
         await new Promise((r) => setTimeout(r, 900));
         const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
         return btns.join(" | ");`);
-      record("Settings: Engine-Zeile mit Herunterladen-Knopf", /Herunterladen|Download/.test(rowText), rowText.slice(0, 120));
+      record(P.engineZeile, /Herunterladen|Download/.test(rowText), rowText.slice(0, 120));
 
       // 6 Download über den Knopf → Zustand „Bereit“
-      await cdp.evaluate(`
+      const geklickt = await cdp.evaluate<boolean>(`
         const tab = app.setting.activeTab;
         const btn = [...(tab?.containerEl ?? document).querySelectorAll("button")].find((b) => /Herunterladen|Download/.test(b.textContent));
+        if (!btn) return false;
         btn.click(); return true;`);
-      const ready = await pollUntil<string>(cdp, `
-        const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
-        const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
-      record("Download über Knopf → Bereit", !!ready, ready ?? "kein Bereit-Zustand binnen 180 s");
+      if (!geklickt) {
+        // Ein fehlender Knopf ist ein Befund, kein Abbruch des Treibers (Baseline Welle 13, Befund 2): der Gegenstand wurde nicht erreicht.
+        bilanz.unmeasured(P.download, "kein Herunterladen-Knopf in der Engine-Zeile gefunden");
+      } else {
+        const ready = await pollUntil<string>(cdp, `
+          const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
+          const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
+        record(P.download, !!ready, ready ?? "kein Bereit-Zustand binnen 180 s");
+      }
       await cdp.evaluate(`app.setting.close(); return true;`);
 
       // 7 Export erzeugt WAV, 8000 Hz, > 1 s
       await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
       await cdp.evaluate(`app.vault.getAbstractFileByPath("_audio-interface-smoke.wav") && await app.vault.delete(app.vault.getAbstractFileByPath("_audio-interface-smoke.wav")); return true;`);
       const can = await cdp.evaluate<boolean>(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); const c = app.commands.commands["${PLUGIN_ID}:export-note-wav"]; return c.checkCallback(true) === true;`);
-      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
+      await clearNotices(cdp);
+      await cdp.evaluate(`app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
       // Entweder die Datei erscheint, oder ein Fehler-Notice — beides beendet das Warten (sonst 120 s Blindflug).
       const outcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
-        const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
+        const bad = ${NOTICE_TEXTE}.find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
         if (bad) return { notice: bad };
         const f = app.vault.getAbstractFileByPath("_audio-interface-smoke.wav"); if (!f) return null;
         const buf = await app.vault.readBinary(f); const dv = new DataView(buf);
         const rate = dv.getUint32(24, true); const data = dv.getUint32(40, true);
         return { wav: { bytes: buf.byteLength, rate, seconds: data / 2 / rate } };`, 120_000, 500);
       const wav = outcome?.wav ?? null;
-      record("Export erzeugt WAV 8 kHz > 1 s", can && !!wav && wav.rate === 8000 && wav.seconds > 1, wav ? `${wav.bytes} B, ${wav.rate} Hz, ${wav.seconds.toFixed(1)} s` : `checkCallback=${can}, keine Datei — ${outcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
+      record(P.exportWav, can && !!wav && wav.rate === 8000 && wav.seconds > 1, wav ? `${wav.bytes} B, ${wav.rate} Hz, ${wav.seconds.toFixed(1)} s` : `checkCallback=${can}, keine Datei — ${outcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
 
       // 8 Stimmenwechsel auf die ANDERE Stimme: nur das Modell fehlt noch (Worker + WASM sind geteilt).
       // Welche das ist, haengt an der Oberflaechensprache — der Erststart waehlt danach vor.
@@ -294,30 +408,37 @@ async function main(): Promise<void> {
         return btns.join(" | ");`);
       // Nur Modell + Config fehlen → der Knopf nennt ~60 MB, nicht ~75 MB.
       const enSizeOk = /Herunterladen|Download/.test(enRow) && !/7\d[.,]\d MB/.test(enRow);
-      record(`Stimmenwechsel auf ${andere}: nur das Modell fehlt`, enSizeOk, enRow.slice(0, 140));
+      record(P.stimmenwechsel, enSizeOk, `${andere}: ${enRow.slice(0, 140)}`);
 
-      await cdp.evaluate(`
+      const enGeklickt = await cdp.evaluate<boolean>(`
         const tab = app.setting.activeTab;
         const btn = [...(tab?.containerEl ?? document).querySelectorAll("button")].find((b) => /Herunterladen|Download/.test(b.textContent));
+        if (!btn) return false;
         btn.click(); return true;`);
-      const enReady = await pollUntil<string>(cdp, `
-        const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
-        const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
-      record("Zweite Stimme geladen → Bereit", !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
+      if (!enGeklickt) {
+        bilanz.unmeasured(P.zweiteBereit, "kein Herunterladen-Knopf für die zweite Stimme gefunden");
+      } else {
+        const enReady = await pollUntil<string>(cdp, `
+          const tab = app.setting.activeTab; const root = tab?.containerEl ?? document;
+          const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
+        record(P.zweiteBereit, !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
+      }
       await cdp.evaluate(`app.setting.close(); return true;`);
 
       // 9 Export mit der zweiten Stimme (zweite Datei, weil die erste noch liegt) — Text in ihrer Sprache
       await openNote(cdp, SMOKE_NOTE, andere === EN_ENGINE_ID ? SMOKE_BODY_EN : SMOKE_BODY, "source");
-      await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); document.querySelectorAll(".notice").forEach((n) => n.remove()); app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
+      await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; await p.piper.readiness(); await new Promise((r)=>setTimeout(r,200)); return true;`);
+      await clearNotices(cdp);
+      await cdp.evaluate(`app.commands.executeCommandById("${PLUGIN_ID}:export-note-wav"); return true;`);
       const enOutcome = await pollUntil<{ wav?: { bytes: number; rate: number; seconds: number }; notice?: string } | null>(cdp, `
-        const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
+        const bad = ${NOTICE_TEXTE}.find((t) => /fehlgeschlagen|failed|Nicht verfügbar|Unavailable|abgebrochen|cancelled/i.test(t));
         if (bad) return { notice: bad };
         const f = app.vault.getAbstractFileByPath("_audio-interface-smoke-2.wav"); if (!f) return null;
         const buf = await app.vault.readBinary(f); const dv = new DataView(buf);
         const rate = dv.getUint32(24, true); const data = dv.getUint32(40, true);
         return { wav: { bytes: buf.byteLength, rate, seconds: data / 2 / rate } };`, 120_000, 500);
       const enWav = enOutcome?.wav ?? null;
-      record("Export mit der zweiten Stimme erzeugt WAV 8 kHz > 1 s", !!enWav && enWav.rate === 8000 && enWav.seconds > 1, enWav ? `${enWav.bytes} B, ${enWav.rate} Hz, ${enWav.seconds.toFixed(1)} s` : `keine Datei — ${enOutcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
+      record(P.exportWav2, !!enWav && enWav.rate === 8000 && enWav.seconds > 1, enWav ? `${enWav.bytes} B, ${enWav.rate} Hz, ${enWav.seconds.toFixed(1)} s` : `keine Datei — ${enOutcome?.notice ?? `Notices: ${await notices(cdp)}`}`);
 
       // 10 Entfernen → wieder „Herunterladen“
       const removed = await cdp.evaluate<string>(`
@@ -329,7 +450,7 @@ async function main(): Promise<void> {
         const tab = app.setting.activeTab;
         const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
         app.setting.close(); return btns.join(" | ");`);
-      record("Nach Entfernen wieder Herunterladen-Knopf", /Herunterladen|Download/.test(removed), removed.slice(0, 120));
+      record(P.entfernen, /Herunterladen|Download/.test(removed), removed.slice(0, 120));
 
       // Stimmenwahl zurücksetzen — der Smoke hinterlässt keinen fremden Zustand.
       await cdp.evaluate(`
@@ -373,7 +494,7 @@ async function main(): Promise<void> {
 
     // 11 Ohne Opt-in kein Eintrag — das Plugin spricht ungefragt nichts an.
     const menuOff = await menuTitles(PROBE_AUDIO);
-    record("Umschrift aus: kein Kontextmenue-Eintrag", !menuOff.some((x) => /Text umwandeln|Transcribe/i.test(x)), menuOff.join(" | ") || "(leer)");
+    record(P.menueAus, !menuOff.some((x) => /Text umwandeln|Transcribe/i.test(x)), menuOff.join(" | ") || "(leer)");
 
     await cdp.evaluate(`
       const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
@@ -385,39 +506,40 @@ async function main(): Promise<void> {
     const menuOn = await menuTitles(PROBE_AUDIO);
     const menuNote = await menuTitles(SMOKE_NOTE);
     record(
-      "Umschrift an: Eintrag an der Audiodatei, nicht an der Notiz",
+      P.menueAn,
       menuOn.some((x) => /Text umwandeln|Transcribe/i.test(x)) && !menuNote.some((x) => /Text umwandeln|Transcribe/i.test(x)),
       `Audio: ${menuOn.join(" | ")} || Notiz: ${menuNote.join(" | ") || "(leer)"}`,
     );
 
     if (!service) {
       // 13 Ohne Dienst: eine benannte Meldung, kein Absturz und keine halbe Notiz.
-      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); return true;`);
+      await clearNotices(cdp);
       await cdp.evaluate(`
         const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
         void p.transcribeAudio(app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_AUDIO)}));
         return true;`);
       const offline = await pollUntil<string>(cdp, `
-        const hit = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((x) => /antwortet nicht|not answering/i.test(x));
+        const hit = ${NOTICE_TEXTE}.find((x) => /antwortet nicht|not answering/i.test(x));
         return hit ?? null;`, 8000, 200);
       const stray = await cdp.evaluate<boolean>(`return app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_NOTE)}) !== null;`);
-      record("Ohne Dienst: benannte Meldung, keine Notiz", !!offline && !stray, offline ? offline.slice(0, 90) : `keine Meldung; Notiz da: ${stray}`);
-      record("Echte Umschrift (uebersprungen — kein --service)", true, "braucht einen laufenden audio-ui-Dienst");
+      record(P.ohneDienst, !!offline && !stray, offline ? offline.slice(0, 90) : `keine Meldung; Notiz da: ${stray}`);
+      bilanz.skipped(P.umschrift, "kein --service (braucht einen laufenden audio-ui-Dienst)");
     } else {
+      bilanz.skipped(P.ohneDienst, "ein --service läuft: der Fall „kein Dienst“ ist hier nicht herstellbar");
       // 13 Der ganze Weg: WebM dekodieren, 16-kHz-Mono senden, Notiz anlegen.
-      await cdp.evaluate(`document.querySelectorAll(".notice").forEach((n) => n.remove()); return true;`);
+      await clearNotices(cdp);
       await cdp.evaluate(`
         const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}];
         void p.transcribeAudio(app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_AUDIO)}));
         return true;`);
       const made = await pollUntil<{ body?: string; notice?: string } | null>(cdp, `
-        const bad = [...document.querySelectorAll(".notice")].map((n) => n.textContent.trim()).find((x) => /fehlgeschlagen|failed|antwortet nicht|not answering|noch nicht bereit|not ready/i.test(x));
+        const bad = ${NOTICE_TEXTE}.find((x) => /fehlgeschlagen|failed|antwortet nicht|not answering|noch nicht bereit|not ready/i.test(x));
         if (bad) return { notice: bad };
         const f = app.vault.getAbstractFileByPath(${JSON.stringify(PROBE_NOTE)});
         if (!f) return null;
         return { body: await app.vault.read(f) };`, 90_000, 500);
       record(
-        "Echte Umschrift einer WebM-Datei legt eine Notiz mit Embed an",
+        P.umschrift,
         !!made?.body && made.body.includes(`![[${PROBE_AUDIO}]]`),
         made?.notice ?? (made?.body ? made.body.slice(0, 80).replace(/\n/g, " ") : "keine Notiz"),
       );
@@ -431,12 +553,7 @@ async function main(): Promise<void> {
     await cleanupState();
     cdp.close();
   }
-  const failed = checks.filter((c) => !c.passed);
-  console.log(`\n${checks.length - failed.length}/${checks.length} Prüfpunkte grün`);
-  process.exit(failed.length ? 1 : 0);
+  bilanz.abschluss();
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(2);
-});
+runDriver(main);
