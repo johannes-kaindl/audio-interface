@@ -1,6 +1,6 @@
 {
   "name": "audio-interface",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Read notes aloud with system voices and export them as WAV with a local, downloadable German voice. No cloud, no account.",
   "type": "module",
   "scripts": {

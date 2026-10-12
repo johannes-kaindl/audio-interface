@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.2] — 2026-10-12
+
 ### Fixed
 
 - A voice download from a server that compresses its response no longer aborts with "incomplete", and the progress bar can no longer run past 100 %. The download code now ignores the size header when the response is encoded, and checks the size against the voice manifest instead. The release files on GitHub and Forgejo are not compressed, so you are unlikely to have seen this; it matters for a custom asset address.
