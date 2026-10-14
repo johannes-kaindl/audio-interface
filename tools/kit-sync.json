@@ -1,10 +1,10 @@
 {
   "sources": {
-    "obsidian-kit": { "ref": "0.57.0" },
-    "code-kit": { "ref": "0.24.0" }
+    "obsidian-kit": { "ref": "0.60.1" },
+    "code-kit": { "ref": "0.27.1" }
   },
   "targets": [
-    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num"] },
+    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num", "format-bytes", "local-stamp"] },
     { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/web", "modules": ["cache-download"] },
     { "dir": "src/vendor/kit", "source": "obsidian-kit", "from": "src/pure", "modules": ["vault-path", "audio-provider"] },
     { "dir": "src/vendor/kit-obsidian", "source": "obsidian-kit", "from": "src/obsidian", "modules": ["settings_walker", "folder-suggest", "clock", "confirm", "help-setting", "shortcuts-bridge"] },
