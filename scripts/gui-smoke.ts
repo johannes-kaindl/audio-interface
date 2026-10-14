@@ -10,7 +10,7 @@
  * eine Zweitinstanz mit eigenem Profil und eigenem Port:
  *
  * ```bash
- * UD=/tmp/obs-test-audio-interface; PORT=<freier Port>
+ * UD=/tmp/obs-test-audio-interface; PORT=<freier Port>; mkdir -p
  * lsof -nP -iTCP:$PORT -sTCP:LISTEN; pgrep -f "user-data-dir=$UD"      # beides leer, sonst ausweichen
  * npm run build && npm run smoke:gui -- --setup                        # Staging-Vault aus docs/images/fixture
  * mkdir -p $UD && cp ~/Library/Application\ Support/obsidian/obsidian-*.asar $UD/
@@ -48,8 +48,10 @@ import { createBilanz, parseArgs, runDriver } from "../../tools/obsidian-cdp/bil
 import {
   type Cdp,
   attachTo,
+  beimAbbruch,
   bereiteInstanzVor,
   clearNotices,
+  istAbgebrochen,
   notices,
   openNote,
   pollUntil,
@@ -136,7 +138,9 @@ function arg(name: string, def: string): string {
 }
 
 async function reloadPlugin(cdp: Cdp): Promise<void> {
-  await cdp.evaluate(`await app.plugins.disablePlugin(${JSON.stringify(PLUGIN_ID)}); await app.plugins.enablePlugin(${JSON.stringify(PLUGIN_ID)}); await new Promise((r) => setTimeout(r, 800)); return true;`);
+  await cdp.evaluate(`await app.plugins.disablePlugin(${JSON.stringify(PLUGIN_ID)}); await app.plugins.enablePlugin(${JSON.stringify(PLUGIN_ID)}); return true;`);
+  // Im Abbruch wartet der Schritt nicht (Frist 1 s je Schritt, Abbruch-Modul der Brücke).
+  if (!istAbgebrochen()) await new Promise((r) => setTimeout(r, 800));
 }
 
 /** Staging-Vault aus dem getrackten Fixture herstellen (`docs/images/fixture`, wie `shots.ts`). Eigener Modus, weil Obsidian
@@ -179,37 +183,22 @@ async function main(): Promise<void> {
   }
   let previousBase: unknown = null;
 
-  // Dieselbe Aufraeumarbeit wie im `finally` unten — als eigene Funktion, damit der
-  // SIGINT/SIGTERM-Handler sie aufrufen kann, ohne Code zu duplizieren. Ein Ctrl-C mitten
-  // im Lauf ueberspringt das `finally` NICHT (try/catch-Semantik), sondern beendet den
-  // Node-Prozess sofort — ohne eigenen Handler blieben Smoke-Notizen/-Dateien, der
-  // Engine-Cache, die Asset-Basis in localStorage und exportEnabled/transcribeEnabled
-  // unwiederhergestellt stehen.
-  const cleanupState = async (): Promise<void> => {
-    if (!keep) {
-      await cdp.evaluate(`
-        for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav", "_audio-interface-probe.webm", "_audio-interface-probe.md"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
-        const cache = await caches.open("audio-interface-engines"); for (const k of await cache.keys()) await cache.delete(k);
-        app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(previousBase ?? null)});
-        const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; p.settings.transcribeEnabled = false; p.settings.transcribeServiceUrl = "http://127.0.0.1:8765"; await p.saveSettings(); }
-        return true;`).catch(() => undefined);
-      await reloadPlugin(cdp).catch(() => undefined);
-    }
+  // Alles, was der Lauf an Vault, Cache, localStorage und Settings aendert, raeumen zwei Schritte des Abbruch-Moduls der
+  // Bruecke zurueck (`beimAbbruch`, angemeldet VOR der ersten Aenderung; je Schritt hoechstens 1 s, deshalb getrennt).
+  // Normalweg: `finally` schliesst sie rueckwaerts. Ctrl-C/SIGTERM: das Modul sperrt den Hauptzweig, faehrt sie
+  // rueckwaerts, druckt die Bilanz, Exit 130. Der fruehere lokale Handler lief neben dem `finally` her (Rennen). Beide Schritte
+  // sind idempotent.
+  const zustandZurueck = async (): Promise<void> => {
+    if (keep) return;
+    await cdp.evaluate(`
+      for (const p of ["_audio-interface-smoke.md", "_audio-interface-smoke.wav", "_audio-interface-smoke-2.wav", "_audio-interface-probe.webm", "_audio-interface-probe.md"]) { const f = app.vault.getAbstractFileByPath(p); if (f) await app.vault.delete(f); }
+      const cache = await caches.open("audio-interface-engines"); for (const k of await cache.keys()) await cache.delete(k);
+      app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(previousBase ?? null)});
+      const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; if (p) { p.settings.exportEnabled = false; p.settings.transcribeEnabled = false; p.settings.transcribeServiceUrl = "http://127.0.0.1:8765"; await p.saveSettings(); }
+      return true;`);
   };
-
-  let signalCleanupRunning = false;
-  const onAbortSignal = (signal: NodeJS.Signals) => {
-    if (signalCleanupRunning) return;
-    signalCleanupRunning = true;
-    void (async () => {
-      console.log(`\n\nAbbruch durch ${signal} — raeume Smoke-Zustand auf...`);
-      await cleanupState();
-      cdp.close();
-      process.exit(130);
-    })();
-  };
-  process.on("SIGINT", onAbortSignal);
-  process.on("SIGTERM", onAbortSignal);
+  const neuLaden = beimAbbruch(async () => { if (!keep) await reloadPlugin(cdp); }, "Plugin neu laden");
+  const zustand = beimAbbruch(zustandZurueck, "Smoke-Zustand zurücksetzen");
 
   try {
     // Ohne Fokus drosselt Chromium den Renderer (leerer DOM bei korrektem App-Zustand).
@@ -546,11 +535,12 @@ async function main(): Promise<void> {
     }
 
   } finally {
-    // Aufräumen: Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings zurück. Dieselbe
-    // Funktion wie der SIGINT/SIGTERM-Handler oben — kein Doppelcode.
-    process.off("SIGINT", onAbortSignal);
-    process.off("SIGTERM", onAbortSignal);
-    await cleanupState();
+    // Normalweg: Zustand zurueck (Notiz, WAV, Cache, Asset-Basis auf Vorwert, Settings), danach das Plugin neu laden.
+    // Nach Ctrl-C raeumt das Modul auf, druckt die Bilanz und beendet den Prozess; dieser Zweig darf dann weder ein zweites
+    // Mal aufraeumen noch die Bilanz ein zweites Mal drucken.
+    await zustand.schliesse().catch((e: unknown) => { if (!istAbgebrochen()) console.log(`Aufraeumen fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`); });
+    await neuLaden.schliesse().catch(() => undefined);
+    if (istAbgebrochen()) return;
     cdp.close();
   }
   bilanz.abschluss();

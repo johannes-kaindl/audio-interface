@@ -57,8 +57,8 @@ hing an Ollama, nicht am Port.
 ```bash
 export STAGING_VAULTS_DIR="…"        # Verzeichnis der Aufnahme-Vaults (nicht im Repo, s. check-no-abs-paths)
 npm run build && npm run shots -- --setup
-# Obsidian neu starten (Debug-Port), Aufnahme-Vault öffnen, Sprache Englisch:
-osascript -e 'quit app "Obsidian"'; open -a Obsidian --args --remote-debugging-port=9222
+# Zweitinstanz mit eigenem Profil und Port (Aufnahme-Vault, Sprache Englisch): Rezept im Kopfkommentar von scripts/gui-smoke.ts
+# (Quelle: Dach-AGENTS.md § Staging-Vaults, tools/obsidian-cdp/README.md § Zweitinstanz und Obsidian-CLI)
 # Assets für settings.png von einem lokalen Server (Layout <base>/<version>/<datei>, CORS *) — s. docs/SMOKE.md
 npm run shots -- --assets http://127.0.0.1:8765/assets
 npm run shots:check
