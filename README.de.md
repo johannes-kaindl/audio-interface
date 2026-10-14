@@ -7,7 +7,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE)
 [![Doku: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/audio-interface/blob/main/LICENSE-DOCS)
 [![Release](https://img.shields.io/github/v/release/johannes-kaindl/audio-interface?label=release)](https://github.com/johannes-kaindl/audio-interface/releases)
-[![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop-7c3aed)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop%20%26%20mobile-7c3aed)](https://obsidian.md)
 
 Vorlesen funktioniert sofort nach der Installation, mit den Stimmen, die auf deinem Rechner schon
 da sind. Eine Notiz als WAV zu vertonen — etwa eine Mailbox-Ansage für die Telefonanlage — ist ein
@@ -29,14 +29,13 @@ bewusstes Opt-in: du schaltest es ein, drückst *Herunterladen*, und erst dann k
 - **Sprechfertiger Text:** Frontmatter, Codeblöcke, Bilder/Embeds und Kommentare fallen weg; Links
   sprechen ihren Anzeigetext; Überschriften, Listen, Tabellen und Callouts werden mit natürlichen
   Pausen gelesen.
-- **Ehrliche Netznutzung:** ein Download, vom Release dieses Repos, nur nach deinem Klick, gegen
-  Prüfsummen verifiziert, wieder entfernbar — siehe [Funktionsweise](#funktionsweise).
+- **Audiodateien in Text verwandeln** — Rechtsklick auf eine Audiodatei im Vault und *Transcribe audio* wählen. Das Transkript wird als Notiz neben der Aufnahme gespeichert, die Audiodatei ist eingebettet, damit du zurückhören kannst. Standardmäßig aus; zwei Backends: ein Begleitprogramm auf deinem eigenen Rechner oder ein Apple-Kurzbefehl (siehe [Funktionsweise](#funktionsweise)).
+- **Funktioniert auch mobil:** Auf iOS/iPadOS transkribiert ein Apple-Kurzbefehl Audiodateien und macht aus Text eine Sprachdatei — die beiden Fähigkeiten, die am Desktop eine ladbare Stimme oder ein lokales Programm brauchen. Siehe [Apple-Kurzbefehl einrichten](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md).
+- **Ehrliche Netznutzung:** ein Download, vom Release dieses Repos, nur nach deinem Klick, gegen Prüfsummen verifiziert, wieder entfernbar. Die Transkription spricht **nur** eine Adresse auf deinem eigenen Rechner an (oder die Kurzbefehle-App, komplett auf dem Gerät), und nur, wenn du sie einschaltest — siehe [Funktionsweise](#funktionsweise).
 
 ## Voraussetzungen
 
-- **Obsidian 1.8.7 oder neuer, Desktop** (macOS, Windows, Linux). `isDesktopOnly` ist gesetzt —
-  Synthese-Worker und der Browser-Cache, in dem die Stimme liegt, sind auf Mobilgeräten nicht
-  verlässlich.
+- **Obsidian 1.8.7 oder neuer**, Desktop (macOS, Windows, Linux) oder mobil (iOS/iPadOS 26+ für den Apple-Kurzbefehl-Weg). Die ladbare Stimme und der WAV-Export gibt es nur am Desktop; mobil nimmst du den Apple-Kurzbefehl für Transkription und Sprachdateien.
 - **Vorlesen** nutzt die Stimmen des Betriebssystems. Fehlt eine deutsche, im System eine
   installieren (macOS: Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte → Systemstimme).
 - **WAV-Export** braucht rund 80 MB freien Platz für die erste Stimme samt Laufzeit; eine zweite
@@ -131,13 +130,23 @@ kostet deshalb nur noch ihr Modell.
 
 Die Synthese läuft dann in einem Web Worker in Obsidian (ONNX Runtime, CPU); das Ergebnis wird auf
 das gewählte Profil umgetastet, als 16-bit-WAV kodiert und über Obsidians Vault-API geschrieben.
-Es gibt keine Telemetrie und keinen weiteren Netzzugriff. Architektur und Messwerte:
-[`AGENTS.md`](AGENTS.md).
+Es gibt keine Telemetrie. Architektur und Messwerte: [`AGENTS.md`](AGENTS.md).
+
+### Transkription und was deinen Vault verlässt
+
+**Nichts verlässt deinen Rechner.** Schaltest du *Turn audio files into text* ein, spricht das Plugin eine weitere Adresse an — ein Transkriptionsprogramm, das **du** auf deinem eigenen Rechner betreibst, standardmäßig `http://127.0.0.1:8765`. Die Einstellungen akzeptieren **nur** lokale Adressen (`127.0.0.1`, `localhost`, `[::1]`); alles andere fällt auf den Standard zurück, damit ein Tippfehler deine Aufnahmen nicht an einen fremden Server schickt. Das Plugin startet dieses Programm nie und installiert es nie: Läuft es nicht, bekommst du eine Meldung, mehr passiert nicht.
+
+Transkribierst du eine Datei, dekodiert das Plugin sie in Obsidian, mischt sie auf mono herunter, tastet sie auf 16 kHz um und sendet das als WAV. Das lokale Dekodieren ist kein Detail — das Programm liest Audio über libsndfile, das `webm` und `m4a` **nicht** versteht, und genau die erzeugt Obsidians eigener Audiorekorder. Das Transkript wird als neue Notiz neben der Aufnahme geschrieben; nichts wird überschrieben.
+
+Das Begleitprogramm ist [`audio-ui`](https://git.jkaindl.de/jkaindl/audio-ui) — Spracherkennung (Parakeet), lokal auf Apple Silicon. Es ist optional: Ohne es tut das Plugin alles andere genau wie zuvor.
+
+### Sprachdateien und mobil (Apple-Kurzbefehl)
+
+Auf iOS/iPadOS gibt es weder ein lokales Begleitprogramm noch eine ladbare Stimme, deshalb laufen zwei Funktionen stattdessen über einen Apple-Kurzbefehl: die Transkription (ein zweites Backend neben dem lokalen Programm, in den Einstellungen umschaltbar) und eine neue **Sprachdatei** — eine Notiz oder Auswahl wird zu einer Audiodatei, die im Vault gespeichert wird. Beides funktioniert auch am Desktop, als zweite Möglichkeit. Einrichtung, Grenzen (kein Streaming, der Kurzbefehl bestimmt die Dateiendung) und Fehlersuche stehen unter [Apple-Kurzbefehl einrichten](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md).
 
 ## Ausblick
 
-Diktat (Sprache zu Text) und die Anbindung eines lokalen Sprachdienstes für hochwertigere Stimmen
-sind für spätere Releases vorgesehen; die Einstellungen halten den Platz schon frei.
+Das Transkribieren von Audiodateien gibt es bereits (siehe oben). **Live-Diktat** — sprechen und den Text mitlaufen sehen — braucht ein Begleitprogramm, das das Mikrofon selbst abhört; das entsteht dort, und das Plugin bleibt ein dünner Client, der Text empfängt. Hochwertigere Stimmen über dasselbe lokale Programm sind für ein späteres Release geplant.
 
 ## Mitwirken
 
@@ -149,6 +158,7 @@ Testgetrieben (`npm run gate`); größere Features über brainstorm → spec →
 
 - [Dokumentations-Index](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/README.md) (Englisch)
 - [Getting started](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/getting-started.md) — vom Vorlesen zur WAV-Datei
+- [Apple-Kurzbefehl einrichten](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/apple-shortcuts.md) — Transkription und Sprachdateien mobil
 - [Troubleshooting](https://github.com/johannes-kaindl/audio-interface/blob/main/docs/troubleshooting.md) — die Meldungen, die auftreten können, was sie bedeuten und was zu tun ist
 
 ## Lizenz
