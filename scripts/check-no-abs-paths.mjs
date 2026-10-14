@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// uebernommen aus 3d-codeblocks/scripts/check-no-abs-paths.mjs, 2026-08-15
 // check-no-abs-paths.mjs — CORE-META-14-Gate.
 // Kanonische Quelle: _docs/templates/scripts/check-no-abs-paths.mjs — per Repo verbatim kopiert.
 // Verbietet distinktive absolute Maintainer-Pfade in tracked Markdown-Dateien.
