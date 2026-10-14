@@ -6,7 +6,7 @@ import type { SpeakerState } from "./speaker";
 
 export function statusText(speaker: SpeakerState, run: RunState): string | null {
   if (run.status === "running") {
-    if (run.phase === "downloading") return t("status.downloading", (run.done / 1048576).toFixed(0), (run.total / 1048576).toFixed(0));
+    if (run.phase === "downloading") return t("status.downloading", (run.done / 1e6).toFixed(0), (run.total / 1e6).toFixed(0));
     if (run.phase === "writing") return t("status.writing");
     if (run.phase === "synthesizing" || run.phase === "encoding") return t("status.rendering", run.done, run.total);
     return t("status.rendering", 0, 0);

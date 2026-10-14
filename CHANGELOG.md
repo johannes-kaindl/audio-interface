@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **File sizes are counted in units of 1000, and the progress figures agree with them.** The voice row said "60,3 MB" where the documentation says "63,2 MB" for the same 63 201 294 bytes, and the download progress counted in units of 1024 next to it. Row, progress in the settings and progress in the status bar now all use 1000 (`formatBytes` from code-kit 0.27.0).
+- **The export file name's `{{date}}` is the date of your local day.** Shortly after midnight it used to name the day before (UTC).
+- Vendored `obsidian-kit` 0.60.1 (was 0.57.0) and `code-kit` 0.27.1 (was 0.24.0). The other releases in between change nothing you see in this plugin.
+
+### Fixed
+
+- `README.de.md` is brought in line with the English README: it claimed the plugin is desktop-only (it is not), and it lacked transcription, the Apple Shortcut route for mobile and the roadmap.
+
 ## [0.7.2] — 2026-10-12
 
 ### Fixed

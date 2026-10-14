@@ -21,6 +21,7 @@ import { createAudioProviderApi } from "./obsidian/plugin-api";
 import { realClock } from "./vendor/kit-obsidian/clock";
 import { createShortcutsBridge, type ShortcutsBridge } from "./vendor/kit-obsidian/shortcuts-bridge";
 import type { AudioProviderApi } from "./vendor/kit/audio-provider";
+import { localDate } from "./vendor/kit/local-stamp";
 
 /** Global im `obsidian://`-Namensraum (Kit-Konvention `<plugin-id>-shortcut`) — EIN Handler für
  *  beide Kurzbefehl-Fähigkeiten des Plugins (STT + TTS), nicht je Fähigkeit einer. */
@@ -509,7 +510,7 @@ export default class AudioInterfacePlugin extends Plugin {
     if (!src) return;
     const controller = new AbortController();
     this.exportController = controller;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate(new Date());
     try {
       const result = await runExport(
         { markdown: src.text, noteBasename: src.file.basename, noteFolder: src.file.parent?.path === "/" ? "" : (src.file.parent?.path ?? ""), today },

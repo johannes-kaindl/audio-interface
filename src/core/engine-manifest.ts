@@ -145,17 +145,3 @@ export function totalBytes(e: EngineDescriptor): number {
 export function missingBytes(e: EngineDescriptor, have: ReadonlySet<string>): number {
   return e.assets.reduce((n, a) => (have.has(a.fileName) ? n : n + a.bytes), 0);
 }
-
-/** "63,2 MB" — deutsches Dezimalkomma bewusst nur hier; die UI zeigt Größen, sie rechnet nicht damit. */
-export function formatBytes(n: number, decimalSeparator = ","): string {
-  if (n < 1024) return `${n} B`;
-  const units = ["KB", "MB", "GB"];
-  let v = n / 1024;
-  let u = 0;
-  while (v >= 1024 && u < units.length - 1) {
-    v /= 1024;
-    u++;
-  }
-  const s = v >= 100 ? v.toFixed(0) : v.toFixed(1);
-  return `${s.replace(".", decimalSeparator)} ${units[u]}`;
-}

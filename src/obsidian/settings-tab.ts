@@ -3,7 +3,8 @@
 // paperless-storage/src/obsidian/settings-tab.ts). Bedingte Zeilen werden WEGGELASSEN, nicht per
 // `visible` versteckt — der native 1.13-Renderer wertet `visible` an Gruppen-Items nicht aus.
 import { PluginSettingTab, Setting, type App, type Plugin, type SettingDefinitionItem, type SettingGroupItem } from "obsidian";
-import { formatBytes, missingBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
+import { missingBytes, totalBytes, type EngineDescriptor } from "../core/engine-manifest";
+import { formatBytes } from "../vendor/kit/format-bytes";
 import type { EngineReadiness } from "../core/engines";
 import type { RunState } from "../core/run-state";
 import { normalizeSettings, SPEAK_RATE, type AudioInterfaceSettings } from "../core/settings-types";
@@ -184,7 +185,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
 
   /** Was der Download JETZT noch kostet: die geteilte Laufzeit zählt nur, wenn sie fehlt. */
   private size(engine: EngineDescriptor = this.host.selectedEngine()): string {
-    return formatBytes(missingBytes(engine, this.cachedFiles), this.sep());
+    return formatBytes(missingBytes(engine, this.cachedFiles), { decimalSeparator: this.sep() });
   }
 
   private voiceOptionLabel(e: EngineDescriptor): string {
@@ -194,7 +195,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
 
   private engineDesc(): string {
     const d = this.host.selectedEngine();
-    return t("settings.engine.desc", formatBytes(totalBytes(d), this.sep()), this.host.assetBaseUrl, d.licenseSummary);
+    return t("settings.engine.desc", formatBytes(totalBytes(d), { decimalSeparator: this.sep() }), this.host.assetBaseUrl, d.licenseSummary);
   }
 
   /** Engine-Zeile: Zustand + genau der Knopf, der jetzt sinnvoll ist. */
@@ -205,7 +206,7 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
     setting.setName(engine.label);
     setting.setDesc(this.engineDesc());
     if (dl.status === "running") {
-      const mb = (n: number) => (n / 1048576).toFixed(1);
+      const mb = (n: number) => (n / 1e6).toFixed(1);
       setting.controlEl.createSpan({ text: t("settings.engine.downloading", mb(dl.done), mb(dl.total)), cls: "audio-interface-engine-state" });
       setting.addButton((b) => b.setButtonText(t("settings.engine.abort")).onClick(() => this.host.abortDownload()));
       return;

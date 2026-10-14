@@ -5,7 +5,6 @@ import {
   defaultExportEngineId,
   engineById,
   ENGINES,
-  formatBytes,
   isLoadableEngineId,
   loadableEngines,
   missingBytes,
@@ -61,11 +60,6 @@ describe("engine-manifest", () => {
   it("assetUrl hängt Version und Dateiname an, ohne doppelte Slashes", () => {
     const f = engineById(PIPER_DE_ENGINE_ID)!.assets[1];
     expect(assetUrl("https://x/releases/download/", "0.1.0", f)).toBe("https://x/releases/download/0.1.0/ort-wasm-simd-threaded.wasm");
-  });
-  it("formatBytes", () => {
-    expect(formatBytes(63201294)).toBe("60,3 MB");
-    expect(formatBytes(500)).toBe("500 B");
-    expect(formatBytes(1536, ".")).toBe("1.5 KB");
   });
 });
 

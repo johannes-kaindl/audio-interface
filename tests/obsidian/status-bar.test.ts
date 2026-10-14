@@ -11,7 +11,7 @@ describe("statusText", () => {
     expect(statusText({ kind: "speaking", paused: true, engine: "builtin", done: 1, total: 3 }, { status: "idle" })).toBe("Pause 2/3");
   });
   it("Lauf-Zustände haben Vorrang: Download in MB, Rendern, Speichern", () => {
-    expect(statusText({ kind: "idle" }, { status: "running", phase: "downloading", done: 12 * 1048576, total: 78 * 1048576 })).toBe("Lade 12/78 MB");
+    expect(statusText({ kind: "idle" }, { status: "running", phase: "downloading", done: 12e6, total: 78e6 })).toBe("Lade 12/78 MB");
     expect(statusText({ kind: "idle" }, { status: "running", phase: "synthesizing", done: 3, total: 9 })).toBe("Rendern 3/9");
     expect(statusText({ kind: "idle" }, { status: "running", phase: "writing", done: 0, total: 1 })).toBe("WAV wird gespeichert…");
   });
