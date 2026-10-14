@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.3] — 2026-10-14
+
 ### Changed
 
 - **File sizes are counted in units of 1000, and the progress figures agree with them.** The voice row said "60,3 MB" where the documentation says "63,2 MB" for the same 63 201 294 bytes, and the download progress counted in units of 1024 next to it. Row, progress in the settings and progress in the status bar now all use 1000 (`formatBytes` from code-kit 0.27.0).
