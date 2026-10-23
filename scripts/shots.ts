@@ -33,7 +33,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { argv, cwd, env, exit } from "node:process";
 
-import { attachTo, Cdp, openExisting, pollUntil, setAppConfig } from "../../tools/obsidian-cdp/cdp.js";
+import { attachTo, Cdp, openExisting, pollUntil, schliesseEinstellungen, setAppConfig } from "../../tools/obsidian-cdp/cdp.js";
 import { boxOf, capture, setWindowSize, withMetrics, writeShot, type Rect, type ShotOptions } from "../../tools/obsidian-cdp/shot.js";
 import { buildVault, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
@@ -206,8 +206,8 @@ async function settingsBilder(cdp: Cdp, port: number, opts: ShotOptions, assets:
         // Download vom lokalen Server: Asset-Basis nur fuer diesen Schritt setzen, Plugin damit
         // neu laden, laden, Basis wieder entfernen und OHNE sie neu laden — der Cache-Schluessel ist
         // basisunabhaengig, die Zeile zeigt danach die echte Quelle (GitHub-Release), nicht die Smoke-URL.
+        await schliesseEinstellungen(cdp);
         await cdp.evaluate(`
-          app.setting.close();
           app.saveLocalStorage(${JSON.stringify(ASSET_KEY)}, ${JSON.stringify(assets)});
           await app.plugins.disablePlugin(${JSON.stringify(PLUGIN_ID)}); await app.plugins.enablePlugin(${JSON.stringify(PLUGIN_ID)});
           await new Promise((r) => setTimeout(r, 800));

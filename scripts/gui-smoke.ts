@@ -56,6 +56,7 @@ import {
   openNote,
   pollUntil,
   requireVisible,
+  schliesseEinstellungen,
 } from "../../tools/obsidian-cdp/cdp.js";
 import { buildVault, requireEigenerBuild, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
@@ -305,8 +306,8 @@ async function main(): Promise<void> {
       await new Promise((r) => setTimeout(r, 900));
       const ttsAfter = rowNames().some((t) => /Shortcut name|Kurzbefehl-Name/i.test(t));
 
-      app.setting.close();
       return { ttsBefore, backendOptions, ttsAfter };`);
+    await schliesseEinstellungen(cdp);
     record(
       P.backend,
       /Shortcut|Kurzbefehl/i.test(settingsRows.backendOptions) && /local|service|Dienst/i.test(settingsRows.backendOptions),
@@ -364,7 +365,7 @@ async function main(): Promise<void> {
           const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
         record(P.download, !!ready, ready ?? "kein Bereit-Zustand binnen 180 s");
       }
-      await cdp.evaluate(`app.setting.close(); return true;`);
+      await schliesseEinstellungen(cdp);
 
       // 7 Export erzeugt WAV, 8000 Hz, > 1 s
       await openNote(cdp, SMOKE_NOTE, SMOKE_BODY, "source");
@@ -412,7 +413,7 @@ async function main(): Promise<void> {
           const st = root.querySelector(".audio-interface-engine-state"); return st && /Bereit|Ready/.test(st.textContent) ? st.textContent : null;`, 180_000, 1000);
         record(P.zweiteBereit, !!enReady, enReady ?? "kein Bereit-Zustand binnen 180 s");
       }
-      await cdp.evaluate(`app.setting.close(); return true;`);
+      await schliesseEinstellungen(cdp);
 
       // 9 Export mit der zweiten Stimme (zweite Datei, weil die erste noch liegt) — Text in ihrer Sprache
       await openNote(cdp, SMOKE_NOTE, andere === EN_ENGINE_ID ? SMOKE_BODY_EN : SMOKE_BODY, "source");
@@ -438,7 +439,8 @@ async function main(): Promise<void> {
         app.setting.open(); app.setting.openTabById(${JSON.stringify(PLUGIN_ID)}); await new Promise((r) => setTimeout(r, 900));
         const tab = app.setting.activeTab;
         const btns = [...(tab?.containerEl ?? document).querySelectorAll("button")].map((b) => b.textContent.trim());
-        app.setting.close(); return btns.join(" | ");`);
+        return btns.join(" | ");`);
+      await schliesseEinstellungen(cdp);
       record(P.entfernen, /Herunterladen|Download/.test(removed), removed.slice(0, 120));
 
       // Stimmenwahl zurücksetzen — der Smoke hinterlässt keinen fremden Zustand.
