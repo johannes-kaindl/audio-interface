@@ -161,6 +161,9 @@ export class AssetStore {
   }
 }
 
+/** Bewusst nicht `sha256Hex` aus code-kit: die Kit-Fassung ist synchron und rechnet in JS auf dem
+ *  Hauptthread (gemessen 2026-10-23 an 63 MB: 190 ms blockiert, nativ `crypto.subtle` 24 ms und
+ *  asynchron); die Modelldateien liegen schon am Stück im Speicher, Streaming bringt hier nichts. */
 async function sha256Hex(buf: ArrayBuffer): Promise<string> {
   const h = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(h), (b) => b.toString(16).padStart(2, "0")).join("");
