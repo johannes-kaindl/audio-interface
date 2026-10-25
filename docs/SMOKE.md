@@ -49,9 +49,7 @@ den Schlüssel beim Laden — nur für Smoke/Entwicklung; ohne Schlüssel gilt d
 lädt das Plugin neu und stellt am Ende den Vorwert wieder her.
 
 ⚠️ **Der Smoke leert den Engine-Cache** (`caches` „audio-interface-engines"), am Anfang und am
-Ende. Der Cache ist origin-weit — er gilt für alle Vaults derselben Obsidian-Installation. Die
-Assets sind jederzeit neu ladbar; wer die Stimme im Arbeits-Vault behalten will, lädt sie danach
-einmal neu.
+Ende. Der Cache ist origin-weit — er gilt für alle Vaults desselben Obsidian-Profils (gemessen 2026-10-25, 13:16, Obsidian 1.14.5, Zweitinstanz mit zwei Vaults: ein Marker in `audio-interface-engines`, in einem Vault geschrieben, im anderen mit `caches.match` gelesen, Gegenprobe vorher negativ; er liegt unter `Service Worker/CacheStorage` im Profil, nicht im Vault-Ordner). Die Assets sind jederzeit neu ladbar; wer die Stimme im Arbeits-Vault behalten will, lädt sie danach einmal neu.
 
 ## Prüfpunkte
 
