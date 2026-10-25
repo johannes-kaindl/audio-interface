@@ -153,17 +153,19 @@ const SHOTS: Shot[] = [
         const el = document.querySelector(".audio-interface-status");
         return el && !el.classList.contains("is-hidden") && el.textContent.trim() ? true : null;`, 6_000, 150);
       if (!ok) return null;
-      // Die Statusleiste samt Rand: unser Eintrag und die Ecke, in der er sitzt. Obsidians Sync-Symbol
-      // gehoert nicht ins Bild (Fixture schaltet das Core-Plugin aus; zur Laufzeit hier ebenfalls).
+      // Nur die Statusleisten-Pille mit schmalem Rand. Obsidians Sync-Symbol gehoert nicht ins Bild
+      // (Fixture schaltet das Core-Plugin aus; zur Laufzeit hier ebenfalls). Die Pille sitzt buendig rechts
+      // unten im Fenster; der Rand rechts und unten endet an der Fensterkante. Frueher lief der Ausschnitt
+      // 300 px nach links und 48 px nach oben und zeigte zu zwei Dritteln Weissraum (readme_lint
+      // `image-whitespace`, 64 % identische Zeilen, 2026-10-25).
       await cdp.evaluate(`const sync = app.internalPlugins?.plugins?.sync; if (sync?.enabled) { await sync.disable(true); await new Promise((r) => setTimeout(r, 300)); } return true;`).catch(() => undefined);
       const bar = await boxOf(cdp, ".status-bar", 0);
       if (!bar) return null;
-      // Bis an die Fensterkante — die Leiste sitzt buendig rechts unten; ein Rand darueber hinaus
-      // waere leer. Etwas Notiz-Kontext darueber zeigt, WO der Eintrag sitzt.
       const vp = JSON.parse(await cdp.evaluate<string>("return JSON.stringify({ w: window.innerWidth, h: window.innerHeight });")) as { w: number; h: number };
-      const x = Math.max(0, bar.x - 300);
-      const y = Math.max(0, bar.y - 48);
-      return { x, y, width: vp.w - x, height: vp.h - y };
+      // Links 12 px Rand, oben nur 4: die Pille ist 27 px hoch, ein breiterer Streifen darueber waere wieder Weissraum.
+      const x = Math.max(0, bar.x - 12);
+      const y = Math.max(0, bar.y - 4);
+      return { x, y, width: Math.min(vp.w, bar.x + bar.width + 12) - x, height: Math.min(vp.h, bar.y + bar.height + 4) - y };
     },
   },
 ];

@@ -35,7 +35,7 @@ kanonische Fassung, README.de.md bettet dieselben Bilder ein.
 | `command-palette.png` | feature | `README.md` (Usage) | Die Befehlspalette, gefiltert auf **Audio Interface**, mit allen sechs Kommandos lesbar: **Read note aloud**, **Read selection aloud**, **Pause / resume reading**, **Stop reading / cancel export**, **Export note as WAV**, **Export selection as WAV**. | ✅ |
 | `settings.png` | feature | `README.md` (Configuration) | Der Einstellungen-Tab mit den drei Gruppen **Read aloud**, **Voice-over & export**, **Local service**; Export eingeschaltet, die Zeile **Voice for export** mit der Auswahl beider Stimmen und darunter die Engine-Zeile der gewählten Stimme im Zustand **Ready (version …)** mit **Remove**. | ✅ |
 | `download.png` | detail | `README.md` (WAV export is an opt-in) | Nur die Engine-Zeile der gewählten Stimme (englische Oberfläche → **Piper · LJSpeech (en_US, medium)**) vor dem Download: Beschreibung mit Größe, Quelle und Lizenzen, Knopf **Download (…)**. Zeigt, dass nichts ohne Klick geladen wird. | ✅ |
-| `status-bar.png` | detail | `README.md` (Usage) | Rechter Teil der Statusleiste während des Vorlesens mit dem Eintrag **Reading 1/3** (Klick = Stopp). | ✅ |
+| `status-bar.png` | detail | `README.md` (Usage) | Nur die Statusleisten-Pille unten rechts mit schmalem Rand (links 12 px, oben 4 px, rechts und unten endet sie an der Fensterkante) während des Vorlesens, mit dem Eintrag **Reading 1/5** (Klick = Stopp). Ein breiterer Ausschnitt wäre zu zwei Dritteln Weißraum (`readme_lint` `image-whitespace`, gemessen 2026-10-25). | ✅ |
 
 ## Reproduktion
 
