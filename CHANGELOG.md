@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The voice-download row and the README now say where the files live and who shares them.** The files are stored once per Obsidian profile (in the browser cache of the app, outside your vault) and are shared by all vaults of that profile. Same change in the German texts.
+- The README size table now shows the sizes the settings row shows (2.8 MB, 13.5 MB, 63.2 MB German, 63.5 MB English) instead of rounded figures in other units.
+
 ## [0.7.3] — 2026-10-14
 
 ### Changed

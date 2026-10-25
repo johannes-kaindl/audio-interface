@@ -123,17 +123,17 @@ and press **Download**, it fetches these files **once, from this repository's Fo
 
 | File | Size | What it is | License |
 |---|---|---|---|
-| `piper-worker.js` | ≈ 3 MB | Synthesis worker (Piper pipeline, eSpeak-NG phonemizer as WASM, English + German dictionaries) | AGPL-3.0-or-later; contains ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
-| `ort-wasm-simd-threaded.wasm` | ≈ 13 MB | ONNX Runtime Web (CPU) | MIT |
-| `en_US-ljspeech-medium.onnx` + `.json` | ≈ 61 MB | Piper voice *LJSpeech* (English, 22.05 kHz) | dataset public domain |
-| `de_DE-thorsten-medium.onnx` + `.json` | ≈ 60 MB | Piper voice *Thorsten* (German, 22.05 kHz) | dataset CC0 |
+| `piper-worker.js` | ≈ 2.8 MB | Synthesis worker (Piper pipeline, eSpeak-NG phonemizer as WASM, English + German dictionaries) | AGPL-3.0-or-later; contains ephone/eSpeak-NG (GPL-3.0-or-later), onnxruntime-web (MIT) |
+| `ort-wasm-simd-threaded.wasm` | ≈ 13.5 MB | ONNX Runtime Web (CPU) | MIT |
+| `en_US-ljspeech-medium.onnx` + `.json` | ≈ 63.5 MB | Piper voice *LJSpeech* (English, 22.05 kHz) | dataset public domain |
+| `de_DE-thorsten-medium.onnx` + `.json` | ≈ 63.2 MB | Piper voice *Thorsten* (German, 22.05 kHz) | dataset CC0 |
 
 Only the voice you selected is fetched — the first two files are shared, so a second voice costs
 just its model.
 
 <table><tr>
 <td><a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/download.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/download.png" width="380" alt="The voice row in the settings before the download: name Piper LJSpeech (en_US, medium), a description with size, source and licenses, and a Download button showing 76.2 MB"></a></td>
-<td>Every file is checked against a <b>SHA-256 checksum embedded in the plugin</b> before it is used; a mismatch disables the voice and names the file. The files live in the browser cache of the Obsidian app, <b>outside your vault</b> — never synced, never in your files — and <b>Remove</b> deletes them again. The download can be cancelled; partial downloads resume.</td>
+<td>Every file is checked against a <b>SHA-256 checksum embedded in the plugin</b> before it is used; a mismatch disables the voice and names the file. The files live in the browser cache of the Obsidian app — <b>once per Obsidian profile, shared by all vaults of that profile</b>, <b>outside your vault</b>, never synced, never in your files — and <b>Remove</b> in the settings deletes them again. Sizes are in the table above (counted in units of 1000, as the settings row shows them). The download can be cancelled; partial downloads resume.</td>
 </tr></table>
 
 Synthesis then runs in a Web Worker inside Obsidian (ONNX Runtime, CPU), the result is resampled
