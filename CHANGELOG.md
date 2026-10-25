@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.4] — 2026-10-25
+
 ### Changed
 
 - **The voice-download row and the README now say where the files live and who shares them.** The files are stored once per Obsidian profile (in the browser cache of the app, outside your vault) and are shared by all vaults of that profile. Same change in the German texts.
