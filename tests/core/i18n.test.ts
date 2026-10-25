@@ -11,4 +11,10 @@ describe("i18n-Wörterbücher", () => {
       expect(ph(DE[k]), k).toEqual(ph(EN[k]));
     }
   });
+  it("die Engine-Zeile nennt, dass die Ablage je Obsidian-Profil gilt und alle Vaults teilen", () => {
+    expect(EN["settings.engine.desc"]).toMatch(/profile/);
+    expect(EN["settings.engine.desc"]).toMatch(/all vaults/);
+    expect(DE["settings.engine.desc"]).toMatch(/Profil/);
+    expect(DE["settings.engine.desc"]).toMatch(/alle Vaults/);
+  });
 });

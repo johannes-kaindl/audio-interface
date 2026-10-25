@@ -38,7 +38,7 @@ export const EN: Record<string, string> = {
   "status.tooltip": "Audio Interface — click to stop",
 
   "settings.engine.abort": "Cancel",
-  "settings.engine.desc": "{0} download from {1}. Stored in the browser cache outside your vault, never synced. Licenses: {2}.",
+  "settings.engine.desc": "{0} download from {1}. Stored in the browser cache outside your vault, never synced. Applies to all vaults of this Obsidian profile. Licenses: {2}.",
   "settings.engine.download": "Download ({0})",
   "settings.engine.downloading": "Downloading {0}/{1} MB…",
   "settings.engine.error": "Unavailable: {0}",
@@ -137,7 +137,7 @@ export const DE: Record<string, string> = {
   "status.tooltip": "Audio Interface — Klick zum Stoppen",
 
   "settings.engine.abort": "Abbrechen",
-  "settings.engine.desc": "{0} Download von {1}. Ablage im Browser-Cache außerhalb des Vaults, wird nie synchronisiert. Lizenzen: {2}.",
+  "settings.engine.desc": "{0} Download von {1}. Ablage im Browser-Cache außerhalb des Vaults, wird nie synchronisiert. Gilt für alle Vaults dieses Obsidian-Profils. Lizenzen: {2}.",
   "settings.engine.download": "Herunterladen ({0})",
   "settings.engine.downloading": "Lade {0}/{1} MB…",
   "settings.engine.error": "Nicht verfügbar: {0}",
