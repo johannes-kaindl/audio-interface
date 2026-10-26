@@ -1,6 +1,6 @@
 # Set up the Apple Shortcut (mobile transcription and spoken-word files)
 
-How-to. For the concept behind it, the shared setup guide, and the exact shortcut names and versions, see [uplink.jkaindl.de/apple-shortcuts](https://uplink.jkaindl.de/apple-shortcuts) — this page only covers the plugin-specific settings.
+How-to. For the concept behind it, the shared setup guide, and the exact shortcut names and versions, see [jkaindl.de/uplink/apple-shortcuts](https://jkaindl.de/uplink/apple-shortcuts/) — this page only covers the plugin-specific settings.
 
 On iOS/iPadOS there is no local companion program, so the two Apple Shortcuts are the only way to transcribe audio or turn text into a spoken-word file on mobile. They also work on the desktop, as a second option next to the local `audio-ui` program and the downloaded voice.
 
