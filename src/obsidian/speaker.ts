@@ -1,6 +1,6 @@
 // Ein aktiver Sprechvorgang pro Plugin: Systemstimme (spricht selbst) oder ladbare Engine
 // (rendert PCM, das ein injizierter Player abspielt). Zustand nach außen für Statusleiste/Kommandos.
-import type { PcmBuffer } from "../core/audio";
+import type { PcmBuffer } from "../vendor/kit/pcm";
 import { prepareSpeech } from "../core/speech-text";
 import type { AudioInterfaceSettings } from "../core/settings-types";
 import type { PiperEngine } from "./engines/piper-engine";

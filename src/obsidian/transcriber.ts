@@ -1,4 +1,4 @@
-import { encodeWav, mixToMono, resample } from "../core/audio";
+import { encodeWav, mixToMono, resample } from "../vendor/kit/pcm";
 import { serviceStatus, transcribeOutcome, type ServiceStatus, type TranscribeOutcome } from "../core/dictation-service";
 
 /** Der Dienst arbeitet intern mit 16 kHz Mono — wir liefern es gleich so. */

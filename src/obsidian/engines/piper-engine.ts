@@ -1,7 +1,7 @@
 // Ladbare Engine: hält den Piper-Worker (aus dem Cache als Blob gestartet), prüft die Assets vor dem
 // ersten Start gegen SHA-256 und übersetzt Worker-Nachrichten in Promise/Fortschritt (Spec §5, §6).
 // Worker/Store/Clock injiziert → Node-testbar.
-import type { PcmBuffer } from "../../core/audio";
+import type { PcmBuffer } from "../../vendor/kit/pcm";
 import type { EngineDescriptor } from "../../core/engine-manifest";
 import type { EngineReadiness } from "../../core/engines";
 import { parsePiperConfig } from "../../core/piper-phonemes";

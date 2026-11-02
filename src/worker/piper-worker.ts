@@ -5,7 +5,7 @@ import * as ort from "onnxruntime-web/wasm";
 import createEphone, { type ephoneModule } from "ephone";
 import { loadData as loadGmw } from "ephone/lang/gmw.js";
 import { loadData as loadEnAll } from "ephone/lang/en-all.js";
-import { concatWithSilence, type PcmBuffer } from "../core/audio";
+import { concatWithSilence, type PcmBuffer } from "../vendor/kit/pcm";
 import { ipaToIds, langPackFor, type PiperConfig } from "../core/piper-phonemes";
 import type { WorkerRequest, WorkerResponse } from "../core/worker-protocol";
 

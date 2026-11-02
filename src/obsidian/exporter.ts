@@ -1,7 +1,7 @@
 // Export-Ablauf: Markdown → Chunks → Engine → PCM → (Resampling, Pegel) → WAV → Vault-Datei.
 // Zustand über den Zustandsautomaten (core/run-state); die Vault-Schreibphase ist der Punkt ohne
 // Wiederkehr. Vault nur über einen schmalen Port — Node-testbar, kein `fs`.
-import { encodeWav, normalizePeak, resample, type PcmBuffer } from "../core/audio";
+import { encodeWav, normalizePeak, resample, type PcmBuffer } from "../vendor/kit/pcm";
 import { joinVaultPath, renderFileName, withSuffix } from "../core/file-naming";
 import { abort, begin, fail, finish, progress, type RunState } from "../core/run-state";
 import type { AudioInterfaceSettings } from "../core/settings-types";

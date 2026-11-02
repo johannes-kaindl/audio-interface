@@ -1,3 +1,6 @@
+// vendored from code-kit@0.46.0, src/ts/pure/pcm.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
+// uebernommen aus audio-interface/src/core/audio.ts (Stand Tag 0.7.4), 2026-11-02
+// Grund: zweiter Nutzer ist protocol-droid (REGISTRY § Audio „Kit-Kandidat, sobald ein zweites Plugin Audio schreibt“); Körper gleich bis auf Index-Guards für check:index-strict.
 // PCM-Mathematik: Stille, Zusammensetzen, Resampling, 16-bit-WAV. Pur, ohne AudioContext
 // (der wäre DOM und damit nicht node-testbar — Spec §4).
 
@@ -50,7 +53,7 @@ export function resample(pcm: PcmBuffer, targetRate: number): PcmBuffer {
       const d = center - i;
       const s = d === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * d) / (Math.PI * d);
       const w = 0.5 + 0.5 * Math.cos((Math.PI * d) / span);
-      acc += x[i] * s * w;
+      acc += (x[i] ?? 0) * s * w;
       wsum += s * w;
     }
     out[n] = wsum !== 0 ? acc / wsum : 0;
@@ -61,7 +64,7 @@ export function resample(pcm: PcmBuffer, targetRate: number): PcmBuffer {
 export function toInt16(samples: Float32Array): Int16Array {
   const out = new Int16Array(samples.length);
   for (let i = 0; i < samples.length; i++) {
-    const v = Math.max(-1, Math.min(1, samples[i]));
+    const v = Math.max(-1, Math.min(1, samples[i] ?? 0));
     out[i] = v < 0 ? Math.round(v * 32768) : Math.round(v * 32767);
   }
   return out;
@@ -96,11 +99,11 @@ export function encodeWav(pcm: PcmBuffer): Uint8Array {
 /** Senkt den Pegel auf `target`, wenn der Spitzenwert darüber liegt — hebt nie an. */
 export function normalizePeak(samples: Float32Array, target = 0.9): Float32Array {
   let peak = 0;
-  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i] ?? 0));
   if (peak <= target || peak === 0) return samples;
   const g = target / peak;
   const out = new Float32Array(samples.length);
-  for (let i = 0; i < samples.length; i++) out[i] = samples[i] * g;
+  for (let i = 0; i < samples.length; i++) out[i] = (samples[i] ?? 0) * g;
   return out;
 }
 
@@ -114,12 +117,13 @@ export function normalizePeak(samples: Float32Array, target = 0.9): Float32Array
  */
 export function mixToMono(channels: Float32Array[]): Float32Array {
   if (channels.length === 0) return new Float32Array(0);
-  if (channels.length === 1) return channels[0];
+  const first = channels[0];
+  if (channels.length === 1 && first) return first;
   const length = channels.reduce((n, c) => Math.max(n, c.length), 0);
   const out = new Float32Array(length);
   for (const channel of channels) {
-    for (let i = 0; i < channel.length; i++) out[i] += channel[i];
+    for (let i = 0; i < channel.length; i++) out[i] = (out[i] ?? 0) + (channel[i] ?? 0);
   }
-  for (let i = 0; i < length; i++) out[i] /= channels.length;
+  for (let i = 0; i < length; i++) out[i] = (out[i] ?? 0) / channels.length;
   return out;
 }

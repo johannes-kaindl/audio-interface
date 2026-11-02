@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PcmBuffer } from "../../src/core/audio";
+import type { PcmBuffer } from "../../src/vendor/kit/pcm";
 import { IDLE, type RunState } from "../../src/core/run-state";
 import { DEFAULT_SETTINGS, type AudioInterfaceSettings } from "../../src/core/settings-types";
 import type { PiperEngine } from "../../src/obsidian/engines/piper-engine";

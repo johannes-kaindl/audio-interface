@@ -1,5 +1,5 @@
 // Spielt PCM der ladbaren Engine über die Web Audio API ab. Pause = Kontext anhalten.
-import type { PcmBuffer } from "../core/audio";
+import type { PcmBuffer } from "../vendor/kit/pcm";
 import type { PcmPlayer } from "./speaker";
 
 export class AudioContextPlayer implements PcmPlayer {
