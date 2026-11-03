@@ -2,7 +2,7 @@
   "source": "code-kit",
   "version": "0.27.1",
   "sha": "ac89f10",
-  "vendored": "i18n.ts, timeout.ts, run-state.ts, settings_schema.ts, num.ts, format-bytes.ts, local-stamp.ts, pcm.ts (code-kit@0.46.0, 8e5421c), cache-download.ts",
+  "vendored": "i18n.ts, timeout.ts, run-state.ts, settings_schema.ts, num.ts, format-bytes.ts, local-stamp.ts, pcm.ts (code-kit@0.46.0, 8e5421c), cache-download.ts, asset-store.ts (code-kit@0.49.0, 24d3bf8)",
   "obsidian_kit_version": "0.60.1",
   "obsidian_kit_sha": "4dfbd4e",
   "obsidian_kit_vendored": "vault-path.ts, audio-provider.ts"

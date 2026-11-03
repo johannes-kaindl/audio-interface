@@ -139,6 +139,39 @@ describe("AssetStore", () => {
   });
 });
 
+describe("AssetStore: Hülle um den Kit-Baustein", () => {
+  it("cache-schluessel bleibt versionsbasiert", async () => {
+    // Bestand eines Nutzers aus Version 0.1.0: Schlüssel https://audio-interface.invalid/<Version>/<Datei>, ohne Prüfsumme im Schlüssel.
+    const cache = memCache(); const engine = makeEngine(FILES);
+    for (const n of ["w.js", "o.wasm", "m.onnx", "m.json"]) cache.store.set(`https://audio-interface.invalid/0.1.0/${n}`, FILES[n as keyof typeof FILES]);
+    const store = new AssetStore(makeDeps(FILES, cache));
+    expect(await store.status(engine)).toBe("complete");
+    expect(await store.verify(engine)).toEqual({ ok: true });
+    // Nichts wird erneut geladen, nichts unter einem anderen Schlüssel angelegt.
+    let fetched = 0;
+    const deps = makeDeps(FILES, cache); const inner = deps.fetchFn;
+    await new AssetStore({ ...deps, fetchFn: (u, i) => { fetched++; return inner(u, i); } }).download(engine, () => {}, new AbortController().signal);
+    expect(fetched).toBe(0);
+    expect(cache.store.size).toBe(4);
+  });
+  it("neu geladene Dateien landen unter dem versionsbasierten Schlüssel", async () => {
+    const cache = memCache(); const engine = makeEngine(FILES);
+    await new AssetStore(makeDeps(FILES, cache)).download(engine, () => {}, new AbortController().signal);
+    expect([...cache.store.keys()].sort()).toEqual(["m.json", "m.onnx", "o.wasm", "w.js"].map((n) => `https://audio-interface.invalid/0.1.0/${n}`));
+  });
+  it("Fortschritt trägt totalBytes je Datei", async () => {
+    const cache = memCache(); const engine = makeEngine(FILES); const total = new Map<string, number>();
+    await new AssetStore(makeDeps(FILES, cache)).download(engine, (p) => total.set(p.fileName, p.totalBytes), new AbortController().signal);
+    expect(total.get("m.onnx")).toBe(300);
+  });
+  it("Bytes mit falscher Prüfsumme bleiben nicht im Cache (Kit prüft nach dem Speichern)", async () => {
+    const cache = memCache(); const engine = makeEngine(FILES);
+    const bad = { ...FILES, "m.onnx": bytes(300, 6) }; // gleiche Länge, andere Bytes
+    await expect(new AssetStore(makeDeps(bad, cache)).download(engine, () => {}, new AbortController().signal)).rejects.toThrow(/checksum mismatch: m\.onnx/);
+    expect(cache.store.has("https://audio-interface.invalid/0.1.0/m.onnx")).toBe(false);
+  });
+});
+
 describe("AssetStore mit zwei Stimmen (geteilte Laufzeit)", () => {
   const bothEngines = () => [makeEngine(FILES), makeSecondEngine(FILES)];
 
