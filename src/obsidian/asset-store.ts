@@ -5,7 +5,7 @@
 // auf die main.ts, Einstellungen, Piper-Engine und Tests bauen.
 import { requestUrl } from "obsidian";
 import { assetUrl, type AssetFile, type AssetKey, type EngineDescriptor } from "../core/engine-manifest";
-import { AssetStore as KitAssetStore, subtleSha256Hex, type AssetFile as KitAssetFile, type AssetProgress } from "../vendor/kit/asset-store";
+import { AssetStore as KitAssetStore, subtleSha256Hex, type AssetFile as KitAssetFile, type AssetProgress, type VerifyResult } from "../vendor/kit/asset-store";
 import type { CacheLike } from "../vendor/kit/cache-download";
 import { withTimeout } from "../vendor/kit/timeout";
 
@@ -25,6 +25,13 @@ export interface StoreDeps {
 }
 
 export type { AssetStatus, VerifyResult } from "../vendor/kit/asset-store";
+
+/** Meldetext zu einem fehlgeschlagenen `verify`. Das Kit meldet eine nicht geladene Datei als `actual: ""`;
+ *  das ist kein Prüfsummenfehler („got …“ mit leerem Ist-Wert), sondern „nicht geladen“ wie früher bei `getBuffer`. */
+export function verifyFailureMessage(verdict: Extract<VerifyResult, { ok: false }>): string {
+  if (verdict.actual === "") return `asset not downloaded: ${verdict.fileName}`;
+  return `checksum mismatch: ${verdict.fileName} (expected ${verdict.expected.slice(0, 12)}…, got ${verdict.actual.slice(0, 12)}…)`;
+}
 
 export interface DownloadProgress {
   fileIndex: number;

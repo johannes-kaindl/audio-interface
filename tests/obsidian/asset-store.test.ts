@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { EngineDescriptor } from "../../src/core/engine-manifest";
-import { AssetStore, type CacheLike, type StoreDeps } from "../../src/obsidian/asset-store";
+import { AssetStore, verifyFailureMessage, type CacheLike, type StoreDeps } from "../../src/obsidian/asset-store";
 
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const bytes = (n: number, seed = 1): Uint8Array<ArrayBuffer> => { const u = new Uint8Array(new ArrayBuffer(n)); for (let i = 0; i < n; i++) u[i] = (i * seed + 7) % 251; return u; };
@@ -126,6 +126,20 @@ describe("AssetStore", () => {
     const r = await store.verify(engine);
     expect(r.ok).toBe(false);
     if (!r.ok) { expect(r.fileName).toBe("o.wasm"); expect(r.expected).toBe(sha(FILES["o.wasm"])); expect(r.actual).toBe(sha(bytes(120, 4))); }
+  });
+  it("verify einer nicht geladenen Datei heißt „nicht geladen“, nicht Prüfsummenfehler", async () => {
+    const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache));
+    const missing = await store.verify(engine);
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.actual).toBe("");
+      expect(verifyFailureMessage(missing)).toBe(`asset not downloaded: ${missing.fileName}`);
+    }
+    await store.download(engine, () => {}, new AbortController().signal);
+    cache.store.set("https://audio-interface.invalid/0.1.0/o.wasm", bytes(120, 4));
+    const bad = await store.verify(engine);
+    if (bad.ok) throw new Error("erwartet: Prüfsummenfehler");
+    expect(verifyFailureMessage(bad)).toBe(`checksum mismatch: o.wasm (expected ${sha(FILES["o.wasm"]).slice(0, 12)}…, got ${sha(bytes(120, 4)).slice(0, 12)}…)`);
   });
   it("getBuffer/getText und remove", async () => {
     const cache = memCache(); const engine = makeEngine(FILES); const store = new AssetStore(makeDeps(FILES, cache));

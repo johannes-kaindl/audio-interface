@@ -8,7 +8,7 @@ import { parsePiperConfig } from "../../core/piper-phonemes";
 import type { SpeechChunk } from "../../core/speech-text";
 import type { WorkerRequest, WorkerResponse } from "../../core/worker-protocol";
 import type { ClockPort } from "../../vendor/kit-obsidian/clock";
-import type { AssetStore } from "../asset-store";
+import { verifyFailureMessage, type AssetStore } from "../asset-store";
 
 export interface WorkerLike {
   postMessage(message: WorkerRequest, transfer?: Transferable[]): void;
@@ -97,7 +97,7 @@ export class PiperEngine {
     const { store, descriptor } = this.deps;
     const verdict = await store.verify(descriptor);
     if (!verdict.ok) {
-      this.failure = `checksum mismatch: ${verdict.fileName} (expected ${verdict.expected.slice(0, 12)}…, got ${verdict.actual.slice(0, 12)}…)`;
+      this.failure = verifyFailureMessage(verdict);
       throw new Error(this.failure);
     }
     const [source, wasm, model, configText] = await Promise.all([
