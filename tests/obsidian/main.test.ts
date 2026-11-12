@@ -14,9 +14,9 @@ beforeEach(() => {
   (globalThis as unknown as { caches: unknown }).caches = { open: async () => ({ match: async () => undefined, put: async () => {}, delete: async () => true }) };
 });
 
-async function load(data: unknown = null) {
+async function load(data: unknown = null, storedAssetBase: unknown = null) {
   const app = makeFakeApp();
-  app.loadLocalStorage = () => null;
+  app.loadLocalStorage = () => storedAssetBase;
   const plugin = new AudioInterfacePlugin(app, { id: "audio-interface", name: "Audio Interface", version: "0.1.0" } as never);
   await plugin.saveData(data);
   await plugin.onload();
@@ -54,6 +54,15 @@ describe("AudioInterfacePlugin", () => {
     const view = new MarkdownView(new WorkspaceLeaf()); (view as unknown as { file: TFile }).file = new TFile();
     app.workspace.getActiveViewOfType.mockReturnValue(view);
     expect(cmd(plugin, "export-note-wav").checkCallback!(true)).toBe(true);
+  });
+  it("Asset-Basis aus dem lokalen Speicher: Loopback-http und https gelten, ein fremder Host nicht", async () => {
+    const base = (plugin: AudioInterfacePlugin) => (plugin as unknown as { assetBaseUrl: string }).assetBaseUrl;
+    const def = base((await load()).plugin);
+    expect(base((await load(null, "http://127.0.0.1:8765/assets")).plugin)).toBe("http://127.0.0.1:8765/assets");
+    expect(base((await load(null, "https://example.org/releases/download")).plugin)).toBe("https://example.org/releases/download");
+    for (const bad of ["http://evil.test/assets", "http://127.0.0.1.evil.test/assets", "ftp://127.0.0.1/x", "javascript:alert(1)", "kein url"]) {
+      expect(base((await load(null, bad)).plugin)).toBe(def);
+    }
   });
   it("Settings werden normalisiert geladen", async () => {
     const { plugin } = await load({ speakRate: 7, exportProfile: "mp3" });

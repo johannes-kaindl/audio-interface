@@ -1,4 +1,4 @@
-// vendored from code-kit@0.49.0, src/ts/web/asset-store.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
+// vendored from code-kit@0.63.0, src/ts/web/asset-store.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
 // Lifted into code-kit (2026-11-03) from audio-interface/src/obsidian/asset-store.ts (Stand Tag 0.7.4), which in turn
 // took the pattern from local-image-generator/src/obsidian/model-store.ts. Second consumer: protocol-droid (Plan 2).
 // Differences from the original, all deliberate:
@@ -25,6 +25,18 @@ export interface AssetFile {
 export interface AssetSet {
   id: string;
   assets: readonly AssetFile[];
+}
+
+/** The download URL of a file below a base URL: `base` without trailing slashes, `/`, `relPath` (a file name, or a path inside the release/bucket).
+ *  For `AssetStoreDeps.urlFor`. The same line stood in protocol-droid, audio-interface (with a version segment) and local-image-generator,
+ *  two of them stripping trailing slashes and one not. */
+export function joinAssetUrl(base: string, relPath: string): string {
+  return `${base.replace(/\/+$/, "")}/${relPath}`;
+}
+
+/** The summed `bytes` of a set (for the download size shown before the download). */
+export function totalBytes(set: AssetSet): number {
+  return set.assets.reduce((n, f) => n + f.bytes, 0);
 }
 
 export type AssetStatus = "missing" | "partial" | "complete";

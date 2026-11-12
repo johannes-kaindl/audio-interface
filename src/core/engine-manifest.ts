@@ -4,6 +4,7 @@
 // Seit 0.3.0 mehrstimmig: die generierte Datei liefert die GETEILTE Laufzeit (Worker + ORT-WASM) und
 // je Stimme Modell + Config; die redaktionelle Seite (Label, Werks-Tempo, Lizenz-Kurzform) steht hier.
 // Getrennt, weil das eine gemessen ist und das andere entschieden.
+import { joinAssetUrl } from "../vendor/kit/asset-store";
 import { PIPER_SHARED_ASSETS, PIPER_VOICES } from "./engine-manifest.generated";
 
 export type AssetKey = "worker" | "wasm" | "model" | "modelConfig";
@@ -133,7 +134,7 @@ export function defaultExportEngineId(uiLang: string | null | undefined): string
 }
 
 export function assetUrl(baseUrl: string, version: string, file: AssetFile): string {
-  return `${baseUrl.replace(/\/+$/, "")}/${version}/${file.fileName}`;
+  return joinAssetUrl(baseUrl, `${version}/${file.fileName}`);
 }
 
 export function totalBytes(e: EngineDescriptor): number {

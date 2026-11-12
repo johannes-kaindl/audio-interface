@@ -4,8 +4,8 @@
     "code-kit": { "ref": "0.27.1" }
   },
   "targets": [
-    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num", "format-bytes", "local-stamp", { "name": "pcm", "ref": "0.46.0" }] },
-    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/web", "modules": ["cache-download", { "name": "asset-store", "ref": "0.49.0" }] },
+    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num", "format-bytes", "local-stamp", { "name": "loopback", "ref": "0.63.0" }, { "name": "pcm", "ref": "0.46.0" }] },
+    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/web", "modules": ["cache-download", { "name": "asset-store", "ref": "0.63.0" }] },
     { "dir": "src/vendor/kit", "source": "obsidian-kit", "from": "src/pure", "modules": ["vault-path", "audio-provider"] },
     { "dir": "src/vendor/kit-obsidian", "source": "obsidian-kit", "from": "src/obsidian", "modules": ["settings_walker", "folder-suggest", "clock", "confirm", "help-setting", "shortcuts-bridge"] },
     { "dir": "tests/vendor/kit", "source": "obsidian-kit", "from": "src/testing", "modules": ["obsidian-mock"] }

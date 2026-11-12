@@ -5,6 +5,7 @@
 // Hier liegt seitdem nur noch das SCHEMA: welches Feld welche Sonderregel hat. Die Pruefung selbst
 // steht in src/vendor/kit/settings_schema.ts.
 import { isLoadableEngineId, PIPER_DE_ENGINE_ID } from "./engine-manifest";
+import { isLoopbackHttpUrl } from "../vendor/kit/loopback";
 import { check, clampFloatField, clampIntField, nonEmptyString, oneOf, validateSettings } from "../vendor/kit/settings_schema";
 
 export type ExportProfile = "phone-8k" | "native";
@@ -33,8 +34,9 @@ export interface AudioInterfaceSettings {
   /**
    * Basis-URL des lokalen `audio-ui`-Diensts.
    *
-   * ⚠️ Nur localhost — s. `isLocalServiceUrl`. Eine frei waehlbare Adresse hiesse,
-   * dass ein Vertipper private Sprachnotizen an einen fremden Server schickt.
+   * ⚠️ Nur localhost — s. `isLoopbackHttpUrl` (Kit). Der Dienst bindet fest auf `127.0.0.1` und weist
+   * jeden anderen `Host` ab (audio-ui `service/app.py`); die Grenze hier spiegelt das. Eine frei
+   * waehlbare Adresse hiesse, dass ein Vertipper private Sprachnotizen an einen fremden Server schickt.
    */
   transcribeServiceUrl: string;
   /** Welches Backend die Umschrift ausführt — localhost-Dienst (Default, Desktop) oder
@@ -53,29 +55,6 @@ export interface AudioInterfaceSettings {
   ttsShortcutFolder: string;
   ttsShortcutTimeoutMs: number;
 }
-
-/**
- * Erlaubt genau die Adressen, unter denen der Dienst ueberhaupt lauscht: er bindet
- * fest auf `127.0.0.1` und weist alles ab, dessen `Host` nicht `127.0.0.1`,
- * `localhost` oder `[::1]` ist (audio-ui `service/app.py`). Diese Grenze hier
- * spiegelt das, damit das Plugin gar nicht erst irgendwohin sendet.
- *
- * `http://127.0.0.1.evil.test` faellt durch: `hostname` ist dann der ganze Name,
- * nicht das Praefix.
- */
-export function isLocalServiceUrl(value: unknown): boolean {
-  if (typeof value !== "string" || value.trim() === "") return false;
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return false;
-  }
-  if (url.protocol !== "http:") return false;
-  return LOCAL_HOSTS.includes(url.hostname);
-}
-
-const LOCAL_HOSTS: readonly string[] = ["127.0.0.1", "localhost", "[::1]"];
 
 export const SPEAK_RATE = { min: 0.5, max: 2, step: 0.1 } as const;
 export const EXPORT_PROFILES: readonly ExportProfile[] = ["phone-8k", "native"];
@@ -116,7 +95,7 @@ export function normalizeSettings(raw: unknown): AudioInterfaceSettings {
     exportFilePattern: nonEmptyString({ trim: "check" }),
     // Faellt eine fremde Adresse auf den Default zurueck, statt sie zu uebernehmen:
     // die Einstellung ist eine Ziel-Erlaubnis, kein Freitext.
-    transcribeServiceUrl: check<string>(isLocalServiceUrl),
+    transcribeServiceUrl: check<string>(isLoopbackHttpUrl),
     transcribeBackend: oneOf(TRANSCRIBE_BACKENDS),
     transcribeShortcutName: nonEmptyString({ trim: "check" }),
     transcribeShortcutTimeoutMs: clampIntField(SHORTCUT_TIMEOUT_MS.min, SHORTCUT_TIMEOUT_MS.max),

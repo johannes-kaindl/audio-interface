@@ -21,6 +21,7 @@ import { createAudioProviderApi } from "./obsidian/plugin-api";
 import { realClock } from "./vendor/kit-obsidian/clock";
 import { createShortcutsBridge, type ShortcutsBridge } from "./vendor/kit-obsidian/shortcuts-bridge";
 import type { AudioProviderApi } from "./vendor/kit/audio-provider";
+import { isLoopbackHttpUrl } from "./vendor/kit/loopback";
 import { localDate } from "./vendor/kit/local-stamp";
 
 /** Global im `obsidian://`-Namensraum (Kit-Konvention `<plugin-id>-shortcut`) — EIN Handler für
@@ -29,6 +30,14 @@ const PROTOCOL_ACTION = "audio-interface-shortcut";
 
 /** Für den GUI-Smoke überschreibbar (lokaler Asset-Server): app.saveLocalStorage("audio-interface-asset-base", url). */
 const ASSET_BASE_KEY = "audio-interface-asset-base";
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 function realMakeWorker(source: string): WorkerLike {
   const url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
@@ -82,7 +91,12 @@ export default class AudioInterfacePlugin extends Plugin {
     initI18n(getLanguage());
     await this.loadSettings();
     const stored: unknown = this.app.loadLocalStorage(ASSET_BASE_KEY);
-    if (typeof stored === "string" && stored.trim() !== "") this.assetBaseUrl = stored.trim();
+    // Gerätelokal (nicht data.json), aber ungeprüft übernommen hieße: wer den Speicher beschreibt, bestimmt, woher
+    // Worker und Modell kommen. Gilt nur Loopback-http (GUI-Smoke-Server) oder https (Spiegel); Prüfsummen binden die Bytes zusätzlich.
+    if (typeof stored === "string") {
+      const base = stored.trim();
+      if (isLoopbackHttpUrl(base) || isHttpsUrl(base)) this.assetBaseUrl = base;
+    }
 
     if (loadableEngines().length === 0) throw new Error("engine manifest broken");
     // Asset-Version = Plugin-Version: die Release-Assets liegen am Tag des Plugins.
