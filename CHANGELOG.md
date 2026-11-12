@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A voice whose files are not downloaded yet is reported as "asset not downloaded: <file>" instead of a checksum error with an empty "got" value.
+
+### Changed
+
+- A custom asset address kept in the app's local storage (used by the smoke test and for mirrors) is only accepted if it is an `https:` address or an `http:` address on this machine (`127.0.0.1`, `localhost`, `[::1]`); anything else falls back to the release address.
+- Internal: the download address builder and the loopback check now come from code-kit 0.63.0 (`asset-store` was 0.49.0).
+
 ## [0.7.4] — 2026-10-25
 
 ### Changed
