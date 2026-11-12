@@ -5,5 +5,6 @@
   "vendored": "i18n.ts, timeout.ts, run-state.ts, settings_schema.ts, num.ts, format-bytes.ts, local-stamp.ts, loopback.ts (code-kit@0.63.0, ce90bf0), pcm.ts (code-kit@0.46.0, 8e5421c), cache-download.ts, asset-store.ts (code-kit@0.63.0, ce90bf0)",
   "obsidian_kit_version": "0.60.1",
   "obsidian_kit_sha": "4dfbd4e",
-  "obsidian_kit_vendored": "vault-path.ts, audio-provider.ts"
+  "obsidian_kit_vendored": "vault-path.ts, audio-provider.ts",
+  "license": "AGPL-3.0-or-later"
 }
