@@ -2,7 +2,8 @@ import { getLanguage, MarkdownView, Notice, Plugin, requestUrl, TFile, TFolder, 
 import { defaultExportEngineId, engineById, loadableEngines, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
 import { exportEngineFor, speakEngineFor, type EngineReadiness } from "./core/engines";
 import { isTranscribableAudio, transcriptNote } from "./core/dictation-service";
-import { joinVaultPath, withSuffix } from "./core/file-naming";
+import { joinVaultPath } from "./core/file-naming";
+import { firstFreeName } from "./vendor/kit/filename-policy";
 import { abort, begin, fail, finish, IDLE, isBusy, progress, type RunState } from "./core/run-state";
 import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-types";
 import { initI18n, t } from "./i18n/strings";
@@ -347,7 +348,7 @@ export default class AudioInterfacePlugin extends Plugin {
         return;
       }
       const base = joinVaultPath(file.parent?.path ?? "", file.basename);
-      const path = withSuffix(base, "md", (candidate) => this.app.vault.getAbstractFileByPath(candidate) !== null);
+      const path = firstFreeName(`${base}.md`, "file", (candidate) => this.app.vault.getAbstractFileByPath(candidate) !== null, { style: "dash" });
       const note = await this.app.vault.create(path, transcriptNote(outcome.text, file.name));
       await this.app.workspace.getLeaf(true).openFile(note);
       new Notice(t("notice.transcribed", note.name));

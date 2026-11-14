@@ -2,7 +2,8 @@
 // Zustand über den Zustandsautomaten (core/run-state); die Vault-Schreibphase ist der Punkt ohne
 // Wiederkehr. Vault nur über einen schmalen Port — Node-testbar, kein `fs`.
 import { encodeWav, normalizePeak, resample, type PcmBuffer } from "../vendor/kit/pcm";
-import { joinVaultPath, renderFileName, withSuffix } from "../core/file-naming";
+import { joinVaultPath, renderFileName } from "../core/file-naming";
+import { firstFreeName } from "../vendor/kit/filename-policy";
 import { abort, begin, fail, finish, progress, type RunState } from "../core/run-state";
 import type { AudioInterfaceSettings } from "../core/settings-types";
 import { prepareSpeech } from "../core/speech-text";
@@ -90,7 +91,7 @@ export async function runExport(input: ExportInput, deps: ExportDeps, signal: Ab
     const folder = deps.settings.exportFolder.trim() !== "" ? deps.settings.exportFolder.trim() : input.noteFolder;
     if (folder !== "" && !deps.vault.folderExists(folder)) await deps.vault.createFolder(folder);
     const base = renderFileName(deps.settings.exportFilePattern, { note: input.noteBasename, date: input.today });
-    const fileName = withSuffix(base, "wav", (candidate) => deps.vault.exists(joinVaultPath(folder, candidate)));
+    const fileName = firstFreeName(`${base}.wav`, "file", (candidate) => deps.vault.exists(joinVaultPath(folder, candidate)), { style: "dash" });
     const path = joinVaultPath(folder, fileName);
     await deps.vault.createBinary(path, wav);
     emit(finish(state, path));

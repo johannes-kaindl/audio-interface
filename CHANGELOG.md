@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows
 
 - A custom asset address kept in the app's local storage (used by the smoke test and for mirrors) is only accepted if it is an `https:` address or an `http:` address on this machine (`127.0.0.1`, `localhost`, `[::1]`); anything else falls back to the release address.
 - Internal: the download address builder and the loopback check now come from code-kit 0.63.0 (`asset-store` was 0.49.0).
+- Internal: the numbering of an export or transcript name that already exists (`name-2.wav`) now comes from `firstFreeName` of code-kit 0.68.0 instead of a private loop; the names stay the same.
 
 ## [0.7.4] — 2026-10-25
 
