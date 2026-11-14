@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Internal: the release gate is reproducible again. The voice files are now fetched from a pinned revision of rhasspy/piper-voices (and cached per revision) instead of `main`; after the upstream retrained the German voice on 2026-11-09, a fresh build produced a different manifest than a build from an old cache, and the CI gate failed for 0.8.0. The pinned revision is the one the 0.7.4 manifest was built from: the voices, their sizes and checksums do not change, and nobody has to download anything again.
+
 ## [0.8.0] — 2026-11-14
 
 ### Added

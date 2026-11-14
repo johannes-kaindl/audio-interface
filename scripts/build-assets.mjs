@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Baut die Release-Assets und schreibt das generierte Manifest (Größe + SHA-256 je Datei).
 // Die Prüfsummen landen so in main.js; der Loader vergleicht vor dem Instanziieren (Spec §5).
-// Idempotent; Downloads werden unter ~/.cache/audio-interface-assets/ gehalten.
+// Idempotent; Downloads werden unter ~/.cache/audio-interface-assets/<hf-revision>/ gehalten.
 //
 // Mehrstimmig seit 0.3.0: Worker und ORT-WASM sind GEMEINSAME Assets (eine Kopie im Cache, der
 // Schlüssel ist dateibasiert), Modell + Config liegen je Stimme. Die redaktionelle Seite (Label,
@@ -12,12 +12,18 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileS
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const HF = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
+// Revision gepinnt, nicht `main`: rhasspy/piper-voices trainiert Stimmen nach (thorsten am 2026-11-09, Commit cf910fb59f: .onnx 63201294 → 63221984 Bytes,
+// .onnx.json 4819 → 5460 Bytes). Mit `main` baute dieselbe Quelle je nach Cache-Alter ein anderes Manifest, und `check:manifest` wurde nur in der frischen CI rot
+// (Release 0.8.0, GitHub-Lauf 43612218288). Die Revision ist der letzte Stand VOR dieser Änderung: Größe und SHA-256 aller vier Dateien stimmen mit dem Manifest von
+// 0.7.4 überein (gemessen 2026-11-14, Download je Datei). Eine neue Stimmen-Revision ist eine hörbare Entscheidung: Revision heben, `npm run assets`, Manifest committen.
+const HF_REVISION = "e7229f7d33a10e145e109b886d661984201ac3c4";
+const HF = `https://huggingface.co/rhasspy/piper-voices/resolve/${HF_REVISION}/`;
 const VOICES = [
   { voice: "de_DE-thorsten-medium", path: "de/de_DE/thorsten/medium/", license: "Piper voice thorsten (dataset CC0)" },
   { voice: "en_US-ljspeech-medium", path: "en/en_US/ljspeech/medium/", license: "Piper voice ljspeech (dataset public domain)" },
 ];
-const cache = join(homedir(), ".cache", "audio-interface-assets");
+// Der Cache-Schlüssel trägt die Revision: eine andere Revision trifft nie die Dateien einer früheren (vorher `<datei>` flach, also eine schwimmende Quelle mit festem Schlüssel).
+const cache = join(homedir(), ".cache", "audio-interface-assets", HF_REVISION.slice(0, 12));
 mkdirSync(cache, { recursive: true });
 mkdirSync("dist-assets", { recursive: true });
 
