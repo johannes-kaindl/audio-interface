@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A "Status bar" switch in the settings (Reading group), on by default.** It shows or hides the plugin's status-bar entry (reading, rendering, download progress). An existing install keeps the entry; turning the switch off removes it from the bar and turning it on puts it back at the end of the bar. The entry is not shown on phones, the plugin works there as before.
+
 ### Fixed
 
 - A voice whose files are not downloaded yet is reported as "asset not downloaded: <file>" instead of a checksum error with an empty "got" value.

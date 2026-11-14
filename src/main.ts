@@ -16,6 +16,7 @@ import { ShortcutTtsError, speakViaShortcut } from "./obsidian/shortcut-tts";
 import { ShortcutsTranscriber } from "./obsidian/shortcuts-transcriber";
 import { Speaker, SpeakerError } from "./obsidian/speaker";
 import { StatusBar } from "./obsidian/status-bar";
+import { createStatusBarItem, statusBarEnabled, type StatusBarItemHandle } from "./vendor/kit-obsidian/status-bar-item";
 import { Transcriber } from "./obsidian/transcriber";
 import { createAudioProviderApi } from "./obsidian/plugin-api";
 import { realClock } from "./vendor/kit-obsidian/clock";
@@ -74,6 +75,7 @@ export default class AudioInterfacePlugin extends Plugin {
   /** Eine Engine je ladbarer Stimme; aktiv (Worker im Speicher) ist immer höchstens die gewählte. */
   private engines = new Map<string, PiperEngine>();
   private statusBar!: StatusBar;
+  private statusItem!: StatusBarItemHandle;
   private player!: AudioContextPlayer;
   private transcriber!: Transcriber;
   private shortcutsTranscriber!: ShortcutsTranscriber;
@@ -108,7 +110,18 @@ export default class AudioInterfacePlugin extends Plugin {
     }
     this.applyEngineSelection();
     this.player = new AudioContextPlayer();
-    this.statusBar = new StatusBar(this.addStatusBarItem(), () => this.stopAll());
+    this.statusItem = createStatusBarItem({
+      plugin: this,
+      visible: statusBarEnabled(this.settings.showStatusBar),
+      text: null,
+      // Läuft bei jedem neu angelegten Element (der Baustein legt es beim Wiedereinschalten neu an).
+      onCreate: (el) => {
+        el.addClass("audio-interface-status");
+        el.setAttr("aria-label", t("status.tooltip"));
+        el.addEventListener("click", () => this.stopAll());
+      },
+    });
+    this.statusBar = new StatusBar(this.statusItem);
     this.speaker = new Speaker({
       system: this.system,
       loadable: () => (this.readiness === "ready" ? this.piper : null),
@@ -204,6 +217,7 @@ export default class AudioInterfacePlugin extends Plugin {
         void this.refreshReadiness();
       },
       onSettingsChanged: (key) => {
+        if (key === "showStatusBar") this.statusItem.setVisible(statusBarEnabled(this.settings.showStatusBar));
         if (key === "exportEnabled" || key === "exportEngineId") {
           // Beim Stimmenwechsel läuft evtl. noch die alte Engine — erst anhalten, dann umschalten.
           if (key === "exportEngineId") this.speaker.stop();

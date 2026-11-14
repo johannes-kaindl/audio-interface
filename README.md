@@ -92,7 +92,7 @@ Source: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/
 
 | | |
 |---|---|
-| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="The Obsidian status bar in the lower right corner showing the entry Reading 1/5 while a note is read aloud"></a> | The status bar item shows what is happening — *Reading 1/5*, *Rendering 2/9*, *Downloading 12/78 MB* — and a click stops it. |
+| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="The Obsidian status bar in the lower right corner showing the entry Reading 1/5 while a note is read aloud"></a> | The status bar item shows what is happening — *Reading 1/5*, *Rendering 2/9*, *Downloading 12/78 MB* — and a click stops it. You can hide it with the **Status bar** switch in the settings. |
 
 ### Configuration
 

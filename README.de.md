@@ -83,7 +83,7 @@ Quelle: [git.jkaindl.de/jkaindl/audio-interface](https://git.jkaindl.de/jkaindl/
 
 | | |
 |---|---|
-| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="Die Obsidian-Statusleiste unten rechts mit dem Eintrag Reading 1/5, während eine Notiz vorgelesen wird"></a> | Der Statusleisten-Eintrag zeigt, was gerade passiert — *Vorlesen 1/5*, *Rendern 2/9*, *Lade 12/78 MB* — und ein Klick stoppt es. |
+| <a href="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/status-bar.png"><img src="https://raw.githubusercontent.com/johannes-kaindl/audio-interface/main/docs/images/thumbs/status-bar.png" width="380" alt="Die Obsidian-Statusleiste unten rechts mit dem Eintrag Reading 1/5, während eine Notiz vorgelesen wird"></a> | Der Statusleisten-Eintrag zeigt, was gerade passiert — *Vorlesen 1/5*, *Rendern 2/9*, *Lade 12/78 MB* — und ein Klick stoppt es. Ausblenden kannst du ihn mit dem Schalter **Statusleiste** in den Einstellungen. |
 
 ### Konfiguration
 

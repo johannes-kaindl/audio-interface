@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PIPER_DE_ENGINE_ID, PIPER_EN_ENGINE_ID } from "../../src/core/engine-manifest";
 import { DEFAULT_SETTINGS, normalizeSettings } from "../../src/core/settings-types";
+import { STATUS_BAR_DEFAULT } from "../../src/vendor/kit-obsidian/status-bar-item";
 
 describe("normalizeSettings", () => {
   it("liefert Defaults für null/undefined/Müll", () => {
@@ -22,6 +23,13 @@ describe("normalizeSettings", () => {
     expect(normalizeSettings({ exportEnabled: "yes" }).exportEnabled).toBe(false);
     expect(normalizeSettings({ exportFolder: 42 }).exportFolder).toBe("");
     expect(normalizeSettings({ exportInsertLink: true }).exportInsertLink).toBe(true);
+  });
+  it("showStatusBar: Standard an, eine alte data.json ohne den Schlüssel bleibt an, ein gespeichertes false bleibt aus, Müll fällt auf an", () => {
+    expect(DEFAULT_SETTINGS.showStatusBar).toBe(STATUS_BAR_DEFAULT);
+    expect(normalizeSettings({}).showStatusBar).toBe(true);
+    expect(normalizeSettings({ speakRate: 1.2, exportEnabled: true }).showStatusBar).toBe(true);
+    expect(normalizeSettings({ showStatusBar: false }).showStatusBar).toBe(false);
+    expect(normalizeSettings({ showStatusBar: "nein" }).showStatusBar).toBe(true);
   });
   it("verwirft unbekannte exportProfile-Werte auf den Default", () => {
     expect(normalizeSettings({ exportProfile: "mp3" }).exportProfile).toBe("phone-8k");

@@ -2,6 +2,7 @@
 // damit main.ts sie nur füttern muss.
 import { IDLE, type RunState } from "../core/run-state";
 import { t } from "../i18n/strings";
+import type { StatusBarItemHandle } from "../vendor/kit-obsidian/status-bar-item";
 import type { SpeakerState } from "./speaker";
 
 export function statusText(speaker: SpeakerState, run: RunState): string | null {
@@ -18,17 +19,12 @@ export function statusText(speaker: SpeakerState, run: RunState): string | null 
   return null;
 }
 
+/** Hängt die Zustände an den Kit-Handle (`createStatusBarItem`): Text je Zustand, `null` blendet den Eintrag aus. Klick, Klasse und `aria-label` setzt `main.ts` in `onCreate` des Handles. */
 export class StatusBar {
   private speaker: SpeakerState = { kind: "idle" };
   private run: RunState = IDLE;
 
-  constructor(
-    private readonly el: HTMLElement,
-    onClick: () => void,
-  ) {
-    el.addClass("audio-interface-status");
-    el.setAttr("aria-label", t("status.tooltip"));
-    el.addEventListener("click", onClick);
+  constructor(private readonly item: StatusBarItemHandle) {
     this.render();
   }
 
@@ -43,8 +39,6 @@ export class StatusBar {
   }
 
   private render(): void {
-    const text = statusText(this.speaker, this.run);
-    this.el.setText(text ?? "");
-    this.el.toggleClass("is-hidden", text === null);
+    this.item.set(statusText(this.speaker, this.run));
   }
 }

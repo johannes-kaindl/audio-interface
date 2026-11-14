@@ -122,6 +122,35 @@ describe("AudioInterfacePlugin", () => {
     app.vault.getAbstractFileByPath.mockReturnValue(null);
     expect(await plugin.api.transcribe("fehlt.m4a")).toEqual({ error: "not-found", message: "Datei nicht gefunden: fehlt.m4a" });
   });
+  describe("Statusleiste", () => {
+    type Item = { shown: boolean; el: { hasClass(c: string): boolean; textContent?: string } | null };
+    const item = (plugin: AudioInterfacePlugin) => (plugin as unknown as { statusItem: Item }).statusItem;
+    const tab = (plugin: AudioInterfacePlugin) => (plugin as unknown as { settingTab: { setControlValue(k: string, v: unknown): Promise<void> } }).settingTab;
+    it("frische Installation und alte data.json ohne den Schlüssel: Eintrag steht in der Leiste", async () => {
+      expect(item((await load()).plugin).shown).toBe(true);
+      expect(item((await load({ speakRate: 1.3, exportEnabled: false })).plugin).shown).toBe(true);
+    });
+    it("gespeichertes false: Eintrag wird gar nicht angelegt", async () => {
+      const { plugin } = await load({ showStatusBar: false });
+      expect(item(plugin).shown).toBe(false); expect(item(plugin).el).toBeNull();
+    });
+    it("Umschalten hängt den Eintrag ab und legt ihn neu an, der Wert wird gespeichert; Klick-Zustand bleibt am neuen Element", async () => {
+      const { plugin } = await load();
+      await tab(plugin).setControlValue("showStatusBar", false);
+      expect(item(plugin).shown).toBe(false);
+      expect(plugin.settings.showStatusBar).toBe(false);
+      expect(await plugin.loadData()).toMatchObject({ showStatusBar: false });
+      await tab(plugin).setControlValue("showStatusBar", true);
+      expect(item(plugin).shown).toBe(true);
+      expect(item(plugin).el!.hasClass("audio-interface-status")).toBe(true);
+    });
+    it("Zustandsmeldungen bei ausgeschalteter Leiste brechen nichts (Sprecher meldet weiter)", async () => {
+      const { plugin } = await load({ showStatusBar: false });
+      expect(() => (plugin as unknown as { statusBar: { setSpeaker(s: unknown): void } }).statusBar.setSpeaker({ kind: "speaking", paused: false, engine: "builtin", done: 0, total: 2 })).not.toThrow();
+      await tab(plugin).setControlValue("showStatusBar", true);
+      expect(item(plugin).el!.textContent).toBe("Reading 1/2");
+    });
+  });
   it("onunload stoppt und gibt die Engine frei", async () => {
     const { plugin } = await load();
     const dispose = vi.spyOn(plugin.piper, "dispose"); const stop = vi.spyOn(plugin.speaker, "stop");

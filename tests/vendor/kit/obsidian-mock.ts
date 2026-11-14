@@ -1,4 +1,4 @@
-// vendored from obsidian-kit@0.60.1, src/testing/obsidian-mock.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
+// vendored from obsidian-kit@0.88.0, src/testing/obsidian-mock.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
 // Self-contained Obsidian test double for obsidian-kit.
 // - Zero external imports (NOT from "obsidian", NOT from "vitest").
 // - Consumed via vitest `resolve.alias` as a drop-in for `import ... from "obsidian"`,
@@ -11,30 +11,57 @@
 // ---------------------------------------------------------------------------
 // Internal spy helper (replaces vitest's `vi.fn` so this file stays dep-free).
 // ---------------------------------------------------------------------------
+/** Spy ohne vitest. Seit 0.61.0 so weit vi-kompatibel, wie Konsumenten-Tests ihn brauchen: `vi.mocked(x).mockReset()`/`…Once`,
+ *  und die vitest-Matcher (`toHaveBeenCalledTimes` …) erkennen ihn (`_isMockFunction`, `getMockName`). `mock.results` hält
+ *  weiter die rohen Rückgabewerte (nicht vitests `{ type, value }`). */
 export interface MockFn {
   (...args: any[]): any;
   mock: { calls: any[][]; results: any[] };
+  _isMockFunction: true;
+  getMockName(): string;
+  mockName(name: string): MockFn;
   mockImplementation(impl: (...args: any[]) => any): MockFn;
+  mockImplementationOnce(impl: (...args: any[]) => any): MockFn;
   mockReturnValue(value: any): MockFn;
+  mockReturnValueOnce(value: any): MockFn;
   mockResolvedValue(value: any): MockFn;
+  mockResolvedValueOnce(value: any): MockFn;
   mockRejectedValue(value: any): MockFn;
+  mockRejectedValueOnce(value: any): MockFn;
+  /** Räumt nur die Aufrufe ab; Implementierung und Once-Warteschlange bleiben. */
   mockClear(): MockFn;
+  /** Räumt Aufrufe, Once-Warteschlange und gesetzte Implementierung ab und stellt die Grundimplementierung (das Argument von `fn`) wieder her. */
+  mockReset(): MockFn;
+  /** Wie `mockReset` (es gibt kein Original, das wiederherzustellen wäre). */
+  mockRestore(): MockFn;
 }
 
 function fn(impl?: (...args: any[]) => any): MockFn {
   let implementation = impl;
+  let name = "vi.fn()";
+  const once: Array<(...args: any[]) => any> = [];
   const spy = ((...args: any[]) => {
     spy.mock.calls.push(args);
-    const result = implementation ? implementation(...args) : undefined;
+    const run = once.length > 0 ? once.shift() : implementation;
+    const result = run ? run(...args) : undefined;
     spy.mock.results.push(result);
     return result;
   }) as MockFn;
   spy.mock = { calls: [], results: [] };
+  spy._isMockFunction = true;
+  spy.getMockName = () => name;
+  spy.mockName = (n) => { name = n; return spy; };
   spy.mockImplementation = (i) => { implementation = i; return spy; };
+  spy.mockImplementationOnce = (i) => { once.push(i); return spy; };
   spy.mockReturnValue = (v) => { implementation = () => v; return spy; };
+  spy.mockReturnValueOnce = (v) => { once.push(() => v); return spy; };
   spy.mockResolvedValue = (v) => { implementation = () => Promise.resolve(v); return spy; };
+  spy.mockResolvedValueOnce = (v) => { once.push(() => Promise.resolve(v)); return spy; };
   spy.mockRejectedValue = (v) => { implementation = () => Promise.reject(v); return spy; };
+  spy.mockRejectedValueOnce = (v) => { once.push(() => Promise.reject(v)); return spy; };
   spy.mockClear = () => { spy.mock.calls = []; spy.mock.results = []; return spy; };
+  spy.mockReset = () => { spy.mockClear(); once.length = 0; implementation = impl; return spy; };
+  spy.mockRestore = () => spy.mockReset();
   return spy;
 }
 
@@ -94,8 +121,13 @@ export function makeFakeEl(tagName = "DIV"): any {
     /** Hängt sich beim Elternknoten aus, wie im echten DOM. Nötig für Kit-Module, die
      *  Zusatz-DOM in-place wieder wegnehmen (Drittanbieter-Icon der Endpunkt-Liste). */
     remove() { parent?.removeChild?.(el); },
-    focus() {},
+    /** Zählt die Aufrufe (`__focusCount`, `__selectCount`, 0.80.0): ein Dialog, der den Fokus ins Feld setzt oder die Vorbelegung markiert, ist so prüfbar. */
+    focus() { el.__focusCount = (el.__focusCount ?? 0) + 1; },
+    select() { el.__selectCount = (el.__selectCount ?? 0) + 1; },
     blur() {},
+    /** Wie Obsidians `hide()`/`show()` (0.85.0): setzt und löscht `style.display`, damit ein Test das Ausblenden sieht. */
+    hide() { style.display = "none"; },
+    show() { style.display = ""; },
 
     createEl: (tag: string, o?: any) => makeChild(tag, o),
     createDiv: (o?: any) => makeChild("div", o),
@@ -176,7 +208,12 @@ export function makeFakeEl(tagName = "DIV"): any {
       if (arr) { const i = arr.indexOf(cb); if (i >= 0) arr.splice(i, 1); }
     },
     dispatchEvent: (evt: any) => { (listeners[evt?.type] ?? []).forEach((cb) => cb(evt)); return true; },
-    click: () => { (listeners["click"] ?? []).forEach((cb) => cb()); },
+    /** Löst die Click-Handler mit einem Minimal-Ereignis aus (`preventDefault`/`stopPropagation`, 0.63.0): Kit-Module,
+     *  die einen Klick abfangen (Kopier-Knopf im `<summary>` des Denkblocks), rufen beides ohne Prüfung auf. */
+    click: () => {
+      const evt = { type: "click", defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, stopPropagation() {} };
+      (listeners["click"] ?? []).forEach((cb) => cb(evt));
+    },
 
     // Permissive guard stub (markdown-presentation): refine per test if needed.
     instanceOf: (_type: any) => true,
@@ -274,7 +311,7 @@ export class DropdownComponent {
   addOptions(options: Record<string, string>): this { Object.assign(this.options, options); return this; }
   getValue(): string { return this._value; }
   setValue(v: string): this { this._value = String(v ?? ""); return this; }
-  setDisabled(_d: boolean): this { return this; }
+  setDisabled(d: boolean): this { this.selectEl.disabled = Boolean(d); return this; }   // wie Obsidian: das `<select>` trägt `disabled`
   onChange(cb: (v: string) => any): this { this.onChangeCB = cb; return this; }
 }
 export class SliderComponent {
@@ -449,6 +486,8 @@ export class Setting {
    *  Kit-Module zeichnen dort Zusatz-DOM neben die `add*`-Komponenten — die Endpunkt-Liste
    *  etwa Status-Icon, Rollenzeile, Warn-/Drittanbieter-Icon und den Modell-Slot. */
   controlEl: any;
+  /** Beschreibungsbereich der Zeile (im echten Obsidian `.setting-item-description`); Zusatz-DOM unter der Beschreibung, etwa ein Hinweis, der Form und Text trägt. */
+  descEl: any;
   components: any[] = [];
   nameValue = "";
   descValue = "";
@@ -460,6 +499,7 @@ export class Setting {
     this.controlEl = this.settingEl?.createDiv
       ? this.settingEl.createDiv({ cls: "setting-item-control" })
       : makeFakeEl();
+    this.descEl = makeFakeEl();   // losgelöst wie im Fallback oben: kein Kind von settingEl, damit Tests, die dessen Kinder zählen, unberührt bleiben
     Setting.__last = this;
   }
   /** Wie im echten Obsidian landen die `add*`-Elemente in controlEl, nicht direkt in
@@ -709,17 +749,35 @@ export class FuzzySuggestModal<T> {
  *  bricht ein Import, der von ihr erbt, mit „Class extends value undefined“. Anders als `FuzzySuggestModal` (hier ohne Modal-Basis)
  *  erbt sie von `Modal`; `open()`/`close()` tun nichts, wie in der Hand-Kopie, aus der sie stammt. */
 export class SuggestModal<T> extends Modal {
-  inputEl: { value: string } = { value: "" };
+  /** Mit `dispatchEvent` (Chat-Verlauf, 0.73.0): der Dialog zeichnet seine Liste über ein `input`-Ereignis des Feldes neu; der Stub merkt sich die Typen in `__events`. */
+  inputEl: { value: string; dispatchEvent(e: { type: string }): boolean } = {
+    value: "",
+    dispatchEvent: (e) => { this.__events.push(e.type); return true; },
+  };
+  /** Wie im echten Obsidian: 100 Zeilen, `0` hebt die Kappung auf. Der Stub kappt nichts, ein Test liest den Wert. */
+  limit = 100;
+  emptyStateText = "No results found.";
+  resultContainerEl: any = makeFakeEl();
   /** Letzte gebaute Instanz, damit ein Test sie erreicht, wenn das Plugin sie selbst baut. */
   static __instance: any = null;
+  /** Typen der Ereignisse, die der Dialog am Eingabefeld ausgelöst hat. */
+  __events: string[] = [];
+  /** Zuletzt gesetzte Anweisungszeile (`setInstructions`). */
+  __instructions: Array<{ command: string; purpose: string }> = [];
+  /** Das „markierte“ Element für `selectActiveSuggestion`; der Test setzt es (der Stub zeichnet keine Liste). */
+  __active: T | undefined = undefined;
   constructor(app?: any) {
     super(app);
     (this.constructor as any).__instance = this;
     SuggestModal.__instance = this;
   }
   setPlaceholder(_s: string): this { return this; }
+  setInstructions(i: Array<{ command: string; purpose: string }>): this { this.__instructions = i; return this; }
   getSuggestions(_query: string): T[] | Promise<T[]> { return []; }
   renderSuggestion(_value: T, _el: any): void {}
+  /** Wie Obsidian (Programmtext 1.15.0): die Wahl SCHLIESST den Dialog und ruft dann `onChooseSuggestion`. */
+  selectSuggestion(value: T, evt: any): void { this.close(); this.onChooseSuggestion(value, evt); }
+  selectActiveSuggestion(evt: any): void { if (this.__active !== undefined) this.selectSuggestion(this.__active, evt); }
   onChooseSuggestion(_value: T, _evt?: any): void {}
   open(): void {}
   close(): void {}
@@ -773,16 +831,23 @@ export function setIcon(el: any, iconId: string): void {
 export function setTooltip(el: any, tooltip: string): void {
   el.setAttribute?.("data-tooltip", tooltip);
 }
-export function getLanguage(): string { return "en"; }
+let mockLanguage = "en";
+/** Die Sprache, die `getLanguage()` liefert (Standard `en`); ohne Argument oder mit leerem Text zurück auf `en`. Für Konsumenten, die die Obsidian-Sprache lesen
+ *  (`detectLang`, Seeding in der Oberflächensprache) und ihre deutschen Zweige prüfen. Nach dem Test zurücksetzen (`afterEach(() => __setMockLanguage())`). */
+export function __setMockLanguage(lang?: string): void { mockLanguage = lang === undefined || lang === "" ? "en" : lang; }
+export function getLanguage(): string { return mockLanguage; }
 
 // ---------------------------------------------------------------------------
 // Welle 19: Zusätze aus den Hand-Kopien (calendar-notes, health-vitals/vault-rag).
 // ---------------------------------------------------------------------------
-const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/;
+// Gemessen in Obsidian 1.15.1 (`pilot/frontmatter-cursor.ts`, 2026-11-04): die öffnende und die schließende Zeile sind genau `---` (Leerzeichen dahinter, `...`,
+// BOM davor und ein Anfang nicht in Zeile 1 ergeben keinen Block), ein leerer Block (`---` direkt auf `---`) ist ein Block, die schließende Zeile darf das Dateiende sein.
+const FRONTMATTER_RE = /^---\r?\n(?:([\s\S]*?)\r?\n)?---(?:\r?\n|$)/;
 
 /** `getFrontMatterInfo(content)` (calendar-notes, Welle 19): Nachbildung nach `obsidian.d.ts`. Erkennt nur den einfachen
  *  `---\n…\n---`-Block am Dateianfang, ohne YAML zu lesen — gebraucht werden die Offsets (`contentStart` = Beginn des Rumpfes).
- *  Grenzen: ein leerer Block (`---\n---\n`) gilt als „kein Block“, und `frontmatter` ist der Text ohne die Begrenzer.
+ *  Grenzen: `frontmatter` ist der Text ohne die Begrenzer und ohne das Zeilenende davor (die echte Funktion liefert es mit, gemessen 1.15.1: `to` liegt dort eins höher);
+ *  `exists` und `contentStart` stimmen mit der echten Funktion überein (leerer Block = Block, schließende Zeile genau `---`, 0.79.2).
  *  `from`/`to` zählen die Zeichen des Blocktextes im Original, auch bei CRLF (die Hand-Kopie rechnete `from` mit 4 fest). */
 export function getFrontMatterInfo(content: string): { exists: boolean; frontmatter: string; from: number; to: number; contentStart: number } {
   const m = FRONTMATTER_RE.exec(content);
@@ -820,6 +885,7 @@ export function normalizePath(path: string): string {
   const out = String(path)
     .replace(/\\/g, "/")
     .replace(/\/{2,}/g, "/")
+    .replace(/^\/+/, "")   // seit 0.61.1 wie Obsidian: „/a“ → „a“ (vorher blieb der führende Schrägstrich)
     .replace(/^\.\//, "")
     .replace(/\/$/, "")
     .trim();
@@ -958,13 +1024,107 @@ export class App {
 }
 
 // ---------------------------------------------------------------------------
-// Type-only exports (no runtime stub; not part of MockStubs).
+// Weitere benannte Exporte: Typen ohne Laufzeit-Stub (`PluginManifest`) und die Klassen/Objekte, die `defaultStubs` unten trägt.
 // ---------------------------------------------------------------------------
-/** Lebensdauer-Anker für `MarkdownRenderer.render`; im Mock ohne Wirkung. */
+/** Lebensdauer-Anker für `MarkdownRenderer.render`; im Mock ohne Wirkung. Die `register*`-Methoden und `addChild` (seit 0.61.1) liegen wie in
+ *  Obsidian auf der Basisklasse und tun nichts; ein Test, der Abmeldung prüft, überschreibt sie. */
 export class Component {
   load(): void {}
   unload(): void {}
+  register(_cb: () => unknown): void {}
+  registerEvent(_ref: unknown): void {}
+  registerDomEvent(..._args: unknown[]): void {}
+  registerInterval(id: number): number { return id; }
+  addChild<T>(child: T): T { return child; }
 }
+
+/** Basisklasse eines Codeblock-Kindes (`registerMarkdownCodeBlockProcessor`). Seit 0.61.1 im Kit-Mock; vorher trugen health-vitals und
+ *  3d-codeblocks eigene Stubs. */
+export class MarkdownRenderChild extends Component {
+  containerEl: any;
+  constructor(containerEl: any) {
+    super();
+    this.containerEl = containerEl;
+  }
+  onload(): void {}
+  onunload(): void {}
+}
+
+const MOMENT_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MOMENT_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const pad = (n: number, w = 2): string => String(n).padStart(w, "0");
+const dayOfYear = (d: Date): number => Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+/** ISO-Woche (Montag als Wochenbeginn, Woche 1 enthält den 4. Januar), wie `moment` `W`/`WW`. */
+function isoWeek(d: Date): number {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  return Math.ceil(((t.getTime() - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7);
+}
+const ordinal = (n: number): string => {
+  const r = n % 100;
+  if (r >= 11 && r <= 13) return `${n}th`;
+  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
+};
+/** Tokens von `moment`, die dieser Mock NICHT nachbildet: ein Format mit einem von ihnen wirft, statt still etwas Falsches zu liefern. */
+const MOMENT_UNSUPPORTED = /^(?:Mo|DDDo|do|w[ow]?|Wo|Qo|N{1,5}|y{1,4}o?|YYYYY|YYYYYY|gg(?:ggg?)?|GG(?:GGG?)?|e|E|kk?|S{1,9}|x|X|zz?|ZZ?|L{1,4}|l{1,4}|LT|LTS|lt|lts)$/;
+const MOMENT_TOKEN_RE = /\[[^\[]*\]|Mo|MM?M?M?|DDDo|Do|DD?D?D?|ddd?d?|do?|w[ow]?|Wo|WW?|Qo|Q|N{1,5}|YYYYYY|YYYYY|YYYY|YY|y{1,4}o?|gg(?:ggg?)?|GG(?:GGG?)?|e|E|a|A|hh?|HH?|kk?|mm?|ss?|S{1,9}|x|X|zz?|ZZ?|LTS|LT|L{1,4}|lts|lt|l{1,4}/g;
+function momentFormat(d: Date, fmt: string): string {
+  const h12 = d.getHours() % 12 === 0 ? 12 : d.getHours() % 12;
+  return fmt.replace(MOMENT_TOKEN_RE, (tok: string): string => {
+    if (tok.startsWith("[")) return tok.slice(1, -1);
+    if (MOMENT_UNSUPPORTED.test(tok)) throw new Error(`moment-Mock: Token "${tok}" wird nicht nachgebildet; das echte Paket nehmen oder moment im eigenen Mock überschreiben`);
+    switch (tok) {
+      case "YYYY": return pad(d.getFullYear(), 4);
+      case "YY": return pad(d.getFullYear() % 100);
+      case "Q": return String(Math.ceil((d.getMonth() + 1) / 3));
+      case "MMMM": return MOMENT_MONTHS[d.getMonth()] ?? "";
+      case "MMM": return (MOMENT_MONTHS[d.getMonth()] ?? "").slice(0, 3);
+      case "MM": return pad(d.getMonth() + 1);
+      case "M": return String(d.getMonth() + 1);
+      case "WW": return pad(isoWeek(d));
+      case "W": return String(isoWeek(d));
+      case "DDDD": return pad(dayOfYear(d), 3);
+      case "DDD": return String(dayOfYear(d));
+      case "DD": return pad(d.getDate());
+      case "D": return String(d.getDate());
+      case "Do": return ordinal(d.getDate());
+      case "dddd": return MOMENT_DAYS[d.getDay()] ?? "";
+      case "ddd": return (MOMENT_DAYS[d.getDay()] ?? "").slice(0, 3);
+      case "dd": return (MOMENT_DAYS[d.getDay()] ?? "").slice(0, 2);
+      case "d": return String(d.getDay());
+      case "HH": return pad(d.getHours());
+      case "H": return String(d.getHours());
+      case "hh": return pad(h12);
+      case "h": return String(h12);
+      case "mm": return pad(d.getMinutes());
+      case "m": return String(d.getMinutes());
+      case "ss": return pad(d.getSeconds());
+      case "s": return String(d.getSeconds());
+      case "A": return d.getHours() < 12 ? "AM" : "PM";
+      case "a": return d.getHours() < 12 ? "am" : "pm";
+      default: return tok;
+    }
+  });
+}
+
+/** Teilmenge von Obsidians `moment` (englisch, Ortszeit): `moment(date?).format(fmt)` mit `YYYY YY Q MMMM MMM MM M WW W DDDD DDD DD D Do dddd ddd dd d
+ *  HH H hh h mm m ss s A a` und `[Literal]` — genug für das Datumsformat der Daily Notes. **Ein Token, das der Mock nicht kennt (`w`, `gggg`, `x`, `LL` …),
+ *  wirft** statt es roh durchzureichen: still falsche Ausgabe ließe einen Test den Mock prüfen statt den Prüfling. Die unterstützten Tokens sind in
+ *  `tests/daily-notes.test.ts` gegen das echte Paket gemessen. Wer mehr braucht, überschreibt `moment` im eigenen `tests/__mocks__/obsidian.ts`
+ *  (das echte Paket kommt mit `obsidian` ins `node_modules`; der Mock selbst bleibt ohne externe Importe). `moment.locale()` liefert `"en"`. */
+export function moment(input?: Date | number | string, format?: string, strict?: boolean): { format(fmt?: string): string; toDate(): Date; valueOf(): number; isValid(): boolean } {
+  // Die Parse-Form `moment(text, format, strict)` (kuro-gamification `VaultReader`) kennt der Mock nicht: ein stilles `new Date(text)` ließe
+  // einen Test den Mock prüfen statt den Prüfling. Wer parst, überschreibt `moment` im eigenen Mock (echtes Paket).
+  if (format !== undefined) throw new Error(`obsidian-mock: moment(${JSON.stringify(input)}, ${JSON.stringify(format)}, ${String(strict)}) parst nicht nach — moment im eigenen Mock überschreiben.`);
+  const d = input === undefined ? new Date() : new Date(input);
+  return {
+    format: (fmt = "YYYY-MM-DDTHH:mm:ss") => momentFormat(d, fmt),
+    toDate: () => new Date(d.getTime()),
+    valueOf: () => d.getTime(),
+    isValid: () => !Number.isNaN(d.getTime()),
+  };
+}
+moment.locale = (_name?: string): string => "en";
 
 /** `render` schreibt den Markdown als Text ins Element (kein Parser im Mock); Tests ersetzen `render`. */
 export const MarkdownRenderer = {
@@ -995,6 +1155,9 @@ export interface MarkdownPostProcessorContext {
 // named exports and the factory defaults can never drift apart.
 // ---------------------------------------------------------------------------
 export const defaultStubs = {
+  // Lebensdauer-Anker und Markdown-Renderer (seit 0.61.1 hier, vorher nur benannte Exporte)
+  Component,
+  MarkdownRenderer,
   // base (>=4/5)
   Notice,
   Plugin,
@@ -1041,6 +1204,9 @@ export const defaultStubs = {
   getLanguage,
   setCssStyles,
   debounce,
+  // seit 0.61.1
+  moment,
+  MarkdownRenderChild,
 };
 
 export type MockStubs = typeof defaultStubs;

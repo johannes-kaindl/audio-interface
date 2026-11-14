@@ -48,8 +48,23 @@ describe("AudioInterfaceSettingTab", () => {
   it("Export aus: nur Stimme, Tempo, Export-Toggle, Umschrift-Opt-in; deutsche Stimme zuerst im Dropdown", () => {
     const { host } = makeHost(); const tab = makeTab(host);
     const items = flat(tab);
-    expect(items.map((i) => i.control?.key ?? i.name)).toEqual(["speakVoiceUri", "speakRate", "exportEnabled", "transcribeEnabled", "ttsShortcutEnabled"]);
+    expect(items.map((i) => i.control?.key ?? i.name)).toEqual(["speakVoiceUri", "speakRate", "Statusleiste", "exportEnabled", "transcribeEnabled", "ttsShortcutEnabled"]);
     expect(Object.keys(items[0].control!.options!)).toEqual(["", "de1", "en1"]);
+  });
+  it("Statusleiste: Zeile mit Schalter in der Vorlesen-Gruppe, Stand aus den Einstellungen, Umlegen speichert showStatusBar", async () => {
+    const { host, calls } = makeHost(); const tab = makeTab(host);
+    const row = flat(tab).find((i) => i.name === "Statusleiste") as { render: (s: unknown) => void } | undefined;
+    expect(row).toBeDefined();
+    let value: boolean | undefined; let onChange: ((v: boolean) => void) | undefined;
+    const setting: Record<string, unknown> = {
+      setName: () => setting, setDesc: () => setting,
+      addToggle: (cb: (t: unknown) => void) => { const t: Record<string, unknown> = { setValue: (v: boolean) => { value = v; return t; }, onChange: (f: (v: boolean) => void) => { onChange = f; return t; } }; cb(t); return setting; },
+    };
+    row!.render(setting);
+    expect(value).toBe(true); // Standard an
+    onChange!(false);
+    await flush();
+    expect(host.settings.showStatusBar).toBe(false); expect(calls.saved).toBe(1); expect(calls.changed).toEqual(["showStatusBar"]);
   });
   it("Export an + missing: Engine-Zeile (Hatch) mit „Herunterladen“ und Größe, Export-Felder sichtbar", async () => {
     const { host, calls } = makeHost({ status: "missing", readiness: "needs-download" });

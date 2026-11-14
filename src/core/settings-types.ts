@@ -54,6 +54,8 @@ export interface AudioInterfaceSettings {
   /** Vault-relativer Zielordner; "" = neben der Notiz (wie exportFolder). */
   ttsShortcutFolder: string;
   ttsShortcutTimeoutMs: number;
+  /** Statusleisten-Eintrag (Vorlesen, Render, Download) zeigen. Standard an: ein Update lässt keine genutzte Anzeige verschwinden. */
+  showStatusBar: boolean;
 }
 
 export const SPEAK_RATE = { min: 0.5, max: 2, step: 0.1 } as const;
@@ -81,6 +83,7 @@ export const DEFAULT_SETTINGS: AudioInterfaceSettings = {
   ttsShortcutName: "Speak Text (Obsidian)",
   ttsShortcutFolder: "",
   ttsShortcutTimeoutMs: 120_000,
+  showStatusBar: true, // = STATUS_BAR_DEFAULT des Kit-Bausteins; src/core bleibt frei von obsidian-Importen (check:pure), ein Test hält beide gleich
 };
 
 export function normalizeSettings(raw: unknown): AudioInterfaceSettings {

@@ -12,6 +12,7 @@ import { t } from "../i18n/strings";
 import { getLang } from "../vendor/kit/i18n";
 import { confirmAction } from "../vendor/kit-obsidian/confirm";
 import { FolderSuggest } from "../vendor/kit-obsidian/folder-suggest";
+import { statusBarEnabled, statusBarSettingDefinition } from "../vendor/kit-obsidian/status-bar-item";
 import { githubHelpUrls, helpSettingDefinition } from "../vendor/kit-obsidian/help-setting";
 import { refreshSettingsTab, renderSettingDefinitions } from "../vendor/kit-obsidian/settings_walker";
 import type { AssetStatus } from "./asset-store";
@@ -89,6 +90,11 @@ export class AudioInterfaceSettingTab extends PluginSettingTab {
         control: { type: "toggle", key: "speakWithLoadable" },
       });
     }
+    speakItems.push(statusBarSettingDefinition({
+      value: statusBarEnabled(s.showStatusBar),
+      onChange: (v) => this.setControlValue("showStatusBar", v),
+      strings: { lang: getLang() === "de" ? "de" : "en" },
+    }));
 
     const exportItems: Def[] = [
       { name: t("settings.exportEnabled.name"), desc: t("settings.exportEnabled.desc"), control: { type: "toggle", key: "exportEnabled" } },
