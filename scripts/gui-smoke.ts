@@ -27,7 +27,7 @@
  *
  * ## Bilanz
  *
- * Vier Zustände nach CORE-TEST-19: grün · rot · übersprungen · nichts gemessen. Nenner ist `PUNKTE` (19 Punkte).
+ * Vier Zustände nach CORE-TEST-19: grün · rot · übersprungen · nichts gemessen. Nenner ist `PUNKTE` (20 Punkte).
  * Exit 1 bei rot oder nichts gemessen, Exit 2 bei Abbruch. Bewusst abgewählt (übersprungen) sind nur:
  * die sieben Download-/Export-Punkte ohne `--assets` und die echte Umschrift ohne `--service`. Fehlt dem Treiber
  * in einem Punkt der Gegenstand (kein Herunterladen-Knopf, Download bleibt aus), ist der Punkt „nichts gemessen“
@@ -102,6 +102,7 @@ const P = {
   geladen: "Plugin geladen, 8 Kommandos",
   stimme: "Deutsche Systemstimme vorhanden",
   vorlesen: "Vorlesen startet (Statusleiste) und stoppt",
+  statusSchalter: "Schalter Status bar: aus = Eintrag nicht im DOM, an = Eintrag zurück am Ende der Leiste und zeigt beim Vorlesen den Text",
   exportAus: "Export-Kommando vor Download ausgeblendet",
   backend: "NEU: Settings: Backend-Wahl fuer die Umschrift sichtbar (localhost + Kurzbefehl)",
   ttsZeilen: "NEU: Settings: TTS-als-Datei-Zeilen (Kurzbefehl-Name) nur nach Opt-in sichtbar",
@@ -274,6 +275,34 @@ async function main(): Promise<void> {
     await cdp.evaluate(`app.commands.executeCommandById("${PLUGIN_ID}:speak-stop"); return true;`);
     const stopped = await pollUntil<boolean>(cdp, `const el = document.querySelector(".audio-interface-status"); return el && el.classList.contains("is-hidden") ? true : null;`, 3000, 100);
     record(P.vorlesen, !!speaking && !!stopped, `Status war „${speaking ?? "-"}“`);
+
+    // 3b Schalter Status bar am echten Obsidian: aus -> der Eintrag steht nicht mehr im DOM, an -> er ist zurück (neu angelegt, also am Ende der
+    // Leiste) und zeigt beim Vorlesen wieder den Text. Ein Tab-Aufenthalt, nur über setControlValue (1.13-Cache-Falle, siehe Punkt 4a).
+    const schalter = await cdp.evaluate<{ aus: number; an: number; letzter: boolean; text: string | null }>(`
+      const sel = ".audio-interface-status";
+      app.setting.open(); app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+      await new Promise((r) => setTimeout(r, 600));
+      const tab = app.setting.activeTab;
+      await tab.setControlValue("showStatusBar", false);
+      await new Promise((r) => setTimeout(r, 400));
+      const aus = document.querySelectorAll(sel).length;
+      await tab.setControlValue("showStatusBar", true);
+      await new Promise((r) => setTimeout(r, 400));
+      const an = document.querySelectorAll(sel).length;
+      const leiste = document.querySelector(".status-bar");
+      const letzter = !!leiste && leiste.lastElementChild === document.querySelector(sel);
+      app.setting.close();
+      app.commands.executeCommandById(${JSON.stringify(PLUGIN_ID + ":speak-note")});
+      let text = null;
+      for (let i = 0; i < 25 && text === null; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        const el = document.querySelector(sel);
+        if (el && !el.classList.contains("is-hidden") && el.textContent) text = el.textContent;
+      }
+      app.commands.executeCommandById(${JSON.stringify(PLUGIN_ID + ":speak-stop")});
+      return { aus, an, letzter, text };`);
+    await schliesseEinstellungen(cdp);
+    record(P.statusSchalter, schalter.aus === 0 && schalter.an === 1 && schalter.letzter && schalter.text !== null, `aus=${schalter.aus} Element(e), an=${schalter.an}, letzter in der Leiste=${schalter.letzter}, Text beim Vorlesen „${schalter.text ?? "-"}“`);
 
     // 4 Export-Kommando vor Download NICHT in der Palette
     await cdp.evaluate(`const p = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]; p.settings.exportEnabled = false; await p.saveSettings(); p.piper.setEnabled(false); return true;`);
