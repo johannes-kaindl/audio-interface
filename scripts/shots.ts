@@ -94,11 +94,7 @@ async function boxWhere(cdp: Cdp, finder: string, padding = 0): Promise<Rect | n
 /** Wie capture(), aber mit doppelter Pixeldichte — fuer kleine Ausschnitte (Statusleiste, eine
  *  Settings-Zeile), die writeShot sonst von ~400 px auf 1200 px hochrechnen muesste. */
 async function captureScharf(cdp: Cdp, clip: Rect): Promise<Buffer> {
-  await cdp.send("Page.bringToFront");
-  const res = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { ...clip, scale: 2 } });
-  const data = (res.result as { data?: string } | undefined)?.data;
-  if (!data) throw new Error("Page.captureScreenshot lieferte kein Bild");
-  return Buffer.from(data, "base64");
+  return capture(cdp, clip, 2);
 }
 
 async function paletteSchliessen(cdp: Cdp): Promise<void> {
@@ -301,7 +297,6 @@ async function main(): Promise<void> {
   if (!cdp) throw new Error(`Kein Obsidian-Fenster mit dem Vault "${REPO_NAME}" auf Port ${port}. Den Aufnahme-Vault oeffnen: open -a Obsidian "$STAGING_VAULTS_DIR/${REPO_NAME}"`);
   console.log(`Verbunden auf Port ${port}.\n`);
   await cdp.mitschnitt((zeile) => console.log(`      » ${zeile}`));
-  await cdp.send("Page.bringToFront");
   await wait(3000);
 
   const lang = await cdp.evaluate<string>(
