@@ -9,18 +9,11 @@
  * ein `quit` oder `Page.reload` dort zerstört deren Zustand (Dach-AGENTS § Staging-Vaults). Gefahren wird gegen
  * eine Zweitinstanz mit eigenem Profil und eigenem Port:
  *
- * ```bash
- * UD=/tmp/obs-test-audio-interface; PORT=<freier Port>; mkdir -p
- * lsof -nP -iTCP:$PORT -sTCP:LISTEN; pgrep -f "user-data-dir=$UD"      # beides leer, sonst ausweichen
- * npm run build && npm run smoke:gui -- --setup                        # Staging-Vault aus docs/images/fixture
- * mkdir -p $UD && cp ~/Library/Application\ Support/obsidian/obsidian-*.asar $UD/
- * # $UD/obsidian.json: den Vault unter $STAGING_VAULTS_DIR eintragen, "language":"en"
- * /Applications/Obsidian.app/Contents/MacOS/Obsidian --user-data-dir=$UD --remote-debugging-port=$PORT &
- * python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label audio-interface \
- *   --intent "GUI-Smoke" --exclusive focus --port $PORT --ttl 900
- * npm run smoke:gui -- --port $PORT --assets http://127.0.0.1:8765/assets
- * python3 ~/.claude/hooks/obsidian-cdp-lock.py release --port $PORT
- * ```
+ * Lauf: `tools/obsidian-cdp/messlauf.sh` (Dach, README § Messlauf in einem Aufruf) startet die Zweitinstanz, hält den Lock (`--exclusive focus`, davor, mit `export`)
+ * und räumt auf; das Rezept steht nur dort. Für diesen Treiber: `REPO=audio-interface SMOKE_ARGS="--assets http://127.0.0.1:8765/assets"`.
+ *
+ * Besonderheiten dieses Treibers (aus dem früheren Rezept übernommen):
+ *   Setup (`--setup`): Staging-Vault aus docs/images/fixture
  *
  * Vertrauensdialog und Restricted Mode des frischen Profils bestätigt der Treiber selbst (`bereiteInstanzVor`).
  * Der erste Lauf nach der Profilanlage ist ein Aufwärmlauf und zählt nicht; je Messlauf startet ein frischer Prozess.
