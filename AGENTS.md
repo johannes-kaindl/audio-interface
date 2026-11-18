@@ -96,7 +96,7 @@ Vor dem Tag also: `npm run assets` gelaufen, Manifest committet, `manifest.json`
 
 ## Kit-Pin (Abweichung vom Stand des Kits)
 
-Der Pin steht bewusst hinter dem Rest: `tools/kit-sync.json` vendort obsidian-kit 0.60.1 und code-kit 0.27.1, einzeln `pcm` 0.46.0, `asset-store` und `loopback` 0.63.0 (gehoben für `joinAssetUrl`/`isLoopbackHttpUrl`, Welle 33). Der Grund trägt, gemessen 2026-11-12 gegen obsidian-kit 0.82.2 / code-kit 0.63.0 (Byte-Vergleich je vendortem Modul, `git show <tag>:<pfad>`): 14 der damals 19 vendorten Module sind unverändert; `num` und `vault-path` bekamen nur neue Funktionen (nicht genutzt), `settings_walker` nur Doku-Kommentar, `obsidian-mock` ist ein Test-Double, `asset-store` wurde gehoben. Nutzersichtbar ändert ein Heben nichts. Nachmessen vor einem pauschalen Heben: dieselbe Gegenüberstellung, nicht dem Datum trauen.
+Der Pin steht bewusst hinter dem Rest: `tools/kit-sync.json` vendort seit Welle 36 code-kit 0.75.0 und obsidian-kit 0.92.0 als ein Pin (kein Einzelpin mehr; `isHttpsOrLoopbackUrl`, `joinAssetUrl`). Gemessen 2026-11-18: von code-kit 0.73.0 auf 0.75.0 änderte sich kein vendortes Modul, nur die Kopfzeile. Der ältere Befund zum Rückstand, gemessen 2026-11-12 gegen obsidian-kit 0.82.2 / code-kit 0.63.0 (Byte-Vergleich je vendortem Modul, `git show <tag>:<pfad>`): 14 der damals 19 vendorten Module sind unverändert; `num` und `vault-path` bekamen nur neue Funktionen (nicht genutzt), `settings_walker` nur Doku-Kommentar, `obsidian-mock` ist ein Test-Double, `asset-store` wurde gehoben. Nutzersichtbar ändert ein Heben nichts. Nachmessen vor einem pauschalen Heben: dieselbe Gegenüberstellung, nicht dem Datum trauen.
 
 ## Offen (nach Release 1)
 

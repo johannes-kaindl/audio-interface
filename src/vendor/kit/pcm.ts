@@ -1,4 +1,4 @@
-// vendored from code-kit@0.73.0, src/ts/pure/pcm.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
+// vendored from code-kit@0.75.0, src/ts/pure/pcm.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
 // uebernommen aus audio-interface/src/core/audio.ts (Stand Tag 0.7.4), 2026-11-02
 // Grund: zweiter Nutzer ist protocol-droid (REGISTRY § Audio „Kit-Kandidat, sobald ein zweites Plugin Audio schreibt“); Körper gleich bis auf Index-Guards für check:index-strict.
 // PCM-Mathematik: Stille, Zusammensetzen, Resampling, 16-bit-WAV. Pur, ohne AudioContext

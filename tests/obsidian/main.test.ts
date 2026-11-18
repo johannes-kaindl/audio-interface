@@ -60,7 +60,7 @@ describe("AudioInterfacePlugin", () => {
     const def = base((await load()).plugin);
     expect(base((await load(null, "http://127.0.0.1:8765/assets")).plugin)).toBe("http://127.0.0.1:8765/assets");
     expect(base((await load(null, "https://example.org/releases/download")).plugin)).toBe("https://example.org/releases/download");
-    for (const bad of ["http://evil.test/assets", "http://127.0.0.1.evil.test/assets", "ftp://127.0.0.1/x", "javascript:alert(1)", "kein url"]) {
+    for (const bad of ["http://evil.test/assets", "http://127.0.0.1.evil.test/assets", "http://127.0.0.1@evil.test/assets", "http://localhost.evil.test/assets", "ftp://127.0.0.1/x", "javascript:alert(1)", "kein url"]) {
       expect(base((await load(null, bad)).plugin)).toBe(def);
     }
   });
