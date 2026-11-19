@@ -11,7 +11,7 @@ Smoke: `docs/SMOKE.md`.
 - **Kein `child_process`, kein `fs`, kein Inline-WASM.** Die Scorecard bestraft `child_process`/`fs`
   mit `medium`, `main.js > 5 MB` mit einer Warnung (local-image-generator 0.4). Deshalb: Laufzeit +
   Modell sind **Release-Assets**, nicht Bundle-Inhalt (`check:bundle` hält `main.js` < 2 MB).
-- **Assets nur nach Klick, nur vom eigenen GitHub-Release, SHA-256 vor dem Instanziieren.** Die
+- **Assets nur nach Klick, nur vom eigenen Forgejo-Release (einzige Basis, Entscheidung 2026-11-18), SHA-256 vor dem Instanziieren.** Die
   Prüfsummen stehen in `src/core/engine-manifest.generated.ts` (von `npm run assets` geschrieben —
   nie von Hand). Nach jeder Änderung am Worker (`src/worker/`, `src/vendor/kit/pcm.ts`,
   `src/core/piper-phonemes.ts`) **`npm run assets` laufen lassen und das Manifest mitcommitten**,
