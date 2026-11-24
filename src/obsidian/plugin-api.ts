@@ -23,8 +23,8 @@ export interface AudioProviderApiDeps {
   transcribeShortcut: (vaultPath: string) => Promise<TranscribeOutcome>;
 
   piperReady: () => boolean;
-  /** @returns Vault-Pfad. Wirft `ExportError`. */
-  speakPiper: (text: string, targetFolder: string) => Promise<string>;
+  /** @returns Vault-Pfad. Wirft `ExportError`; bei Abbruch (`signal`) `ExportError("aborted")`, bevor etwas im Vault landet. */
+  speakPiper: (text: string, targetFolder: string, signal?: AbortSignal) => Promise<string>;
   ttsShortcutEnabled: () => boolean;
   /** @returns Vault-Pfad. Wirft `ShortcutTtsError`. */
   speakShortcut: (text: string, targetFolder: string) => Promise<string>;
@@ -61,8 +61,30 @@ function mapShortcutReason(reason: Extract<ShortcutResult, { ok: false }>["reaso
   }
 }
 
+const ABORTED = "abgebrochen";
+
+/** Abbruch nach Kit-Vertrag (seit 0.93.0): ein schon abgebrochenes Signal liefert `aborted`, ohne das Backend zu rufen;
+ *  ein Abbruch währenddessen ebenso — das späte Ergebnis eines Backends, das sich nicht anhalten lässt, wird verworfen. */
+async function raceAbort<T>(signal: AbortSignal | undefined, work: () => Promise<T | AudioProviderError>): Promise<T | AudioProviderError> {
+  if (signal === undefined) return work();
+  if (signal.aborted) return err("aborted", ABORTED);
+  let onAbort: () => void = () => {};
+  const aborted = new Promise<AudioProviderError>((resolve) => {
+    onAbort = () => resolve(err("aborted", ABORTED));
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  const running = work();
+  running.catch(() => {}); // ein spät scheiternder Lauf nach dem Abbruch ist kein unbehandelter Fehler
+  try {
+    return await Promise.race([running, aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
 function mapExportError(e: unknown): AudioProviderError {
   if (e instanceof ExportError) {
+    if (e.code === "aborted") return err("aborted", ABORTED);
     if (e.code === "empty") return err("unsupported", "Nichts zu sprechen — der Text ist leer.");
     return err("failed", e.message);
   }
@@ -81,33 +103,39 @@ export function createAudioProviderApi(deps: AudioProviderApiDeps): AudioProvide
   return {
     version: AUDIO_PROVIDER_API_VERSION,
 
-    async transcribe(vaultPath) {
-      if (deps.transcribeBackend() === "shortcuts") {
-        const outcome = await deps.transcribeShortcut(vaultPath);
+    async transcribe(vaultPath, opts) {
+      return raceAbort(opts?.signal, async () => {
+        if (deps.transcribeBackend() === "shortcuts") {
+          const outcome = await deps.transcribeShortcut(vaultPath);
+          return outcome.ok ? outcome.text : err(mapTranscribeFailure(outcome.kind), outcome.detail);
+        }
+        const ready = await deps.transcribeLocalhostReady();
+        if (!ready.ok) return err("backend-unavailable", ready.message);
+        const bytes = await deps.readVaultBytes(vaultPath);
+        if (bytes === null) return err("not-found", `Datei nicht gefunden: ${vaultPath}`);
+        const outcome = await deps.transcribeLocalhost(bytes);
         return outcome.ok ? outcome.text : err(mapTranscribeFailure(outcome.kind), outcome.detail);
-      }
-      const ready = await deps.transcribeLocalhostReady();
-      if (!ready.ok) return err("backend-unavailable", ready.message);
-      const bytes = await deps.readVaultBytes(vaultPath);
-      if (bytes === null) return err("not-found", `Datei nicht gefunden: ${vaultPath}`);
-      const outcome = await deps.transcribeLocalhost(bytes);
-      return outcome.ok ? outcome.text : err(mapTranscribeFailure(outcome.kind), outcome.detail);
+      });
     },
 
     async speak(text, opts) {
+      if (opts.signal?.aborted) return err("aborted", ABORTED);
       if (deps.piperReady()) {
+        // Piper bekommt das echte Signal: `runExport` bricht vor dem Schreiben ab, im Vault landet dann nichts.
         try {
-          return await deps.speakPiper(text, opts.targetFolder);
+          return await deps.speakPiper(text, opts.targetFolder, opts.signal);
         } catch (e) {
           return mapExportError(e);
         }
       }
       if (deps.ttsShortcutEnabled()) {
-        try {
-          return await deps.speakShortcut(text, opts.targetFolder);
-        } catch (e) {
-          return mapShortcutTtsError(e);
-        }
+        return raceAbort(opts.signal, async () => {
+          try {
+            return await deps.speakShortcut(text, opts.targetFolder);
+          } catch (e) {
+            return mapShortcutTtsError(e);
+          }
+        });
       }
       return err("backend-unavailable", "Weder eine ladbare Stimme noch der Kurzbefehl-Weg für TTS sind eingerichtet.");
     },

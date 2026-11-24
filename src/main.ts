@@ -502,11 +502,11 @@ export default class AudioInterfacePlugin extends Plugin {
       transcribeLocalhost: (bytes) => this.transcriber.transcribeFile(bytes),
       transcribeShortcut: (vaultPath) => this.shortcutsTranscriber.transcribePath(vaultPath),
       piperReady: () => this.settings.exportEnabled && this.readiness === "ready",
-      speakPiper: async (text, targetFolder) => {
+      speakPiper: async (text, targetFolder, signal) => {
         const result = await runExport(
           { markdown: text, noteBasename: `audio-provider-${Date.now()}`, noteFolder: targetFolder, today: new Date().toISOString().slice(0, 10) },
           { engine: this.piper, vault: this.vaultPort(), settings: this.settings, onState: () => {} },
-          new AbortController().signal,
+          signal ?? new AbortController().signal,
         );
         return result.path;
       },

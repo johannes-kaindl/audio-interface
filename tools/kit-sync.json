@@ -1,7 +1,7 @@
 {
   "sources": {
-    "obsidian-kit": { "ref": "0.92.0" },
-    "code-kit": { "ref": "0.75.0" }
+    "obsidian-kit": { "ref": "0.106.0" },
+    "code-kit": { "ref": "0.87.0" }
   },
   "targets": [
     { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num", "format-bytes", "local-stamp", "loopback", "filename-policy", "pcm"] },
