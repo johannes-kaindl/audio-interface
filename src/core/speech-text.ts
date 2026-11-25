@@ -1,3 +1,4 @@
+import { splitFrontmatter } from "../vendor/kit/frontmatter";
 // Markdown → Sprech-Chunks. Pur.
 // Regeln orientiert an voicelab/markdown.py (40_Tools/TTS, `strip_markdown`/`chunk`) — dort als
 // Python-Fassung; hier neu geschrieben, weil das Ergebnis Chunks MIT Pausen sind, kein Fließtext.
@@ -10,7 +11,6 @@ export interface SpeechChunk {
 
 export const PAUSE_MS = { sentence: 250, paragraph: 600, heading: 900 } as const;
 
-const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
 const FENCE = /```[\s\S]*?```/g;
 const COMMENT = /%%[\s\S]*?%%/g;
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
@@ -84,7 +84,7 @@ export function splitSentences(paragraph: string): string[] {
 }
 
 export function prepareSpeech(markdown: string): SpeechChunk[] {
-  const body = markdown.replace(FRONTMATTER, "").replace(FENCE, "").replace(COMMENT, "");
+  const body = splitFrontmatter(markdown).body.replace(FENCE, "").replace(COMMENT, "");
   const chunks: SpeechChunk[] = [];
   let para: string[] = [];
 

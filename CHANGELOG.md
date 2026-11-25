@@ -9,7 +9,9 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - The provider API now honours cancellation (Kit contract 0.93.0): `transcribe` and `speak` return `aborted` right away when the caller's signal is already aborted, without calling a backend, and also when it is aborted during the call. Piper stops before writing, so nothing lands in the vault; a Shortcuts call cannot be stopped, its late result is discarded.
-- Kit pins raised to obsidian-kit 0.106.0 and code-kit 0.87.0.
+- Kit pins raised to obsidian-kit 0.111.0 and code-kit 0.91.1.
+- A transcript note and an exported WAV whose name is taken now get ` 2`, ` 3` … like the other plugins of the family (was `-2`, `-3`); the transcript note is created through the shared building block, so an installed Filename Sanitizer applies its rules to the name.
+- The export folder is created level by level through the shared `ensureDir`, which accepts a folder that appeared meanwhile.
 
 ## [0.8.1] — 2026-11-14
 

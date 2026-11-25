@@ -60,7 +60,7 @@ describe("runExport", () => {
   });
   it("Kollision → Suffix -2", async () => {
     const { p } = run({}, fakeEngine(), fakeVault(["Arbeit/Mailbox.wav"]));
-    expect((await p).path).toBe("Arbeit/Mailbox-2.wav");
+    expect((await p).path).toBe("Arbeit/Mailbox 2.wav");
   });
   it("leerer Text → failed(empty), nichts geschrieben", async () => {
     const states: RunState[] = []; const v = fakeVault();

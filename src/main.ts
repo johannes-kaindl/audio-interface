@@ -2,8 +2,6 @@ import { getLanguage, MarkdownView, Notice, Plugin, requestUrl, TFile, TFolder, 
 import { defaultExportEngineId, engineById, loadableEngines, RELEASE_BASE_URL, type EngineDescriptor } from "./core/engine-manifest";
 import { exportEngineFor, speakEngineFor, type EngineReadiness } from "./core/engines";
 import { isTranscribableAudio, transcriptNote } from "./core/dictation-service";
-import { joinVaultPath } from "./core/file-naming";
-import { firstFreeName } from "./vendor/kit/filename-policy";
 import { abort, begin, fail, finish, IDLE, isBusy, progress, type RunState } from "./core/run-state";
 import { normalizeSettings, type AudioInterfaceSettings } from "./core/settings-types";
 import { initI18n, t } from "./i18n/strings";
@@ -25,6 +23,9 @@ import { createShortcutsBridge, type ShortcutsBridge } from "./vendor/kit-obsidi
 import type { AudioProviderApi } from "./vendor/kit/audio-provider";
 import { isHttpsOrLoopbackUrl } from "./vendor/kit/loopback";
 import { localDate } from "./vendor/kit/local-stamp";
+import { errorMessage } from "./vendor/kit/error-message";
+import { ensureDir } from "./vendor/kit/ensure-dir";
+import { createNote } from "./vendor/kit-obsidian/create-note";
 
 /** Global im `obsidian://`-Namensraum (Kit-Konvention `<plugin-id>-shortcut`) — EIN Handler für
  *  beide Kurzbefehl-Fähigkeiten des Plugins (STT + TTS), nicht je Fähigkeit einer. */
@@ -259,7 +260,7 @@ export default class AudioInterfacePlugin extends Plugin {
       setState(finish(this.download.state, "ok"), true);
     } catch (err) {
       if (controller.signal.aborted) setState(abort(this.download.state), true);
-      else setState(fail(this.download.state, err instanceof Error ? err.message : String(err)), true);
+      else setState(fail(this.download.state, errorMessage(err)), true);
     } finally {
       this.download.controller = null;
       await this.refreshReadiness();
@@ -339,13 +340,14 @@ export default class AudioInterfacePlugin extends Plugin {
         new Notice(t("notice.transcribeFailed", outcome.detail !== "" ? outcome.detail : outcome.kind));
         return;
       }
-      const base = joinVaultPath(file.parent?.path ?? "", file.basename);
-      const path = firstFreeName(`${base}.md`, "file", (candidate) => this.app.vault.getAbstractFileByPath(candidate) !== null, { style: "dash" });
-      const note = await this.app.vault.create(path, transcriptNote(outcome.text, file.name));
+      // Kit-Baustein „Notiz anlegen“: Name nach der Dateinamen-Richtlinie, ein belegter Name wird ` 2` (wie in der Plugin-Familie).
+      const made = await createNote(this.app, { folder: file.parent?.path ?? "", name: file.basename, content: transcriptNote(outcome.text, file.name), caller: this.manifest.id });
+      if (!made.ok) throw new Error(made.message);
+      const note = made.file;
       await this.app.workspace.getLeaf(true).openFile(note);
       new Notice(t("notice.transcribed", note.name));
     } catch (error) {
-      new Notice(t("notice.transcribeFailed", error instanceof Error ? error.message : String(error)));
+      new Notice(t("notice.transcribeFailed", errorMessage(error)));
     }
   }
 
@@ -405,7 +407,7 @@ export default class AudioInterfacePlugin extends Plugin {
       new Notice(t("notice.ttsFileSaved", path));
     } catch (err) {
       if (err instanceof ShortcutTtsError && err.code === "empty") new Notice(t("notice.empty"));
-      else new Notice(t("notice.ttsFileFailed", err instanceof Error ? err.message : String(err)));
+      else new Notice(t("notice.ttsFileFailed", errorMessage(err)));
     } finally {
       this.ttsFileBusy = false;
     }
@@ -461,7 +463,7 @@ export default class AudioInterfacePlugin extends Plugin {
         new Notice(err.code === "empty" ? t("notice.empty") : t("notice.engineUnavailable"));
         return;
       }
-      new Notice(t("notice.speakFailed", err instanceof Error ? err.message : String(err)));
+      new Notice(t("notice.speakFailed", errorMessage(err)));
       void this.refreshReadiness();
     }
   }
@@ -472,7 +474,7 @@ export default class AudioInterfacePlugin extends Plugin {
       exists: (path) => vault.getAbstractFileByPath(path) !== null,
       folderExists: (path) => vault.getAbstractFileByPath(path) instanceof TFolder,
       createFolder: async (path) => {
-        await vault.createFolder(path);
+        await ensureDir(vault.adapter, path);
       },
       createBinary: async (path, data) => {
         const buf = new ArrayBuffer(data.byteLength);
@@ -554,7 +556,7 @@ export default class AudioInterfacePlugin extends Plugin {
     } catch (err) {
       if (err instanceof ExportError && err.code === "aborted") new Notice(t("notice.exportAborted"));
       else if (err instanceof ExportError && err.code === "empty") new Notice(t("notice.empty"));
-      else new Notice(t("notice.exportFailed", err instanceof Error ? err.message : String(err)));
+      else new Notice(t("notice.exportFailed", errorMessage(err)));
       void this.refreshReadiness();
     } finally {
       this.exportController = null;

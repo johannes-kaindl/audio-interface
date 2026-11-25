@@ -8,6 +8,7 @@ import { abort, begin, fail, finish, progress, type RunState } from "../core/run
 import type { AudioInterfaceSettings } from "../core/settings-types";
 import { prepareSpeech } from "../core/speech-text";
 import type { PiperEngine } from "./engines/piper-engine";
+import { errorMessage } from "../vendor/kit/error-message";
 
 export interface VaultPort {
   exists(path: string): boolean;
@@ -76,7 +77,7 @@ export async function runExport(input: ExportInput, deps: ExportDeps, signal: Ab
       pcm = await deps.engine.synthesize(chunks, { lengthScale: deps.engine.tempo }, signal, (done, total) => emit(progress(state, "synthesizing", done, total)));
     } catch (err) {
       if (signal.aborted) throw new ExportError("aborted");
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = errorMessage(err);
       emit(fail(state, msg));
       throw new ExportError("engine", msg);
     }
@@ -91,7 +92,7 @@ export async function runExport(input: ExportInput, deps: ExportDeps, signal: Ab
     const folder = deps.settings.exportFolder.trim() !== "" ? deps.settings.exportFolder.trim() : input.noteFolder;
     if (folder !== "" && !deps.vault.folderExists(folder)) await deps.vault.createFolder(folder);
     const base = renderFileName(deps.settings.exportFilePattern, { note: input.noteBasename, date: input.today });
-    const fileName = firstFreeName(`${base}.wav`, "file", (candidate) => deps.vault.exists(joinVaultPath(folder, candidate)), { style: "dash" });
+    const fileName = firstFreeName(`${base}.wav`, "file", (candidate) => deps.vault.exists(joinVaultPath(folder, candidate)), { style: "space" });
     const path = joinVaultPath(folder, fileName);
     await deps.vault.createBinary(path, wav);
     emit(finish(state, path));

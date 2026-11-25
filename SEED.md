@@ -195,5 +195,5 @@ Drei Auflösungen stehen zur Wahl, entschieden ist keine:
 | `../../audio-ui` | Python/MLX-Kern, Messwerte, `AGENTS.md` mit allen STT-Zahlen |
 | `$SHARED/40_Tools/TTS` | `voicelab/` — Stimmen, Personas, Cloning, PCM-Export |
 | `../koda-agent` | späterer Konsument der Duplex-Schleife |
-| Cockpit `audio-ui` | `obsidian://open?vault=10_Pallas&file=25_Coding%2Faudio-ui%2Faudio-ui` |
+| Cockpit `audio-ui` | Notiz `25_Coding/audio-ui/audio-ui.md` im Coding-Cockpit (`$CODING_COCKPIT_VAULT`) |
 | TaskNote | `25_Coding/audio-ui/_Tasks/Sprachgrenze — Daemon oder native TypeScript-Implementierung.md` |

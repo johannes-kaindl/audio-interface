@@ -12,6 +12,7 @@ import type { TranscribeFailure, TranscribeOutcome } from "../core/dictation-ser
 import { ExportError } from "./exporter";
 import { ShortcutTtsError } from "./shortcut-tts";
 import type { ShortcutResult } from "../vendor/kit-obsidian/shortcuts-bridge";
+import { errorMessage } from "../vendor/kit/error-message";
 
 export interface AudioProviderApiDeps {
   transcribeBackend: () => "localhost" | "shortcuts";
@@ -88,7 +89,7 @@ function mapExportError(e: unknown): AudioProviderError {
     if (e.code === "empty") return err("unsupported", "Nichts zu sprechen — der Text ist leer.");
     return err("failed", e.message);
   }
-  return err("failed", e instanceof Error ? e.message : String(e));
+  return err("failed", errorMessage(e));
 }
 
 function mapShortcutTtsError(e: unknown): AudioProviderError {
@@ -96,7 +97,7 @@ function mapShortcutTtsError(e: unknown): AudioProviderError {
     if (e.code === "empty") return err("unsupported", "Nichts zu sprechen — der Text ist leer.");
     return err(mapShortcutReason(e.code), e.message);
   }
-  return err("failed", e instanceof Error ? e.message : String(e));
+  return err("failed", errorMessage(e));
 }
 
 export function createAudioProviderApi(deps: AudioProviderApiDeps): AudioProviderApi {
