@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-25
+
 ### Changed
 
 - The provider API now honours cancellation (Kit contract 0.93.0): `transcribe` and `speak` return `aborted` right away when the caller's signal is already aborted, without calling a backend, and also when it is aborted during the call. Piper stops before writing, so nothing lands in the vault; a Shortcuts call cannot be stopped, its late result is discarded.
