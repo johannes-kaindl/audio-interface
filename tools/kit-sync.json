@@ -1,13 +1,98 @@
 {
   "sources": {
-    "obsidian-kit": { "ref": "0.106.0" },
-    "code-kit": { "ref": "0.87.0" }
+    "obsidian-kit": {
+      "ref": "0.111.0"
+    },
+    "code-kit": {
+      "ref": "0.91.1"
+    }
   },
   "targets": [
-    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/pure", "modules": ["i18n", "timeout", "run-state", "settings_schema", "num", "format-bytes", "local-stamp", "loopback", "filename-policy", "pcm"] },
-    { "dir": "src/vendor/kit", "source": "code-kit", "from": "src/ts/web", "modules": ["cache-download", "asset-store"] },
-    { "dir": "src/vendor/kit", "source": "obsidian-kit", "from": "src/pure", "modules": ["vault-path", "audio-provider"] },
-    { "dir": "src/vendor/kit-obsidian", "source": "obsidian-kit", "from": "src/obsidian", "modules": ["settings_walker", "setting-body-host", "folder-suggest", "clock", "confirm", "help-setting", "shortcuts-bridge", "status-bar-item"] },
-    { "dir": "tests/vendor/kit", "source": "obsidian-kit", "from": "src/testing", "modules": ["obsidian-mock"] }
+    {
+      "dir": "src/vendor/kit",
+      "source": "code-kit",
+      "from": "src/ts/pure",
+      "modules": [
+        "i18n",
+        "timeout",
+        "run-state",
+        "settings_schema",
+        "num",
+        "format-bytes",
+        "local-stamp",
+        "loopback",
+        "filename-policy",
+        "pcm",
+        "ensure-dir",
+        "error-message",
+        "rel-path"
+      ]
+    },
+    {
+      "dir": "src/vendor/kit",
+      "source": "code-kit",
+      "from": "src/ts/web",
+      "modules": [
+        "cache-download",
+        "asset-store"
+      ]
+    },
+    {
+      "dir": "src/vendor/kit",
+      "source": "obsidian-kit",
+      "from": "src/pure",
+      "modules": [
+        "vault-path",
+        "audio-provider",
+        "frontmatter",
+        "filename-sanitizer-source"
+      ],
+      "rewrite": [
+        [
+          "../vendor/code-kit/pure/",
+          "./"
+        ]
+      ]
+    },
+    {
+      "dir": "src/vendor/kit-obsidian",
+      "source": "obsidian-kit",
+      "from": "src/obsidian",
+      "modules": [
+        "settings_walker",
+        "setting-body-host",
+        "folder-suggest",
+        "clock",
+        "confirm",
+        "help-setting",
+        "shortcuts-bridge",
+        "status-bar-item",
+        "create-note",
+        "safe-file-name",
+        "plugin-api"
+      ],
+      "rewrite": [
+        [
+          "../vendor/code-kit/pure/",
+          "../kit/"
+        ],
+        [
+          "../vendor/code-kit/web/",
+          "../kit/"
+        ],
+        [
+          "../pure/",
+          "../kit/"
+        ]
+      ]
+    },
+    {
+      "dir": "tests/vendor/kit",
+      "source": "obsidian-kit",
+      "from": "src/testing",
+      "modules": [
+        "obsidian-mock"
+      ]
+    }
   ]
 }

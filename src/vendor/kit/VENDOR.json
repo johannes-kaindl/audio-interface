@@ -1,10 +1,10 @@
 {
   "source": "code-kit",
-  "version": "0.87.0",
-  "sha": "7c6cc31",
-  "vendored": "i18n.ts, timeout.ts, run-state.ts, settings_schema.ts, num.ts, format-bytes.ts, local-stamp.ts, loopback.ts, filename-policy.ts, pcm.ts, cache-download.ts, asset-store.ts",
-  "obsidian_kit_version": "0.106.0",
-  "obsidian_kit_sha": "abb26f3",
-  "obsidian_kit_vendored": "vault-path.ts, audio-provider.ts",
+  "version": "0.91.1",
+  "sha": "512aa5c",
+  "vendored": "i18n.ts, timeout.ts, run-state.ts, settings_schema.ts, num.ts, format-bytes.ts, local-stamp.ts, loopback.ts, filename-policy.ts, pcm.ts, ensure-dir.ts, error-message.ts, rel-path.ts, cache-download.ts, asset-store.ts",
+  "obsidian_kit_version": "0.111.0",
+  "obsidian_kit_sha": "3ba6442",
+  "obsidian_kit_vendored": "vault-path.ts, audio-provider.ts, frontmatter.ts, filename-sanitizer-source.ts",
   "license": "AGPL-3.0-or-later"
 }

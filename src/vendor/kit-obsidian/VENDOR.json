@@ -1,8 +1,8 @@
 {
   "source": "obsidian-kit",
-  "version": "0.106.0",
-  "sha": "abb26f3",
-  "vendored": "settings_walker.ts, setting-body-host.ts, folder-suggest.ts, clock.ts, confirm.ts, help-setting.ts, shortcuts-bridge.ts, status-bar-item.ts",
+  "version": "0.111.0",
+  "sha": "3ba6442",
+  "vendored": "settings_walker.ts, setting-body-host.ts, folder-suggest.ts, clock.ts, confirm.ts, help-setting.ts, shortcuts-bridge.ts, status-bar-item.ts, create-note.ts, safe-file-name.ts, plugin-api.ts",
   "help-setting.ts": "Kit 0.43.0 (bcd1805) — Pins in tools/kit-sync.json, re-vendor via tools/sync-kit.sh (zentrales kit-sync im Dach).",
   "license": "AGPL-3.0-or-later"
 }
